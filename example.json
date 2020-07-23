@@ -1,0 +1,21 @@
+{
+    "options": [
+        {
+            "section": "edition",
+            "values": [
+                { "name": "Open Source", "price": "0" },
+                { "name": "EE 1", "price": "$223" }
+            ]
+        },
+        {
+            "section": "support",
+            "values": [
+                { "name": "Big support", "price": "0", "depend_on": [
+                        { "section": "edition", "index": 1 }
+                    ]
+                },
+                { "name": "Small supprot", "price": "$223" }
+            ]
+        }
+    ]
+}

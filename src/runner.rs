@@ -22,8 +22,48 @@ impl<'driver> Runner<'driver> {
     }
 
     pub async fn run(&mut self, test: &Test) -> Result<()> {
-        for cmd in &test.commands {
-            self.run_command(cmd).await?;
+        crate::validation::validate_conditions(&test.commands)?;
+        let nodes = create_nodes(&test.commands);
+
+        if nodes.is_empty() {
+            return Ok(());
+        }
+
+        let mut i = 0;
+        loop {
+            let run = &nodes[i];
+            match run.next {
+                Some(NodeTransition::Next(next)) => {
+                    i = next;
+                    let cmd = &run.command;
+                    self.run_command(cmd).await?;
+                }
+                Some(NodeTransition::Conditional(next, or_else)) => {
+                    let condition = match &run.command {
+                        Command::While(cond) => cond,
+                        Command::ElseIf(cond) => cond,
+                        Command::If(cond) => cond,
+                        _ => unreachable!(),
+                    };
+
+                    let script = format!("return {}", condition);
+                    let res = self.exec(&script).await?;
+                    println!("{}", res);
+                    match res.as_bool() {
+                        Some(b) => {
+                            if b {
+                                i = next;
+                            } else {
+                                i = or_else;
+                            }
+                        }
+                        None => Err(SideRunnerError::MismatchedType(
+                            "expected boolean type in condition".to_owned(),
+                        ))?,
+                    }
+                }
+                None => break,
+            };
         }
 
         Ok(())
@@ -72,23 +112,12 @@ impl<'driver> Runner<'driver> {
                 // If the element is not loaded on the page IDE will fail not emidiately but our implementation will.
                 // they might wait a little bit or something but there's something there
 
-                let (script, used_vars) = emit_variables_custom(script, &self.data);
-                let args = used_vars.iter().map(|var| self.data[var].clone()).collect();
-                let res = self
-                    .webdriver
-                    .execute(
-                        &format!("return (function(arguments) {{ {} }})(arguments)", script),
-                        args,
-                    )
-                    .await;
-                match res {
-                    Ok(res) => match var {
-                        Some(var) => {
-                            self.data.insert(var.clone(), res);
-                        }
-                        None => (),
-                    },
-                    Err(err) => println!("Exec errr {}", err),
+                let res = self.exec(script).await?;
+                match var {
+                    Some(var) => {
+                        self.data.insert(var.clone(), res);
+                    }
+                    None => (),
                 }
             }
             Command::Echo(text) => {
@@ -131,6 +160,7 @@ impl<'driver> Runner<'driver> {
                         let index = emit_variables::<_, PlainPrinter>(index, &self.data);
                         match index.parse() {
                             Ok(index) => select.select_by_index(index).await?,
+                            // TODO: IlligalSyntax  Failed: Illegal Index: {version_counter}
                             Err(..) => Err(SideRunnerError::MismatchedType(format!(
                                 "expected to get int type but got {:?}",
                                 index
@@ -139,11 +169,36 @@ impl<'driver> Runner<'driver> {
                     }
                 };
             }
+            Command::While(condition) => {
+                let res = self.exec(condition).await?;
+                match res.as_bool() {
+                    Some(true) => {}
+                    Some(false) => {}
+                    None => Err(SideRunnerError::MismatchedType(
+                        "unexpected conditional expression".to_owned(),
+                    ))?,
+                }
+            }
+            _ => (),
         };
 
         Ok(())
     }
     // argument[0] -> argument[1] -> argument[2] goes to implementing JS formatting
+
+    async fn exec(
+        &mut self,
+        script: &str,
+    ) -> std::result::Result<serde_json::Value, fantoccini::error::CmdError> {
+        let (script, used_vars) = emit_variables_custom(script, &self.data);
+        let args = used_vars.iter().map(|var| self.data[var].clone()).collect();
+        self.webdriver
+            .execute(
+                &format!("return (function(arguments) {{ {} }})(arguments)", script),
+                args,
+            )
+            .await
+    }
 }
 
 fn emit_variables<S: AsRef<str>, P: VarPrinter>(
@@ -269,6 +324,180 @@ impl<P: VarPrinter> regex::Replacer for VarReplacer<'_, P> {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+struct CommandNode {
+    command: Command,
+    index: usize,
+    level: usize,
+    next: Option<NodeTransition>,
+}
+
+impl CommandNode {
+    fn new(cmd: Command, index: usize, level: usize, transition: Option<NodeTransition>) -> Self {
+        Self {
+            command: cmd,
+            index,
+            level,
+            next: transition,
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum NodeTransition {
+    Next(usize),
+    Conditional(usize, usize),
+}
+
+fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
+    let levels = compute_levels(commands);
+    let mut nodes = commands
+        .iter()
+        .zip(levels)
+        .enumerate()
+        .map(|(index, (cmd, lvl))| CommandNode::new(cmd.clone(), index, lvl, None))
+        .collect::<Vec<_>>();
+    let mut state = Vec::new();
+    (0..nodes.len()).for_each(|i| {
+        connect_commands(&mut nodes[i..], &mut state);
+    });
+
+    nodes
+}
+
+// find a coresponding END
+// make this END's next pointed to the while // OR DO IT WITH THE ELEMENT BEFORE END
+// make while's end on END+1 element
+// make while's beggining on the next element
+
+//     Command::If(..) => {
+//         // find a coresponding END
+//         // find a else/else if structures
+//         // DON'T AFRAID TO MAKE SOMETHING INEFFICHIENT FROM SCRATCH. THAT'S FINE.
+
+fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usize)>) {
+    // build layers / levels
+    // while - next=self+1, or_else=next_on_the_same_level
+    // if - next=self+1, or_else=next_on_the_same_level
+    // end - next=look_up the state and get a coresponding structureIndex(Loop|If)
+    match cmds[0].command {
+        Command::While(..) => {
+            let while_end = find_next_end_on_level(&cmds[1..], cmds[0].level).unwrap();
+            cmds[0].next = Some(NodeTransition::Conditional(cmds[1].index, while_end.index));
+            state.push(("while", cmds[0].index));
+        }
+        Command::If(..) => {
+            // state.push(IncompleteIf())
+            // cmd.next = Some(NodeTransition::Conditional(cmd.index + 1, else_if | else | node after if));
+
+            let if_next = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
+            let cond_end = find_next_end_on_level(&cmds[1..], cmds[0].level).unwrap();
+            // state.push(("if", if_end.index));
+            state.push(("if", cond_end.index));
+            cmds[0].next = Some(NodeTransition::Conditional(cmds[1].index, if_next.index));
+        }
+        Command::ElseIf(..) => {
+            let elseif_end = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
+            // state.push(("else-if", elseif_end.index));
+            cmds[0].next = Some(NodeTransition::Conditional(cmds[1].index, elseif_end.index));
+        }
+        Command::Else => {
+            // let elseif_end = find_next_on_level(cmds[0].level, &cmds[1..]).unwrap();
+            cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
+        }
+        _ => {
+            if cmds.len() == 1 {
+                cmds[0].next = None;
+            } else {
+                match cmds[1].command {
+                    Command::End => match state.pop() {
+                        Some(("while", index)) => {
+                            state.pop();
+                            cmds[0].next = Some(NodeTransition::Next(index));
+                        }
+                        Some(("if", ..)) | Some(("else-if", ..)) => {
+                            state.pop();
+                            cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
+                        }
+                        _ => {
+                            cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
+                        }
+                    },
+                    Command::Else => {
+                        let (_, index) = state.pop().unwrap();
+                        cmds[0].next = Some(NodeTransition::Next(index));
+                    }
+                    Command::ElseIf(..) => {
+                        let (_, index) = state.last().unwrap();
+                        cmds[0].next = Some(NodeTransition::Next(*index));
+                    }
+                    _ => {
+                        cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn index_or_none(index: usize, cmds: &[CommandNode]) -> Option<usize> {
+    if index > cmds.len() {
+        None
+    } else {
+        Some(index)
+    }
+}
+
+fn find_next<Cmp: Fn(&CommandNode) -> bool>(
+    commands: &[CommandNode],
+    comparator: Cmp,
+) -> Option<&CommandNode> {
+    for cmd in commands {
+        if comparator(cmd) {
+            return Some(cmd);
+        }
+    }
+
+    None
+}
+
+fn find_next_on_level(commands: &[CommandNode], level: usize) -> Option<&CommandNode> {
+    find_next(commands, |cmd| cmd.level == level)
+}
+
+fn find_next_end_on_level(commands: &[CommandNode], level: usize) -> Option<&CommandNode> {
+    find_next(commands, |cmd| {
+        cmd.level == level && matches!(cmd.command, Command::End)
+    })
+}
+
+fn compute_levels(commands: &[Command]) -> Vec<usize> {
+    let mut level = 0;
+    let mut levels = Vec::with_capacity(commands.len());
+    for cmd in commands {
+        match cmd {
+            Command::While(..) | Command::If(..) => {
+                levels.push(level);
+                level += 1;
+            }
+            Command::End => {
+                level -= 1;
+                levels.push(level);
+            }
+            Command::Else | Command::ElseIf(..) => {
+                level -= 1;
+                levels.push(level);
+                level += 1;
+            }
+            _ => {
+                levels.push(level);
+            }
+        }
+    }
+
+    levels
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -344,5 +573,249 @@ mod tests {
             r#"["h4",4]"#,
             emit_variables::<_, JSPrinter>("${test}", &vars)
         );
+    }
+
+    #[test]
+    fn test_creating_run_list_basic() {
+        let commands = vec![
+            Command::Open("open".to_owned()),
+            Command::Echo("echo".to_owned()),
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(Command::Echo("echo".to_owned()), 1, 0, None,)
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_while_loop() {
+        let mut commands = vec![
+            Command::Open("open".to_owned()),
+            Command::While("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::End,
+        ];
+        let node = create_nodes(&mut commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(
+                    Command::While("...".to_owned()),
+                    1,
+                    0,
+                    Some(NodeTransition::Conditional(2, 3)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(Command::End, 3, 0, None),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_if() {
+        let mut commands = vec![
+            Command::Open("open".to_owned()),
+            Command::If("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::End,
+            Command::Echo("echo".to_owned()),
+        ];
+        let node = create_nodes(&mut commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(
+                    Command::If("...".to_owned()),
+                    1,
+                    0,
+                    Some(NodeTransition::Conditional(2, 3)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Next(3)),
+                ),
+                CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(4))),
+                CommandNode::new(Command::Echo("echo".to_owned()), 4, 0, None),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_if_complex_empty_conditions() {
+        let mut commands = vec![
+            Command::Open("open".to_owned()),
+            Command::If("...".to_owned()),
+            Command::ElseIf("...".to_owned()),
+            Command::Else,
+            Command::End,
+        ];
+        let node = create_nodes(&mut commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(
+                    Command::If("...".to_owned()),
+                    1,
+                    0,
+                    Some(NodeTransition::Conditional(2, 2)),
+                ),
+                CommandNode::new(
+                    Command::ElseIf("...".to_owned()),
+                    2,
+                    0,
+                    Some(NodeTransition::Conditional(3, 3)),
+                ),
+                CommandNode::new(Command::Else, 3, 0, Some(NodeTransition::Next(4)),),
+                CommandNode::new(Command::End, 4, 0, None),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_if_complex() {
+        let mut commands = vec![
+            Command::Open("open".to_owned()),
+            Command::If("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::ElseIf("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::Else,
+            Command::Echo("echo".to_owned()),
+            Command::End,
+        ];
+        let node = create_nodes(&mut commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(
+                    Command::If("...".to_owned()),
+                    1,
+                    0,
+                    Some(NodeTransition::Conditional(2, 3)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Next(8)),
+                ),
+                CommandNode::new(
+                    Command::ElseIf("...".to_owned()),
+                    3,
+                    0,
+                    Some(NodeTransition::Conditional(4, 6)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    4,
+                    1,
+                    Some(NodeTransition::Next(5)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    5,
+                    1,
+                    Some(NodeTransition::Next(8)),
+                ),
+                CommandNode::new(Command::Else, 6, 0, Some(NodeTransition::Next(7))),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    7,
+                    1,
+                    Some(NodeTransition::Next(8))
+                ),
+                CommandNode::new(Command::End, 8, 0, None),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_if_complex_without_else() {
+        let mut commands = vec![
+            Command::Open("open".to_owned()),
+            Command::If("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::ElseIf("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::End,
+        ];
+        let node = create_nodes(&mut commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(
+                    Command::If("...".to_owned()),
+                    1,
+                    0,
+                    Some(NodeTransition::Conditional(2, 3)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Next(5)),
+                ),
+                CommandNode::new(
+                    Command::ElseIf("...".to_owned()),
+                    3,
+                    0,
+                    Some(NodeTransition::Conditional(4, 5)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    4,
+                    1,
+                    Some(NodeTransition::Next(5))
+                ),
+                CommandNode::new(Command::End, 5, 0, None),
+            ]
+        )
     }
 }

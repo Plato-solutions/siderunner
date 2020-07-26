@@ -4,6 +4,7 @@ use std::result;
 
 pub type Result<T> = result::Result<T, SideRunnerError>;
 
+// TODO: IlligalSyntax
 pub enum SideRunnerError {
     ParseError(ParseError),
     WebdriverError(ferorr::CmdError),
@@ -36,6 +37,7 @@ pub enum ParseError {
     FormatError(serde_json::Error),
     LocatorFormatError(String),
     TypeError(String),
+    ValidationError(String),
 }
 
 impl std::fmt::Debug for ParseError {
@@ -44,6 +46,7 @@ impl std::fmt::Debug for ParseError {
             Self::FormatError(err) => write!(f, "parsing json error {:?}", err),
             Self::LocatorFormatError(err) => write!(f, "locator has wrong format {:?}", err),
             Self::TypeError(err) => write!(f, "unexpected type {:?}", err),
+            Self::ValidationError(err) => write!(f, "validation error {:?}", err),
         }
     }
 }

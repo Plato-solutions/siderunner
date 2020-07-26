@@ -106,6 +106,11 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
                     Command::Select { target, locator }
                 }
                 "echo" => Command::Echo(command.target.clone()),
+                "while" => Command::While(command.target.clone()),
+                "if" => Command::If(command.target.clone()),
+                "else if" => Command::ElseIf(command.target.clone()),
+                "else" => Command::Else,
+                "end" => Command::End,
                 _ => unimplemented!(),
             };
 
@@ -126,7 +131,7 @@ pub struct Test {
     pub commands: Vec<Command>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Command {
     Open(String),
     Echo(String),
@@ -152,17 +157,29 @@ pub enum Command {
         script: String,
         var: Option<String>,
     },
-    // While(String),
-    // End,
+    While(String),
+    If(String),
+    ElseIf(String),
+    Else,
+    End,
 }
 
-#[derive(Debug)]
+impl Command {
+    pub(crate) fn is_conditional(&self) -> bool {
+        matches!(
+            self,
+            Self::While(..) | Self::If(..) | Self::ElseIf(..) | Self::Else
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Target {
     pub location: Location,
     pub tag: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SelectLocator {
     // todo: Looks like we should handle ${} stored values right in parsing stage too?
     Index(String),
@@ -172,7 +189,7 @@ trait IncompleteStr<T> {
     fn eval(vars: Vec<usize>) -> T;
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Location {
     XPath(String),
     Css(String),

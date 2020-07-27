@@ -81,5 +81,3 @@
         }
     ]
 }
-return { "options": [{"edition": ${edition_name}}, {"support": ${support_name}},], "price": ${price}}
-{ "options": [{"support": ${support_name}}], "price": ${price}}

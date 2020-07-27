@@ -111,6 +111,15 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
                 "else if" => Command::ElseIf(command.target.clone()),
                 "else" => Command::Else,
                 "end" => Command::End,
+                "pause" => Command::Pause(command.target.parse().unwrap()),
+                "click" => {
+                    let location = parse_location(&command.target)?;
+                    let target = Target {
+                        tag: None,
+                        location,
+                    };
+                    Command::Click(target)
+                }
                 _ => unimplemented!(),
             };
 
@@ -135,6 +144,8 @@ pub struct Test {
 pub enum Command {
     Open(String),
     Echo(String),
+    Click(Target),
+    Pause(u64),
     // todo: targets?
     Select {
         target: Target,

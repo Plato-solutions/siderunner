@@ -2,6 +2,7 @@
 // TODO: interface for fantocini and possibly choose webdriver provider by feature
 // TODO: provide more direct error location test + command + location(can be determined just by section (target/value etc.)) + cause
 // TODO: Runner may contains basic information to handle relative url
+// TODO: refactoring and test While and If commits
 
 use crate::{error::SideRunnerError, Command, Location, Result, SelectLocator, Test};
 use fantoccini::{Client, Locator};
@@ -11,6 +12,7 @@ use std::collections::HashMap;
 pub struct Runner<'driver> {
     webdriver: &'driver mut Client,
     pub data: HashMap<String, Value>,
+    echo_hook: Box<fn(&str)>,
 }
 
 impl<'driver> Runner<'driver> {
@@ -18,6 +20,7 @@ impl<'driver> Runner<'driver> {
         Self {
             webdriver: client,
             data: HashMap::new(),
+            echo_hook: Box::new(|s| println!("{}", s)),
         }
     }
 
@@ -56,7 +59,6 @@ impl<'driver> Runner<'driver> {
 
                     let script = format!("return {}", condition);
                     let res = self.exec(&script).await?;
-                    println!("{}", res);
                     match res.as_bool() {
                         Some(b) => {
                             if b {
@@ -130,7 +132,8 @@ impl<'driver> Runner<'driver> {
             }
             Command::Echo(text) => {
                 let text = emit_variables::<_, PlainPrinter>(text, &self.data);
-                println!("{}", text);
+                // TODO: create a hook in library to call as a writer
+                self.echo_hook.as_ref()(text.as_str());
             }
             Command::WaitForElementVisible { timeout, target } => {
                 // todo: implemented wrongly
@@ -146,14 +149,38 @@ impl<'driver> Runner<'driver> {
                 let timeout = std::time::Duration::from_millis(*timeout);
 
                 match tokio::time::timeout(timeout, self.webdriver.wait_for_find(locator)).await {
-                    Ok(Err(..)) => println!("Error"),
-                    Ok(..) => (),
-                    Err(..) => println!("timeout"),
+                    Ok(err) => {
+                        err?;
+                    }
+                    Err(..) => Err(SideRunnerError::Timeout(
+                        "waitForElemementVisible".to_string(),
+                    ))?,
                 }
             }
             Command::WaitForElementEditable { timeout, target } => {
-                std::thread::sleep_ms(10000);
+                // let locator = match &target.location {
+                //     Location::Css(css) => Locator::Css(&css),
+                //     Location::Id(id) => Locator::Id(&id),
+                //     Location::XPath(path) => Locator::XPath(&path),
+                // };
+
+                // let element = self.webdriver.find(locator).await?;
+                // loop {
+                //     let is_editable = self
+                //         .webdriver
+                //         .execute(
+                //             "return !arguments[0].disabled && !arguments[0].readOnly;",
+                //             vec![serde_json::json!(element)],
+                //         )
+                //         .await?;
+
+                //     if is_editable.as_bool().unwrap() {
+                //         break;
+                //     }
+                // }
+                // TODO: ...
                 // TODO: #issue https://github.com/jonhoo/fantoccini/issues/93
+                std::thread::sleep(std::time::Duration::from_millis(*timeout));
             }
             Command::Select { locator, target } => {
                 let select_locator = match &target.location {
@@ -177,15 +204,29 @@ impl<'driver> Runner<'driver> {
                     }
                 };
             }
-            Command::While(condition) => {
-                let res = self.exec(condition).await?;
-                match res.as_bool() {
-                    Some(true) => {}
-                    Some(false) => {}
-                    None => Err(SideRunnerError::MismatchedType(
-                        "unexpected conditional expression".to_owned(),
-                    ))?,
-                }
+            Command::Click(target) => {
+                let location = match &target.location {
+                    Location::Css(css) => {
+                        Location::Css(emit_variables::<_, PlainPrinter>(css, &self.data))
+                    }
+                    Location::Id(id) => {
+                        Location::Id(emit_variables::<_, PlainPrinter>(id, &self.data))
+                    }
+                    Location::XPath(path) => {
+                        Location::XPath(emit_variables::<_, PlainPrinter>(path, &self.data))
+                    }
+                };
+
+                let locator = match &location {
+                    Location::Css(css) => Locator::Css(&css),
+                    Location::Id(id) => Locator::Id(&id),
+                    Location::XPath(path) => Locator::XPath(&path),
+                };
+
+                self.webdriver.find(locator).await?.click().await?;
+            }
+            Command::Pause(timeout) => {
+                std::thread::sleep(std::time::Duration::from_millis(*timeout));
             }
             _ => (),
         };
@@ -193,6 +234,10 @@ impl<'driver> Runner<'driver> {
         Ok(())
     }
     // argument[0] -> argument[1] -> argument[2] goes to implementing JS formatting
+
+    pub fn set_echo(&mut self, func: fn(&str)) {
+        self.echo_hook = Box::new(func);
+    }
 
     async fn exec(
         &mut self,
@@ -322,7 +367,6 @@ impl VarPrinter for PlainPrinter {
 impl<P: VarPrinter> regex::Replacer for VarReplacer<'_, P> {
     fn replace_append(&mut self, caps: &regex::Captures, dst: &mut String) {
         let var = caps.get(1).unwrap().as_str();
-        eprintln!("{}", var);
         let replacement = match self.data.get(var) {
             Some(value) => P::print(value),
             None => "".to_string(),

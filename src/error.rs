@@ -9,6 +9,7 @@ pub enum SideRunnerError {
     ParseError(ParseError),
     WebdriverError(ferorr::CmdError),
     MismatchedType(String),
+    Timeout(String),
 }
 
 impl std::fmt::Debug for SideRunnerError {
@@ -17,6 +18,7 @@ impl std::fmt::Debug for SideRunnerError {
             Self::ParseError(err) => write!(f, "parse error: {:?}", err),
             Self::WebdriverError(err) => write!(f, "webdriver error {:?}", err),
             Self::MismatchedType(desc) => write!(f, "mismatched type {}", desc),
+            Self::Timeout(desc) => write!(f, "timeout {}", desc),
         }
     }
 }

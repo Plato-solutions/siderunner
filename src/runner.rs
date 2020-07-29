@@ -267,6 +267,9 @@ impl<'driver> Runner<'driver> {
             Command::Pause(timeout) => {
                 tokio::time::delay_for(*timeout).await;
             }
+            Command::SetWindowSize(w, h) => {
+                self.webdriver.set_window_size(*w as i32, *h as i32).await?;
+            }
             cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };
 

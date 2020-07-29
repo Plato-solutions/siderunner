@@ -145,6 +145,25 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
                     };
                     Command::Click(target)
                 }
+                "setWindowSize" => {
+                    let settings = command
+                        .target
+                        .split("x")
+                        .map(|n| n.parse())
+                        .collect::<Vec<_>>();
+                    if settings.len() != 2 {
+                        Err(ParseError::TypeError("window size expected to get in a form like this 1916x1034 (Width x Height)".to_owned()))?
+                    }
+
+                    let w = settings[0]
+                        .clone()
+                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
+                    let h = settings[1]
+                        .clone()
+                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
+
+                    Command::SetWindowSize(w, h)
+                }
                 _ => unimplemented!(),
             };
 
@@ -171,6 +190,7 @@ pub enum Command {
     Echo(String),
     Click(Target),
     Pause(Duration),
+    SetWindowSize(usize, usize),
     // todo: targets?
     Select {
         target: Target,

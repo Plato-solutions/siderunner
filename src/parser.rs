@@ -4,6 +4,7 @@
 // TODO: create a default errors?
 
 use crate::{error::ParseError, Result};
+use std::time::Duration;
 
 pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
     let side: format::SideFile =
@@ -76,7 +77,8 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
                     let timeout = command
                         .value
                         .parse()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
+                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
+                        .map(|timeout| Duration::from_millis(timeout))?;
 
                     Command::WaitForElementVisible { target, timeout }
                 }
@@ -91,9 +93,26 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
                     let timeout = command
                         .value
                         .parse()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
+                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
+                        .map(|timeout| Duration::from_millis(timeout))?;
 
                     Command::WaitForElementEditable { target, timeout }
+                }
+                "waitForElementNotPresent" => {
+                    let location = parse_location(&command.target)?;
+
+                    let target = Target {
+                        tag: None,
+                        location,
+                    };
+
+                    let timeout = command
+                        .value
+                        .parse()
+                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
+                        .map(|timeout| Duration::from_millis(timeout))?;
+
+                    Command::WaitForElementNotPresent { target, timeout }
                 }
                 "select" => {
                     let locator = parse_select_locator(&command.value)?;
@@ -111,7 +130,13 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
                 "else if" => Command::ElseIf(command.target.clone()),
                 "else" => Command::Else,
                 "end" => Command::End,
-                "pause" => Command::Pause(command.target.parse().unwrap()),
+                "pause" => Command::Pause(
+                    command
+                        .target
+                        .parse()
+                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
+                        .map(|timeout| Duration::from_millis(timeout))?,
+                ),
                 "click" => {
                     let location = parse_location(&command.target)?;
                     let target = Target {
@@ -145,7 +170,7 @@ pub enum Command {
     Open(String),
     Echo(String),
     Click(Target),
-    Pause(u64),
+    Pause(Duration),
     // todo: targets?
     Select {
         target: Target,
@@ -153,11 +178,15 @@ pub enum Command {
     },
     WaitForElementVisible {
         target: Target,
-        timeout: u64,
+        timeout: Duration,
     },
     WaitForElementEditable {
         target: Target,
-        timeout: u64,
+        timeout: Duration,
+    },
+    WaitForElementNotPresent {
+        target: Target,
+        timeout: Duration,
     },
     StoreText {
         var: String,

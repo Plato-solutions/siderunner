@@ -41,7 +41,6 @@ impl<'driver> Runner<'driver> {
             if i >= nodes.len() {
                 break;
             }
-
             let run = &nodes[i];
             match run.next {
                 Some(NodeTransition::Next(next)) => {
@@ -140,47 +139,87 @@ impl<'driver> Runner<'driver> {
                 // it's implmenetation more suited for WaitForElementPresent
                 //
                 // TODO: timout implementation is a bit wrong since we need to 'gracefully' stop running feature
-                let locator = match &target.location {
-                    Location::Css(css) => Locator::Css(&css),
-                    Location::Id(id) => Locator::Id(&id),
-                    Location::XPath(path) => Locator::XPath(&path),
-                };
-
-                let timeout = std::time::Duration::from_millis(*timeout);
-
-                match tokio::time::timeout(timeout, self.webdriver.wait_for_find(locator)).await {
-                    Ok(err) => {
-                        err?;
-                    }
-                    Err(..) => Err(SideRunnerError::Timeout(
-                        "waitForElemementVisible".to_string(),
-                    ))?,
-                }
-            }
-            Command::WaitForElementEditable { timeout, target } => {
                 // let locator = match &target.location {
                 //     Location::Css(css) => Locator::Css(&css),
                 //     Location::Id(id) => Locator::Id(&id),
                 //     Location::XPath(path) => Locator::XPath(&path),
                 // };
 
-                // let element = self.webdriver.find(locator).await?;
-                // loop {
-                //     let is_editable = self
-                //         .webdriver
-                //         .execute(
-                //             "return !arguments[0].disabled && !arguments[0].readOnly;",
-                //             vec![serde_json::json!(element)],
-                //         )
-                //         .await?;
-
-                //     if is_editable.as_bool().unwrap() {
-                //         break;
+                // match tokio::time::timeout(*timeout, self.webdriver.wait_for_find(locator)).await {
+                //     Ok(err) => {
+                //         err?;
                 //     }
+                //     Err(..) => Err(SideRunnerError::Timeout(
+                //         "waitForElemementVisible".to_string(),
+                //     ))?,
                 // }
+
+                std::thread::sleep(*timeout);
+            }
+            Command::WaitForElementNotPresent { timeout, target } => {
+                let locator = match &target.location {
+                    Location::Css(css) => Locator::Css(&css),
+                    Location::Id(id) => Locator::Id(&id),
+                    Location::XPath(path) => Locator::XPath(&path),
+                };
+
+                let now = std::time::Instant::now();
+                loop {
+                    match self.webdriver.find(locator).await {
+                        Ok(..) => {} // TODO: sleep
+                        Err(fantoccini::error::CmdError::NoSuchElement(..)) => break,
+                        Err(err) => Err(err)?,
+                    }
+
+                    if now.elapsed() > *timeout {
+                        return Err(SideRunnerError::Timeout(
+                            "WaitForElementNotPresent".to_owned(),
+                        ))?;
+                    }
+                }
+                // std::thread::sleep_ms(4000);
+            }
+            Command::WaitForElementEditable { timeout, target } => {
+                // std::thread::sleep(*timeout);
+                // std::thread::sleep_ms(4000);
+
+                let locator = match &target.location {
+                    Location::Css(css) => Locator::Css(&css),
+                    Location::Id(id) => Locator::Id(&id),
+                    Location::XPath(path) => Locator::XPath(&path),
+                };
+
+                let now = std::time::Instant::now();
+                loop {
+                    match self.webdriver.find(locator).await {
+                        Ok(mut element) => {
+                            let is_displayed = match element.attr("style").await? {
+                                Some(style) if !style.contains("display: none;") => true,
+                                None => true,
+                                _ => false,
+                            };
+
+                            let is_enabled = match element.attr("disabled").await? {
+                                Some(..) => false,
+                                _ => true,
+                            };
+
+                            if is_displayed && is_enabled {
+                                break;
+                            }
+                        }
+                        Err(fantoccini::error::CmdError::NoSuchElement(..)) => {}
+                        Err(err) => Err(err)?,
+                    }
+
+                    if now.elapsed() > *timeout {
+                        return Err(SideRunnerError::Timeout(
+                            "WaitForElementEditable".to_owned(),
+                        ))?;
+                    }
+                }
                 // TODO: ...
                 // TODO: #issue https://github.com/jonhoo/fantoccini/issues/93
-                std::thread::sleep(std::time::Duration::from_millis(*timeout));
             }
             Command::Select { locator, target } => {
                 let select_locator = match &target.location {
@@ -226,9 +265,9 @@ impl<'driver> Runner<'driver> {
                 self.webdriver.find(locator).await?.click().await?;
             }
             Command::Pause(timeout) => {
-                std::thread::sleep(std::time::Duration::from_millis(*timeout));
+                tokio::time::delay_for(*timeout).await;
             }
-            _ => (),
+            cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };
 
         Ok(())

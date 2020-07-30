@@ -164,6 +164,10 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
 
                     Command::SetWindowSize(w, h)
                 }
+                "store" => Command::Store {
+                    value: command.target.to_owned(),
+                    var: command.value.to_owned(),
+                },
                 _ => unimplemented!(),
             };
 
@@ -212,6 +216,10 @@ pub enum Command {
         var: String,
         target: Target,
         targets: Vec<Target>,
+    },
+    Store {
+        var: String,
+        value: String,
     },
     Execute {
         script: String,

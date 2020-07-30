@@ -116,6 +116,9 @@ impl<'driver> Runner<'driver> {
 
                 // TODO: if `target` not found we should look up targets?
             }
+            Command::Store { var, value } => {
+                self.data.insert(var.clone(), Value::String(value.clone()));
+            }
             Command::Execute { script, var } => {
                 // TODO: the logic is different from Selenium IDE
                 // If the element is not loaded on the page IDE will fail not emidiately but our implementation will.

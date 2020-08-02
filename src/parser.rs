@@ -4,6 +4,7 @@
 // TODO: create a default errors?
 
 use crate::{error::ParseError, Result};
+use std::result;
 use std::time::Duration;
 
 pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
@@ -13,165 +14,8 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
     for test in &side.tests {
         let mut commands = Vec::with_capacity(test.commands.len());
         for command in &test.commands {
-            let command = match command.cmd.as_str() {
-                "open" => {
-                    let url = &command.target;
-                    Command::Open(url.clone())
-                }
-                "storeText" => {
-                    let var_name = &command.value;
-                    let location = parse_location(&command.target)?;
-                    let target = Target {
-                        location,
-                        tag: None,
-                    };
-
-                    let mut targets = Vec::new();
-                    for target in &command.targets {
-                        let (target, tag) = match target.get(0..2) {
-                            Some([target, tag]) => (target, tag),
-                            _ => Err(ParseError::LocatorFormatError(
-                                "targets wrong format".to_owned(),
-                            ))?,
-                        };
-
-                        let location = parse_location(&target)?;
-
-                        let tag =
-                            tag.splitn(2, ':')
-                                .nth(1)
-                                .ok_or(ParseError::LocatorFormatError(
-                                    "type of selector is unknown".to_owned(),
-                                ))?;
-                        targets.push(Target {
-                            location,
-                            tag: Some(tag.to_owned()),
-                        })
-                    }
-
-                    Command::StoreText {
-                        var: var_name.clone(),
-                        target,
-                        targets,
-                    }
-                }
-                "executeScript" => {
-                    let var = if command.value.is_empty() {
-                        None
-                    } else {
-                        Some(command.value.clone())
-                    };
-                    Command::Execute {
-                        script: command.target.clone(),
-                        var,
-                    }
-                }
-                "waitForElementVisible" => {
-                    let location = parse_location(&command.target)?;
-                    let target = Target {
-                        tag: None,
-                        location,
-                    };
-
-                    // TODO: posibly there may be a variable not only a number
-                    let timeout = command
-                        .value
-                        .parse()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
-                        .map(|timeout| Duration::from_millis(timeout))?;
-
-                    Command::WaitForElementVisible { target, timeout }
-                }
-                "waitForElementEditable" => {
-                    let location = parse_location(&command.target)?;
-
-                    let target = Target {
-                        tag: None,
-                        location,
-                    };
-
-                    let timeout = command
-                        .value
-                        .parse()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
-                        .map(|timeout| Duration::from_millis(timeout))?;
-
-                    Command::WaitForElementEditable { target, timeout }
-                }
-                "waitForElementNotPresent" => {
-                    let location = parse_location(&command.target)?;
-
-                    let target = Target {
-                        tag: None,
-                        location,
-                    };
-
-                    let timeout = command
-                        .value
-                        .parse()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
-                        .map(|timeout| Duration::from_millis(timeout))?;
-
-                    Command::WaitForElementNotPresent { target, timeout }
-                }
-                "select" => {
-                    let locator = parse_select_locator(&command.value)?;
-                    let location = parse_location(&command.target)?;
-                    let target = Target {
-                        tag: None,
-                        location,
-                    };
-
-                    Command::Select { target, locator }
-                }
-                "echo" => Command::Echo(command.target.clone()),
-                "while" => Command::While(command.target.clone()),
-                "if" => Command::If(command.target.clone()),
-                "else if" => Command::ElseIf(command.target.clone()),
-                "else" => Command::Else,
-                "end" => Command::End,
-                "pause" => Command::Pause(
-                    command
-                        .target
-                        .parse()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
-                        .map(|timeout| Duration::from_millis(timeout))?,
-                ),
-                "click" => {
-                    let location = parse_location(&command.target)?;
-                    let target = Target {
-                        tag: None,
-                        location,
-                    };
-                    Command::Click(target)
-                }
-                "setWindowSize" => {
-                    let settings = command
-                        .target
-                        .split("x")
-                        .map(|n| n.parse())
-                        .collect::<Vec<_>>();
-                    if settings.len() != 2 {
-                        Err(ParseError::TypeError("window size expected to get in a form like this 1916x1034 (Width x Height)".to_owned()))?
-                    }
-
-                    let w = settings[0]
-                        .clone()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
-                    let h = settings[1]
-                        .clone()
-                        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
-
-                    Command::SetWindowSize(w, h)
-                }
-                "store" => Command::Store {
-                    value: command.target.to_owned(),
-                    var: command.value.to_owned(),
-                },
-                _ => unimplemented!(),
-            };
-
-            commands.push(command);
+            let cmd = parse_cmd(command)?;
+            commands.push(cmd);
         }
 
         tests.push(Test {
@@ -181,6 +25,31 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>> {
     }
 
     Ok(tests)
+}
+
+fn parse_cmd(command: &format::Command) -> Result<Command> {
+    let parse_fn = match command.cmd.as_str() {
+        "open" => Command::parse_open,
+        "store" => Command::parse_store,
+        "storeText" => Command::parse_store_text,
+        "executeScript" => Command::parse_execute_script,
+        "waitForElementVisible" => Command::parse_wait_for_visible,
+        "waitForElementEditable" => Command::parse_wait_for_editable,
+        "waitForElementNotPresent" => Command::parse_wait_for_not_present,
+        "select" => Command::parse_select,
+        "echo" => Command::parse_echo,
+        "pause" => Command::parse_pause,
+        "click" => Command::parse_click,
+        "while" => Command::parse_while,
+        "if" => Command::parse_if,
+        "else if" => Command::parse_else_if,
+        "else" => Command::parse_else,
+        "end" => Command::parse_end,
+        "setWindowSize" => Command::parse_set_window_size,
+        _ => unimplemented!(),
+    };
+
+    parse_fn(command)
 }
 
 pub struct Test {
@@ -233,11 +102,146 @@ pub enum Command {
 }
 
 impl Command {
-    pub(crate) fn is_conditional(&self) -> bool {
-        matches!(
-            self,
-            Self::While(..) | Self::If(..) | Self::ElseIf(..) | Self::Else
-        )
+    fn parse_open(c: &format::Command) -> Result<Command> {
+        Ok(Command::Open(c.target.clone()))
+    }
+
+    fn parse_store_text(c: &format::Command) -> Result<Command> {
+        let mut targets = Vec::new();
+        for target in &c.targets {
+            let (target, tag) = match target.get(0..2) {
+                Some([target, tag]) => (target, tag),
+                _ => Err(ParseError::LocatorFormatError(
+                    "targets wrong format".to_owned(),
+                ))?,
+            };
+
+            let location = parse_location(&target)?;
+
+            let tag = tag
+                .splitn(2, ':')
+                .nth(1)
+                .ok_or(ParseError::LocatorFormatError(
+                    "type of selector is unknown".to_owned(),
+                ))?;
+            targets.push(Target {
+                location,
+                tag: Some(tag.to_owned()),
+            })
+        }
+        let var = c.value.clone();
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+
+        Ok(Command::StoreText {
+            var,
+            target,
+            targets,
+        })
+    }
+
+    fn parse_execute_script(c: &format::Command) -> Result<Command> {
+        let var = if c.value.is_empty() {
+            None
+        } else {
+            Some(c.value.clone())
+        };
+        let script = c.target.clone();
+
+        Ok(Command::Execute { script, var })
+    }
+
+    fn parse_wait_for_visible(c: &format::Command) -> Result<Command> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let timeout = cast_timeout(&c.value)?;
+
+        Ok(Command::WaitForElementVisible { target, timeout })
+    }
+
+    fn parse_wait_for_editable(c: &format::Command) -> Result<Command> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let timeout = cast_timeout(&c.value)?;
+
+        Ok(Command::WaitForElementEditable { target, timeout })
+    }
+
+    fn parse_wait_for_not_present(c: &format::Command) -> Result<Command> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let timeout = cast_timeout(&c.value)?;
+
+        Ok(Command::WaitForElementNotPresent { target, timeout })
+    }
+
+    fn parse_select(c: &format::Command) -> Result<Command> {
+        let locator = parse_select_locator(&c.value)?;
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+
+        Ok(Command::Select { target, locator })
+    }
+
+    fn parse_echo(c: &format::Command) -> Result<Command> {
+        Ok(Command::Echo(c.target.clone()))
+    }
+
+    fn parse_while(c: &format::Command) -> Result<Command> {
+        Ok(Command::While(c.target.clone()))
+    }
+
+    fn parse_if(c: &format::Command) -> Result<Command> {
+        Ok(Command::If(c.target.clone()))
+    }
+
+    fn parse_else(_: &format::Command) -> Result<Command> {
+        Ok(Command::Else)
+    }
+
+    fn parse_else_if(c: &format::Command) -> Result<Command> {
+        Ok(Command::ElseIf(c.target.clone()))
+    }
+
+    fn parse_end(_: &format::Command) -> Result<Command> {
+        Ok(Command::End)
+    }
+
+    fn parse_pause(c: &format::Command) -> Result<Command> {
+        let timeout = cast_timeout(&c.target)?;
+        Ok(Command::Pause(timeout))
+    }
+
+    fn parse_click(c: &format::Command) -> Result<Command> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Command::Click(target))
+    }
+
+    fn parse_store(c: &format::Command) -> Result<Command> {
+        Ok(Command::Store {
+            value: c.target.to_owned(),
+            var: c.value.to_owned(),
+        })
+    }
+
+    fn parse_set_window_size(c: &format::Command) -> Result<Command> {
+        let settings = c.target.split("x").map(|n| n.parse()).collect::<Vec<_>>();
+        if settings.len() != 2 {
+            Err(ParseError::TypeError(
+                "window size expected to get in a form like this 1916x1034 (Width x Height)"
+                    .to_owned(),
+            ))?
+        }
+
+        let w = settings[0]
+            .clone()
+            .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
+        let h = settings[1]
+            .clone()
+            .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
+
+        Ok(Command::SetWindowSize(w, h))
     }
 }
 
@@ -245,6 +249,15 @@ impl Command {
 pub struct Target {
     pub location: Location,
     pub tag: Option<String>,
+}
+
+impl Target {
+    fn new(location: Location) -> Self {
+        Target {
+            tag: None,
+            location,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -310,6 +323,18 @@ fn parse_select_locator(text: &str) -> Result<SelectLocator> {
         "index" => Ok(SelectLocator::Index(locator.to_owned())),
         _ => Err(ParseError::LocatorFormatError(ERROR_TEXT.to_owned()))?,
     }
+}
+
+fn cast_timeout(s: &str) -> result::Result<Duration, ParseError> {
+    // TODO: posibly there may be a variable not only a number
+    // so we would need to create a enum like
+    // enum Value<T> {
+    //    Completed(T),
+    //    Incomplete(String),
+    // }
+    s.parse()
+        .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
+        .map(|timeout| Duration::from_millis(timeout))
 }
 
 pub mod format {

@@ -539,14 +539,6 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
     }
 }
 
-fn index_or_none(index: usize, cmds: &[CommandNode]) -> Option<usize> {
-    if index > cmds.len() {
-        None
-    } else {
-        Some(index)
-    }
-}
-
 fn find_next<Cmp: Fn(&CommandNode) -> bool>(
     commands: &[CommandNode],
     comparator: Cmp,

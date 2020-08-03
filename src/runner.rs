@@ -92,15 +92,10 @@ impl<'driver> Runner<'driver> {
                 targets,
             } => {
                 let location = match &target.location {
-                    Location::Css(css) => {
-                        Location::Css(emit_variables::<_, PlainPrinter>(css, &self.data))
-                    }
-                    Location::Id(id) => {
-                        Location::Id(emit_variables::<_, PlainPrinter>(id, &self.data))
-                    }
-                    Location::XPath(path) => {
-                        Location::XPath(emit_variables::<_, PlainPrinter>(path, &self.data))
-                    }
+                    // TODO: get back to the privious variant with IncompleteString.
+                    Location::Css(css) => Location::Css(self.emit(css)),
+                    Location::Id(id) => Location::Id(self.emit(id)),
+                    Location::XPath(path) => Location::XPath(self.emit(path)),
                 };
 
                 let locator = match &location {
@@ -133,7 +128,7 @@ impl<'driver> Runner<'driver> {
                 }
             }
             Command::Echo(text) => {
-                let text = emit_variables::<_, PlainPrinter>(text, &self.data);
+                let text = self.emit(text);
                 // TODO: create a hook in library to call as a writer
                 self.echo_hook.as_ref()(text.as_str());
             }
@@ -234,7 +229,7 @@ impl<'driver> Runner<'driver> {
                 let select = self.webdriver.find(select_locator).await?;
                 match locator {
                     SelectLocator::Index(index) => {
-                        let index = emit_variables::<_, PlainPrinter>(index, &self.data);
+                        let index = self.emit(index);
                         match index.parse() {
                             Ok(index) => select.select_by_index(index).await?,
                             // TODO: IlligalSyntax  Failed: Illegal Index: {version_counter}
@@ -248,15 +243,9 @@ impl<'driver> Runner<'driver> {
             }
             Command::Click(target) => {
                 let location = match &target.location {
-                    Location::Css(css) => {
-                        Location::Css(emit_variables::<_, PlainPrinter>(css, &self.data))
-                    }
-                    Location::Id(id) => {
-                        Location::Id(emit_variables::<_, PlainPrinter>(id, &self.data))
-                    }
-                    Location::XPath(path) => {
-                        Location::XPath(emit_variables::<_, PlainPrinter>(path, &self.data))
-                    }
+                    Location::Css(css) => Location::Css(self.emit(css)),
+                    Location::Id(id) => Location::Id(self.emit(id)),
+                    Location::XPath(path) => Location::XPath(self.emit(path)),
                 };
 
                 let locator = match &location {
@@ -288,7 +277,7 @@ impl<'driver> Runner<'driver> {
         &mut self,
         script: &str,
     ) -> std::result::Result<serde_json::Value, fantoccini::error::CmdError> {
-        let (script, used_vars) = emit_variables_custom(script, &self.data);
+        let (script, used_vars) = emit_variables_custom(script);
         let args = used_vars.iter().map(|var| self.data[var].clone()).collect();
         self.webdriver
             .execute(
@@ -297,32 +286,38 @@ impl<'driver> Runner<'driver> {
             )
             .await
     }
+
+    fn emit(&self, s: &str) -> String {
+        emit_variables(s, &self.data)
+    }
 }
 
-fn emit_variables<S: AsRef<str>, P: VarPrinter>(
-    text: S,
-    variables: &HashMap<String, Value>,
-) -> String {
-    // TODO: check how to emit string in quotes or not
-    //
-    // regex look up for variable name in brackets #{var}
-    // it exclude " sign to manage cases like ${var} }
-    // it's important in emiting vars in JSON
-    let re = regex::Regex::new(r#"\$\{(\w+?)\}"#).unwrap();
-    let replacer = VarReplacer::<P> {
-        data: variables,
-        printer: std::marker::PhantomData::default(),
-    };
-
-    let new_text = re.replace_all(text.as_ref(), replacer);
-
-    new_text.into()
+fn emit_variables(s: &str, vars: &HashMap<String, Value>) -> String {
+    emit_vars(s, |var| match vars.get(var) {
+        Some(value) => print_plain_value(value),
+        None => "".to_string(),
+    })
 }
 
-fn emit_variables_custom<S: AsRef<str>>(
-    text: S,
-    variables: &HashMap<String, Value>,
-) -> (String, Vec<String>) {
+fn emit_variables_custom(text: &str) -> (String, Vec<String>) {
+    let mut emited_vars = Vec::new();
+
+    let new_text = emit_vars(text.as_ref(), |var| {
+        let arg_pos = match emited_vars.iter().position(|arg| arg == var) {
+            Some(pos) => pos,
+            None => {
+                emited_vars.push(var.to_owned());
+                emited_vars.len() - 1
+            }
+        };
+
+        format!("arguments[{}]", arg_pos)
+    });
+
+    (new_text, emited_vars)
+}
+
+fn emit_vars<P: FnMut(&str) -> String>(s: &str, mut printer: P) -> String {
     // TODO: check how to emit string in quotes or not
     //
     // regex look up for variable name in brackets #{var}
@@ -330,94 +325,24 @@ fn emit_variables_custom<S: AsRef<str>>(
     // it's important in emiting vars in JSON
     //
     // https://github.com/SeleniumHQ/selenium-ide/blob/dd0c8ce313171672d2f0670cfb05786611f85b73/packages/side-runtime/src/preprocessors.js#L119
-    let re = regex::Regex::new(r#"\$\{(.*?)\}"#).unwrap();
-    let mut replacer = PuttingArg {
-        emited_vars: HashMap::new(),
-        index: 0,
-    };
-
-    let new_text = re.replace_all(text.as_ref(), &mut replacer);
-
-    let count_positions = replacer.index;
-    let mut vars = Vec::new();
-    for i in 0..count_positions {
-        vars.push(replacer.emited_vars[&i].clone());
-    }
-
-    (new_text.into(), vars)
+    // let re = regex::Regex::new(r#"\$\{(.*?)\}"#).unwrap();
+    let re = regex::Regex::new(r#"\$\{(\w+?)\}"#).unwrap();
+    let new_s = re.replace_all(s, |caps: &regex::Captures| printer(&caps[1]));
+    new_s.to_string()
 }
 
-struct PuttingArg {
-    emited_vars: HashMap<usize, String>,
-    index: usize,
-}
-
-// TODO: clean this up.
-// it's library dependent ?
-impl regex::Replacer for &mut PuttingArg {
-    fn replace_append(&mut self, caps: &regex::Captures, dst: &mut String) {
-        let var = caps.get(1).unwrap().as_str();
-
-        let index = if let Some((pos, _)) = self.emited_vars.iter().find(|(_, v)| v.as_str() == var)
-        {
-            *pos
-        } else {
-            let index = self.index;
-            self.emited_vars.insert(index, var.to_owned());
-            self.index += 1;
-            index
-        };
-        let replacement = format!("arguments[{}]", index);
-
-        dst.push_str(replacement.as_str());
-    }
-}
-
-struct VarReplacer<'a, P: VarPrinter> {
-    data: &'a HashMap<String, Value>,
-    printer: std::marker::PhantomData<P>,
-}
-
-trait VarPrinter {
-    fn print(val: &Value) -> String;
-}
-
-struct JSPrinter {}
-
-impl VarPrinter for JSPrinter {
-    fn print(val: &Value) -> String {
-        val.to_string()
-    }
-}
-
-struct PlainPrinter {}
-
-impl VarPrinter for PlainPrinter {
-    fn print(val: &Value) -> String {
-        match val {
-            Value::String(val) => val.clone(),
-            Value::Null => "".to_string(),
-            Value::Number(val) => val.to_string(),
-            Value::Object(..) => "[object Object]".to_string(), // is it ok behaviour?
-            Value::Array(values) => values
-                .into_iter()
-                .map(|v| Self::print(v))
-                .collect::<Vec<_>>()
-                .join(","),
-            Value::Bool(val) => val.to_string(),
-        }
-    }
-}
-
-impl<P: VarPrinter> regex::Replacer for VarReplacer<'_, P> {
-    fn replace_append(&mut self, caps: &regex::Captures, dst: &mut String) {
-        let var = caps.get(1).unwrap().as_str();
-        let replacement = match self.data.get(var) {
-            Some(value) => P::print(value),
-            None => "".to_string(),
-        };
-
-        dst.push_str(replacement.as_str());
+fn print_plain_value(val: &Value) -> String {
+    match val {
+        Value::String(val) => val.clone(),
+        Value::Null => "".to_string(),
+        Value::Number(val) => val.to_string(),
+        Value::Object(..) => "[object Object]".to_string(), // is it ok behaviour?
+        Value::Array(values) => values
+            .into_iter()
+            .map(|v| print_plain_value(v))
+            .collect::<Vec<_>>()
+            .join(","),
+        Value::Bool(val) => val.to_string(),
     }
 }
 
@@ -601,43 +526,19 @@ mod tests {
         vars.insert("world".to_string(), json!("World"));
         vars.insert("something".to_string(), json!("XXX"));
 
-        assert_eq!(
-            "\"Hello\"",
-            emit_variables::<_, JSPrinter>("${hello}", &vars)
-        );
-        assert_eq!(
-            "\"Hello\" \"World\"!",
-            emit_variables::<_, JSPrinter>("${hello} ${world}!", &vars)
-        );
+        assert_eq!("Hello", emit_variables("${hello}", &vars));
+        assert_eq!("Hello World!", emit_variables("${hello} ${world}!", &vars));
         assert_eq!(
             "There are no vars here",
-            emit_variables::<_, JSPrinter>("There are no vars here", &vars)
+            emit_variables("There are no vars here", &vars)
         );
-        assert_eq!(
-            "${\"XXX\"}",
-            emit_variables::<_, JSPrinter>("${${something}}", &vars)
-        );
+        assert_eq!("${XXX}", emit_variables("${${something}}", &vars));
 
-        assert_eq!(
-            "\"\"World\"\"",
-            emit_variables::<_, JSPrinter>("\"${world}\"", &vars)
-        );
-        assert_eq!(
-            "\"World\"\" }",
-            emit_variables::<_, JSPrinter>("${world}\" }", &vars)
-        );
-        assert_eq!(
-            "\"World\"\"}",
-            emit_variables::<_, JSPrinter>("${world}\"}", &vars)
-        );
-        assert_eq!(
-            "\"World\" }",
-            emit_variables::<_, JSPrinter>("${world} }", &vars)
-        );
-        assert_eq!(
-            "\"World\"}",
-            emit_variables::<_, JSPrinter>("${world}}", &vars)
-        );
+        assert_eq!("\"World\"", emit_variables("\"${world}\"", &vars));
+        assert_eq!("World\" }", emit_variables("${world}\" }", &vars));
+        assert_eq!("World\"}", emit_variables("${world}\"}", &vars));
+        assert_eq!("World }", emit_variables("${world} }", &vars));
+        assert_eq!("World}", emit_variables("${world}}", &vars));
     }
 
     #[test]
@@ -645,25 +546,16 @@ mod tests {
         let mut vars = HashMap::new();
 
         vars.insert("test".to_string(), json!("string"));
-        assert_eq!(
-            r#""string""#,
-            emit_variables::<_, JSPrinter>("${test}", &vars)
-        );
+        assert_eq!("string", emit_variables("${test}", &vars));
 
         vars.insert("test".to_string(), json!(2));
-        assert_eq!("2", emit_variables::<_, JSPrinter>("${test}", &vars));
+        assert_eq!("2", emit_variables("${test}", &vars));
 
         vars.insert("test".to_string(), json!({"h3": 3}));
-        assert_eq!(
-            r#"{"h3":3}"#,
-            emit_variables::<_, JSPrinter>("${test}", &vars)
-        );
+        assert_eq!("[object Object]", emit_variables("${test}", &vars));
 
         vars.insert("test".to_string(), json!(["h4", 4]));
-        assert_eq!(
-            r#"["h4",4]"#,
-            emit_variables::<_, JSPrinter>("${test}", &vars)
-        );
+        assert_eq!("h4,4", emit_variables("${test}", &vars));
     }
 
     #[test]

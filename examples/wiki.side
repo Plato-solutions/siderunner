@@ -1,0 +1,40 @@
+{
+  "id": "5433e103-0c39-4914-9c66-8ec568f53f0b",
+  "version": "2.0",
+  "name": "Wiki",
+  "url": "https://www.wikipedia.org/",
+  "tests": [{
+    "id": "2a40213c-4a6c-40e7-9051-80b1eaaf1e3c",
+    "name": "open main page",
+    "commands": [{
+      "id": "00af4c16-4ca3-47b8-843d-c2ff9d9f42d0",
+      "comment": "",
+      "command": "open",
+      "target": "https://www.wikipedia.org/",
+      "targets": [],
+      "value": ""
+    }, {
+      "id": "71da12ff-24c9-45cd-93e4-5a25e0a73af6",
+      "comment": "",
+      "command": "storeText",
+      "target": "css=.localized-slogan",
+      "targets": [
+        ["css=.localized-slogan", "css:finder"],
+        ["xpath=//body[@id='www-wikipedia-org']/div/h1/strong", "xpath:idRelative"],
+        ["xpath=//strong", "xpath:position"],
+        ["xpath=//strong[contains(.,'The Free Encyclopedia')]", "xpath:innerText"]
+      ],
+      "value": "slogan"
+    }]
+  }],
+  "suites": [{
+    "id": "057a3118-1a7f-4617-912a-4533ae2bea0a",
+    "name": "Default Suite",
+    "persistSession": false,
+    "parallel": false,
+    "timeout": 300,
+    "tests": ["2a40213c-4a6c-40e7-9051-80b1eaaf1e3c"]
+  }],
+  "urls": [],
+  "plugins": []
+}

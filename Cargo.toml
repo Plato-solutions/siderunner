@@ -14,3 +14,6 @@ tokio = { version = "0.2.0", features = [ "sync", "time" ] }
 serde_json = "*"
 serde = "*"
 regex = "*"
+
+[dev-dependencies]
+tokio = { version = "0.2.0", features = [ "full" ] }

@@ -4,18 +4,27 @@
 // TODO: Runner may contains basic information to handle relative url
 // TODO: refactoring and test While and If commits
 
-use crate::{error::SideRunnerError, Command, Location, Result, SelectLocator, Test};
+use crate::{
+    error::SideRunnerError,
+    parser::{Command, Location, SelectLocator, Test},
+    Result,
+};
 use fantoccini::{Client, Locator};
 use serde_json::Value;
 use std::collections::HashMap;
 
+/// A runtime for running test
+///
+/// It runs commands and controls program flow(manages conditions and loops).
+/// It manages usage of variables.
 pub struct Runner<'driver> {
-    webdriver: &'driver mut Client,
     pub data: HashMap<String, Value>,
+    webdriver: &'driver mut Client,
     echo_hook: Box<fn(&str)>,
 }
 
 impl<'driver> Runner<'driver> {
+    /// Create a new runner
     pub fn new(client: &'driver mut Client) -> Self {
         Self {
             webdriver: client,
@@ -24,6 +33,7 @@ impl<'driver> Runner<'driver> {
         }
     }
 
+    /// Runs a test
     pub async fn run(&mut self, test: &Test) -> Result<()> {
         crate::validation::validate_conditions(&test.commands)?;
         let nodes = create_nodes(&test.commands);

@@ -1,4 +1,4 @@
-use crate::{error::ParseError, Command, Result};
+use crate::{error::ParseError, parser::Command, Result};
 
 // TODO: error with position when
 //      there's missing END

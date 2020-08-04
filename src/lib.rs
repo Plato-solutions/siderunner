@@ -1,8 +1,8 @@
-mod runner;
-mod parser;
 mod error;
+mod parser;
+mod runner;
 mod validation;
 
-pub use parser::*;
-pub use runner::*;
 pub use error::Result;
+pub use parser::{parse, Command, Test};
+pub use runner::Runner;

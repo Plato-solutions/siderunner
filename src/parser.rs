@@ -7,6 +7,9 @@ use crate::error::ParseError;
 use std::result::Result;
 use std::time::Duration;
 
+/// Parse [.side format] into rust representation
+///
+/// [.side format]: https://github.com/SeleniumHQ/selenium-ide/issues/77
 pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>, ParseError> {
     let side: format::SideFile =
         serde_json::from_reader(side_file).map_err(|err| ParseError::FormatError(err))?;
@@ -52,11 +55,15 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
     parse_fn(command)
 }
 
+/// The structure represent a selenium test
 pub struct Test {
     pub name: String,
     pub commands: Vec<Command>,
 }
 
+/// Command corresponds a selenium command
+///
+/// The list of commands still not completed
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Command {
     Open(String),
@@ -224,9 +231,12 @@ impl Command {
     }
 }
 
+/// Target represents a locator of html element 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Target {
     pub location: Location,
+    /// tag is an additional information of location type e.g.
+    /// location = xpath, tag = Some(relative) | Some(positional) | None
     pub tag: Option<String>,
 }
 
@@ -249,6 +259,7 @@ trait IncompleteStr<T> {
     fn eval(vars: Vec<usize>) -> T;
 }
 
+/// Locator of a HTML element
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Location {
     XPath(String),
@@ -346,7 +357,7 @@ fn cast_timeout(s: &str) -> Result<Duration, ParseError> {
         .map(|timeout| Duration::from_millis(timeout))
 }
 
-pub mod format {
+mod format {
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]

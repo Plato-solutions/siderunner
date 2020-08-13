@@ -70,7 +70,7 @@ pub enum Command {
     Echo(String),
     Click(Target),
     Pause(Duration),
-    SetWindowSize(usize, usize),
+    SetWindowSize(u32, u32),
     // todo: targets?
     Select {
         target: Target,

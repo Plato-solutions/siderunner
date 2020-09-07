@@ -4,5 +4,5 @@ mod runner;
 mod validation;
 
 pub use error::Result;
-pub use parser::{parse, Command, Test};
+pub use parser::{parse, Command, Test, File};
 pub use runner::Runner;

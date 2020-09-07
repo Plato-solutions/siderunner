@@ -10,7 +10,7 @@ use std::time::Duration;
 /// Parse [.side format] into rust representation
 ///
 /// [.side format]: https://github.com/SeleniumHQ/selenium-ide/issues/77
-pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>, ParseError> {
+pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
     let side: format::SideFile =
         serde_json::from_reader(side_file).map_err(|err| ParseError::FormatError(err))?;
     let mut tests = Vec::new();
@@ -26,8 +26,13 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<Vec<Test>, ParseError> {
             commands,
         });
     }
-
-    Ok(tests)
+    
+    Ok(File {
+        name: side.name,
+        url: side.url,
+        version: side.version,
+        tests
+    })
 }
 
 fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
@@ -53,6 +58,13 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
     };
 
     parse_fn(command)
+}
+
+pub struct File {
+    pub version: String,
+    pub name: String,
+    pub url: String,   
+    pub tests: Vec<Test>,
 }
 
 /// The structure represent a selenium test
@@ -396,21 +408,21 @@ mod tests {
     fn _parse() {
         let file = side_file();
         let reader = file.as_slice();
-        let tests = parse(reader);
-        assert!(tests.is_ok());
-        let tests = tests.unwrap();
-        assert_eq!(tests.len(), 1);
-        assert_eq!(tests[0].commands.len(), 3);
+        let file = parse(reader);
+        assert!(file.is_ok());
+        let file = file.unwrap();
+        assert_eq!(file.tests.len(), 1);
+        assert_eq!(file.tests[0].commands.len(), 3);
         assert!(matches!(
-            tests[0].commands[0],
+            file.tests[0].commands[0],
             Command::Open(ref url) if url == "RELATIVE_URL/"
         ));
         assert!(matches!(
-            tests[0].commands[1],
+            file.tests[0].commands[1],
             Command::Pause(ref timeout) if *timeout == Duration::from_secs(5)
         ));
         assert!(matches!(
-            tests[0].commands[2],
+            file.tests[0].commands[2],
             Command::Execute {ref script, ref var} if script == "return \"hello world\"" && var == &Some("variable_name".to_string())
         ));
     }

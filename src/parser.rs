@@ -18,7 +18,14 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
         let mut commands = Vec::with_capacity(test.commands.len());
         for command in &test.commands {
             let cmd = parse_cmd(command)?;
-            commands.push(cmd);
+            if cmd.is_none() {
+                // the command is commented
+                // so we don't keep it
+                //
+                // TODO: probably we have to parse it but don't run it...
+                continue;
+            }
+            commands.push(cmd.unwrap());
         }
 
         tests.push(Test {
@@ -26,16 +33,16 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
             commands,
         });
     }
-    
+
     Ok(File {
         name: side.name,
         url: side.url,
         version: side.version,
-        tests
+        tests,
     })
 }
 
-fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
+fn parse_cmd(command: &format::Command) -> Result<Option<Command>, ParseError> {
     let parse_fn = match command.cmd.as_str() {
         "open" => Command::parse_open,
         "store" => Command::parse_store,
@@ -54,16 +61,17 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "else" => Command::parse_else,
         "end" => Command::parse_end,
         "setWindowSize" => Command::parse_set_window_size,
+        c if c.starts_with("//") => return Ok(None),
         _ => unimplemented!(),
     };
 
-    parse_fn(command)
+    parse_fn(command).and_then(|c| Ok(Some(c)))
 }
 
 pub struct File {
     pub version: String,
     pub name: String,
-    pub url: String,   
+    pub url: String,
     pub tests: Vec<Test>,
 }
 
@@ -243,7 +251,7 @@ impl Command {
     }
 }
 
-/// Target represents a locator of html element 
+/// Target represents a locator of html element
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Target {
     pub location: Location,

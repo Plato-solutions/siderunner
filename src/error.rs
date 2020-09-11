@@ -2,20 +2,39 @@ use fantoccini::error as ferorr;
 use std::fmt;
 use std::result;
 
-pub type Result<T> = result::Result<T, SideRunnerError>;
+pub struct RunnerError {
+    pub kind: RunnerErrorKind,
+    pub index: usize,
+}
+
+impl RunnerError {
+    pub fn new(kind: RunnerErrorKind, index: usize) -> Self {
+        Self { kind, index }
+    }
+}
+
+impl std::fmt::Debug for RunnerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:?} on the command with index={}",
+            self.kind, self.index
+        )
+    }
+}
 
 // TODO: IlligalSyntax
-pub enum SideRunnerError {
-    ParseError(ParseError),
+pub enum RunnerErrorKind {
     WebdriverError(ferorr::CmdError),
+    BranchValidationError(String),
     MismatchedType(String),
     Timeout(String),
 }
 
-impl std::fmt::Debug for SideRunnerError {
+impl std::fmt::Debug for RunnerErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ParseError(err) => write!(f, "parse error: {:?}", err),
+            Self::BranchValidationError(err) => write!(f, "branching error {:?}", err),
             Self::WebdriverError(err) => write!(f, "webdriver error {:?}", err),
             Self::MismatchedType(desc) => write!(f, "mismatched type {}", desc),
             Self::Timeout(desc) => write!(f, "timeout {}", desc),
@@ -23,15 +42,9 @@ impl std::fmt::Debug for SideRunnerError {
     }
 }
 
-impl From<ParseError> for SideRunnerError {
-    fn from(err: ParseError) -> Self {
-        SideRunnerError::ParseError(err)
-    }
-}
-
-impl From<ferorr::CmdError> for SideRunnerError {
+impl From<ferorr::CmdError> for RunnerErrorKind {
     fn from(err: ferorr::CmdError) -> Self {
-        SideRunnerError::WebdriverError(err)
+        RunnerErrorKind::WebdriverError(err)
     }
 }
 

@@ -1,6 +1,6 @@
 use fantoccini::Client;
 /// The example requires to geckodriver have been run
-use pantheon::{parse, Result, Runner};
+use pantheon::{parse, Runner};
 
 #[tokio::main]
 async fn main() {

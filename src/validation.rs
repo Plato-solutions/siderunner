@@ -1,17 +1,23 @@
-use crate::{error::ParseError, parser::Command, Result};
+use crate::{
+    error::{RunnerError, RunnerErrorKind},
+    parser::Command,
+};
 
 // TODO: error with position when
 //      there's missing END
 //      there's more ENDs
 //      END used wrongly
-pub fn validate_conditions(commands: &[Command]) -> Result<()> {
+pub fn validate_conditions(commands: &[Command]) -> Result<(), RunnerError> {
     let mut state = Vec::new();
-    for cmd in commands {
-        validate(cmd, &mut state)?
+    for (index, cmd) in commands.iter().enumerate() {
+        validate(cmd, &mut state).map_err(|e| RunnerError::new(e, index))?
     }
 
     if !state.is_empty() {
-        Err(ParseError::ValidationError("incomplete block".to_owned()))?
+        Err(RunnerError::new(
+            RunnerErrorKind::BranchValidationError("incomplete block".to_owned()),
+            commands.len(), // todo: investigate correct index
+        ))
     } else {
         Ok(())
     }
@@ -25,7 +31,7 @@ enum State {
     End,
 }
 
-fn validate(cmd: &Command, state: &mut Vec<State>) -> Result<()> {
+fn validate(cmd: &Command, state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
     match cmd {
         Command::While(..) => {
             state.push(State::While);
@@ -42,7 +48,7 @@ fn validate(cmd: &Command, state: &mut Vec<State>) -> Result<()> {
     }
 }
 
-fn validate_end(state: &mut Vec<State>) -> Result<()> {
+fn validate_end(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
     match state.last() {
         Some(st) if matches!(st, State::While | State::If) => {
             state.pop();
@@ -52,37 +58,37 @@ fn validate_end(state: &mut Vec<State>) -> Result<()> {
             state.pop();
             validate_end(state)
         }
-        _ => Err(ParseError::ValidationError(
+        _ => Err(RunnerErrorKind::BranchValidationError(
             "end used in wrong way".to_owned(),
         ))?,
     }
 }
 
-fn validate_else(state: &mut Vec<State>) -> Result<()> {
+fn validate_else(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
     match state.last() {
         Some(st) if matches!(st, State::If | State::ElseIf) => {
             state.push(State::Else);
             Ok(())
         }
-        Some(st) if matches!(st, State::Else) => Err(ParseError::ValidationError(
+        Some(st) if matches!(st, State::Else) => Err(RunnerErrorKind::BranchValidationError(
             "too many else operations".to_owned(),
         ))?,
-        _ => Err(ParseError::ValidationError(
+        _ => Err(RunnerErrorKind::BranchValidationError(
             "else used out of if scope".to_owned(),
         ))?,
     }
 }
 
-fn validate_else_if(state: &mut Vec<State>) -> Result<()> {
+fn validate_else_if(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
     match state.last() {
         Some(st) if matches!(st, State::If | State::ElseIf) => {
             state.push(State::ElseIf);
             Ok(())
         }
-        Some(st) if matches!(st, State::Else) => Err(ParseError::ValidationError(
+        Some(st) if matches!(st, State::Else) => Err(RunnerErrorKind::BranchValidationError(
             "usage of elseif after else".to_owned(),
         ))?,
-        _ => Err(ParseError::ValidationError(
+        _ => Err(RunnerErrorKind::BranchValidationError(
             "else if used outside the if scope".to_owned(),
         ))?,
     }

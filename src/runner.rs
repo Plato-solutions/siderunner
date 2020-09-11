@@ -5,9 +5,8 @@
 // TODO: refactoring and test While and If commits
 
 use crate::{
-    error::SideRunnerError,
+    error::{RunnerError, RunnerErrorKind},
     parser::{Command, Location, SelectLocator, Test},
-    Result,
 };
 use fantoccini::{Client, Locator};
 use serde_json::Value;
@@ -34,7 +33,7 @@ impl<'driver> Runner<'driver> {
     }
 
     /// Runs a test
-    pub async fn run(&mut self, test: &Test) -> Result<()> {
+    pub async fn run(&mut self, test: &Test) -> Result<(), RunnerError> {
         crate::validation::validate_conditions(&test.commands)?;
         let nodes = create_nodes(&test.commands);
         // for node in nodes {
@@ -56,7 +55,9 @@ impl<'driver> Runner<'driver> {
                 Some(NodeTransition::Next(next)) => {
                     i = next;
                     let cmd = &run.command;
-                    self.run_command(cmd).await?;
+                    self.run_command(cmd)
+                        .await
+                        .map_err(|e| RunnerError::new(e, run.index))?;
                 }
                 Some(NodeTransition::Conditional(next, or_else)) => {
                     let condition = match &run.command {
@@ -67,7 +68,10 @@ impl<'driver> Runner<'driver> {
                     };
 
                     let script = format!("return {}", condition);
-                    let res = self.exec(&script).await?;
+                    let res = self
+                        .exec(&script)
+                        .await
+                        .map_err(|e| RunnerError::new(e, run.index))?;
                     match res.as_bool() {
                         Some(b) => {
                             if b {
@@ -76,9 +80,14 @@ impl<'driver> Runner<'driver> {
                                 i = or_else;
                             }
                         }
-                        None => Err(SideRunnerError::MismatchedType(
-                            "expected boolean type in condition".to_owned(),
-                        ))?,
+                        None => {
+                            return Err(RunnerError::new(
+                                RunnerErrorKind::MismatchedType(
+                                    "expected boolean type in condition".to_owned(),
+                                ),
+                                run.index,
+                            ))
+                        }
                     }
                 }
                 None => unreachable!(),
@@ -88,7 +97,7 @@ impl<'driver> Runner<'driver> {
         Ok(())
     }
 
-    async fn run_command(&mut self, cmd: &Command) -> Result<()> {
+    async fn run_command(&mut self, cmd: &Command) -> Result<(), RunnerErrorKind> {
         // TODO: emit variables in value field too
         match cmd {
             Command::Open(url) => {
@@ -180,7 +189,7 @@ impl<'driver> Runner<'driver> {
                     }
 
                     if now.elapsed() > *timeout {
-                        return Err(SideRunnerError::Timeout(
+                        return Err(RunnerErrorKind::Timeout(
                             "WaitForElementNotPresent".to_owned(),
                         ))?;
                     }
@@ -221,7 +230,7 @@ impl<'driver> Runner<'driver> {
                     }
 
                     if now.elapsed() > *timeout {
-                        return Err(SideRunnerError::Timeout(
+                        return Err(RunnerErrorKind::Timeout(
                             "WaitForElementEditable".to_owned(),
                         ))?;
                     }
@@ -243,7 +252,7 @@ impl<'driver> Runner<'driver> {
                         match index.parse() {
                             Ok(index) => select.select_by_index(index).await?,
                             // TODO: IlligalSyntax  Failed: Illegal Index: {version_counter}
-                            Err(..) => Err(SideRunnerError::MismatchedType(format!(
+                            Err(..) => Err(RunnerErrorKind::MismatchedType(format!(
                                 "expected to get int type but got {:?}",
                                 index
                             )))?,
@@ -286,15 +295,18 @@ impl<'driver> Runner<'driver> {
     async fn exec(
         &mut self,
         script: &str,
-    ) -> std::result::Result<serde_json::Value, fantoccini::error::CmdError> {
+    ) -> std::result::Result<serde_json::Value, RunnerErrorKind> {
         let (script, used_vars) = emit_variables_custom(script);
         let args = used_vars.iter().map(|var| self.data[var].clone()).collect();
-        self.webdriver
+        let value = self
+            .webdriver
             .execute(
                 &format!("return (function(arguments) {{ {} }})(arguments)", script),
                 args,
             )
-            .await
+            .await?;
+
+        Ok(value)
     }
 
     fn emit(&self, s: &str) -> String {

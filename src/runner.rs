@@ -101,7 +101,10 @@ impl<'driver> Runner<'driver> {
         // TODO: emit variables in value field too
         match cmd {
             Command::Open(url) => {
-                self.webdriver.goto(url).await?;
+                // todo: unify emiting variables
+                let url = self.emit(url);
+
+                self.webdriver.goto(&url).await?;
                 let url = self.webdriver.current_url().await?;
                 assert_eq!(url.as_ref(), url.as_ref());
             }

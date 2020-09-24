@@ -351,7 +351,7 @@ fn emit_vars<P: FnMut(&str) -> String>(s: &str, mut printer: P) -> String {
     //
     // https://github.com/SeleniumHQ/selenium-ide/blob/dd0c8ce313171672d2f0670cfb05786611f85b73/packages/side-runtime/src/preprocessors.js#L119
     // let re = regex::Regex::new(r#"\$\{(.*?)\}"#).unwrap();
-    let re = regex::Regex::new(r#"\$\{(\w+?)\}"#).unwrap();
+    let re = regex::Regex::new(r#"\$\{(.*?)\}"#).unwrap();
     let new_s = re.replace_all(s, |caps: &regex::Captures| printer(&caps[1]));
     new_s.to_string()
 }
@@ -550,6 +550,7 @@ mod tests {
         vars.insert("hello".to_string(), json!("Hello"));
         vars.insert("world".to_string(), json!("World"));
         vars.insert("something".to_string(), json!("XXX"));
+        vars.insert("hello_world".to_string(), json!("Hello World"));
 
         assert_eq!("Hello", emit_variables("${hello}", &vars));
         assert_eq!("Hello World!", emit_variables("${hello} ${world}!", &vars));
@@ -557,13 +558,27 @@ mod tests {
             "There are no vars here",
             emit_variables("There are no vars here", &vars)
         );
-        assert_eq!("${XXX}", emit_variables("${${something}}", &vars));
 
         assert_eq!("\"World\"", emit_variables("\"${world}\"", &vars));
         assert_eq!("World\" }", emit_variables("${world}\" }", &vars));
         assert_eq!("World\"}", emit_variables("${world}\"}", &vars));
         assert_eq!("World }", emit_variables("${world} }", &vars));
         assert_eq!("World}", emit_variables("${world}}", &vars));
+
+        assert_eq!("Hello World", emit_variables("${hello_world}", &vars));
+    }
+
+    // there could be added a support for internal variables by
+    // r#"\$\{(.*?)\}+"# and recursive calling + handling spaces
+    // but is there any use case for it?
+    // 
+    // Selenium seemingly doesn't handle this. 
+    #[test]
+    fn test_emit_internal_variables_doesn_work() {
+        let mut vars = HashMap::new();
+        vars.insert("something".to_string(), json!("XXX"));
+
+        assert_eq!("}", emit_variables("${${something}}", &vars));
     }
 
     #[test]

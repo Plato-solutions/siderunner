@@ -57,13 +57,13 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         cmd if cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
-            // 
+            //
             // Having an empty command could add a subtle overhead on runtime as it add an additional iteration to the running loop.
             // Creating a bool flag for each command to check if it's commented seems also inefition because we don't need a information
             // about the commented commands at least now.
-            // 
+            //
             // The overhead is removed on a stage of creationn of running list.
-            Command::parse_empty_cmd
+            Command::parse_custom_cmd
         }
         _ => unimplemented!(),
     };
@@ -129,7 +129,12 @@ pub enum Command {
     ElseIf(String),
     Else,
     End,
-    Empty,
+    Custom {
+        cmd: String,
+        target: String,
+        targets: Vec<Vec<String>>,
+        value: String,
+    },
 }
 
 impl Command {
@@ -254,8 +259,22 @@ impl Command {
         Ok(Command::SetWindowSize(w, h))
     }
 
-    fn parse_empty_cmd(_: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Empty)
+    fn parse_custom_cmd(cmd: &format::Command) -> Result<Command, ParseError> {
+        Ok(Command::Custom {
+            cmd: cmd.cmd.clone(),
+            target: cmd.target.clone(),
+            targets: cmd.targets.clone(),
+            value: cmd.value.clone(),
+        })
+    }
+
+    pub fn empty_custom() -> Self {
+        Command::Custom {
+            cmd: String::default(),
+            target: String::default(),
+            value: String::default(),
+            targets: Vec::default(),
+        }
     }
 }
 

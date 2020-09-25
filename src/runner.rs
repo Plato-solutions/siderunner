@@ -403,7 +403,7 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
         .zip(levels)
         .enumerate()
         // remove commented commands to not influence runtime
-        .filter(|(_, (cmd, _))| cmd != &&Command::Empty)
+        .filter(|(_, (cmd, _))| !matches!(cmd, Command::Custom { .. }))
         .map(|(index, (cmd, lvl))| CommandNode::new(cmd.clone(), index, lvl, None))
         .collect::<Vec<_>>();
     let mut state = Vec::new();
@@ -630,10 +630,10 @@ mod tests {
     fn test_creating_run_list_with_commeted_commands() {
         let commands = vec![
             Command::Open("open".to_owned()),
-            Command::Empty,
-            Command::Empty,
+            Command::empty_custom(),
+            Command::empty_custom(),
             Command::Echo("echo".to_owned()),
-            Command::Empty,
+            Command::empty_custom(),
             Command::Echo("echo".to_owned()),
         ];
         let node = create_nodes(&commands);

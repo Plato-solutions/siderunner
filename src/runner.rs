@@ -402,6 +402,8 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
         .iter()
         .zip(levels)
         .enumerate()
+        // remove commented commands to not influence runtime
+        .filter(|(_, (cmd, _))| cmd != &&Command::Empty)
         .map(|(index, (cmd, lvl))| CommandNode::new(cmd.clone(), index, lvl, None))
         .collect::<Vec<_>>();
     let mut state = Vec::new();
@@ -571,8 +573,8 @@ mod tests {
     // there could be added a support for internal variables by
     // r#"\$\{(.*?)\}+"# and recursive calling + handling spaces
     // but is there any use case for it?
-    // 
-    // Selenium seemingly doesn't handle this. 
+    //
+    // Selenium seemingly doesn't handle this.
     #[test]
     fn test_emit_internal_variables_doesn_work() {
         let mut vars = HashMap::new();
@@ -619,6 +621,42 @@ mod tests {
                     1,
                     0,
                     Some(NodeTransition::Next(2))
+                )
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_with_commeted_commands() {
+        let commands = vec![
+            Command::Open("open".to_owned()),
+            Command::Empty,
+            Command::Empty,
+            Command::Echo("echo".to_owned()),
+            Command::Empty,
+            Command::Echo("echo".to_owned()),
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(3)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    3,
+                    0,
+                    Some(NodeTransition::Next(5))
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    5,
+                    0,
+                    Some(NodeTransition::Next(6))
                 )
             ]
         )

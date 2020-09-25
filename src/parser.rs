@@ -12,20 +12,13 @@ use std::time::Duration;
 /// [.side format]: https://github.com/SeleniumHQ/selenium-ide/issues/77
 pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
     let side: format::SideFile =
-        serde_json::from_reader(side_file).map_err(|err| ParseError::FormatError(err))?;
+        serde_json::from_reader(side_file).map_err(ParseError::FormatError)?;
     let mut tests = Vec::new();
     for test in &side.tests {
         let mut commands = Vec::with_capacity(test.commands.len());
         for command in &test.commands {
             let cmd = parse_cmd(command)?;
-            if cmd.is_none() {
-                // the command is commented
-                // so we don't keep it
-                //
-                // TODO: probably we have to parse it but don't run it...
-                continue;
-            }
-            commands.push(cmd.unwrap());
+            commands.push(cmd);
         }
 
         tests.push(Test {
@@ -42,7 +35,7 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
     })
 }
 
-fn parse_cmd(command: &format::Command) -> Result<Option<Command>, ParseError> {
+fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
     let parse_fn = match command.cmd.as_str() {
         "open" => Command::parse_open,
         "store" => Command::parse_store,
@@ -61,11 +54,21 @@ fn parse_cmd(command: &format::Command) -> Result<Option<Command>, ParseError> {
         "else" => Command::parse_else,
         "end" => Command::parse_end,
         "setWindowSize" => Command::parse_set_window_size,
-        c if c.starts_with("//") => return Ok(None),
+        cmd if cmd.starts_with("//") => {
+            // We create an empty command to not lose an order of commands.
+            // It's usefull for error messages to not break the indexes of commands from a file.
+            // 
+            // Having an empty command could add a subtle overhead on runtime as it add an additional iteration to the running loop.
+            // Creating a bool flag for each command to check if it's commented seems also inefition because we don't need a information
+            // about the commented commands at least now.
+            // 
+            // The overhead is removed on a stage of creationn of running list.
+            Command::parse_empty_cmd
+        }
         _ => unimplemented!(),
     };
 
-    parse_fn(command).and_then(|c| Ok(Some(c)))
+    parse_fn(command)
 }
 
 pub struct File {
@@ -126,6 +129,7 @@ pub enum Command {
     ElseIf(String),
     Else,
     End,
+    Empty,
 }
 
 impl Command {
@@ -248,6 +252,10 @@ impl Command {
             .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
 
         Ok(Command::SetWindowSize(w, h))
+    }
+
+    fn parse_empty_cmd(_: &format::Command) -> Result<Command, ParseError> {
+        Ok(Command::Empty)
     }
 }
 

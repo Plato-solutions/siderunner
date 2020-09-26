@@ -434,6 +434,10 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
             ));
             state.push(("while", cmds[0].index));
         }
+        Command::Do => {
+            state.push(("do", cmds[0].index));
+            cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
+        }
         Command::If(..) => {
             let if_next = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
             let cond_end = find_next_end_on_level(&cmds[1..], cmds[0].level).unwrap();
@@ -447,6 +451,11 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
         Command::Else => {
             cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
         }
+        Command::RepeatIf(..) => {
+            let (_do, do_index) = state.pop().unwrap();
+            assert_eq!(_do, "do");
+            cmds[0].next = Some(NodeTransition::Conditional(do_index, cmds[0].index + 1));
+        }
         Command::End => match state.last() {
             Some(("while", index)) => {
                 cmds[0].next = Some(NodeTransition::Next(*index));
@@ -457,6 +466,8 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
                 cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
             }
             _ => {
+                //fixme: is pop missed here?
+                panic!("");
                 cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
             }
         },
@@ -473,8 +484,8 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
                     //     }
                     // },
                     Command::Else => {
-                        let (_, index) = state.pop().unwrap();
-                        cmds[0].next = Some(NodeTransition::Next(index));
+                        let (_, index) = state.last().unwrap();
+                        cmds[0].next = Some(NodeTransition::Next(*index));
                     }
                     Command::ElseIf(..) => {
                         let (_, index) = state.last().unwrap();
@@ -508,6 +519,12 @@ fn find_next_on_level(commands: &[CommandNode], level: usize) -> Option<&Command
     find_next(commands, |cmd| cmd.level == level)
 }
 
+fn find_next_repeat_if_on_level(commands: &[CommandNode], level: usize) -> Option<&CommandNode> {
+    find_next(commands, |cmd| {
+        cmd.level == level && matches!(cmd.command, Command::RepeatIf(..))
+    })
+}
+
 fn find_next_end_on_level(commands: &[CommandNode], level: usize) -> Option<&CommandNode> {
     find_next(commands, |cmd| {
         cmd.level == level && matches!(cmd.command, Command::End)
@@ -531,6 +548,14 @@ fn compute_levels(commands: &[Command]) -> Vec<usize> {
                 level -= 1;
                 levels.push(level);
                 level += 1;
+            }
+            Command::Do => {
+                levels.push(level);
+                level += 1;
+            }
+            Command::RepeatIf(..) => {
+                level -= 1;
+                levels.push(level);
             }
             _ => {
                 levels.push(level);
@@ -985,6 +1010,232 @@ mod tests {
                 CommandNode::new(Command::End, 6, 2, Some(NodeTransition::Next(7))),
                 CommandNode::new(Command::End, 7, 1, Some(NodeTransition::Next(2))),
                 CommandNode::new(Command::End, 8, 0, Some(NodeTransition::Next(1))),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_while_with_if() {
+        let mut commands = vec![
+            Command::Open("open".to_owned()),
+            Command::While("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::If("...".to_owned()),
+            Command::Else,
+            Command::End,
+            Command::End,
+        ];
+        let node = create_nodes(&mut commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(
+                    Command::While("...".to_owned()),
+                    1,
+                    0,
+                    Some(NodeTransition::Conditional(2, 7)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Next(3)),
+                ),
+                CommandNode::new(
+                    Command::If("...".to_owned()),
+                    3,
+                    1,
+                    Some(NodeTransition::Conditional(4, 4)),
+                ),
+                CommandNode::new(Command::Else, 4, 1, Some(NodeTransition::Next(5)),),
+                CommandNode::new(Command::End, 5, 1, Some(NodeTransition::Next(6))),
+                CommandNode::new(Command::End, 6, 0, Some(NodeTransition::Next(1))),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_repeat_if() {
+        let commands = vec![
+            Command::Open("open".to_owned()),
+            Command::Do,
+            Command::Echo("echo".to_owned()),
+            Command::RepeatIf("...".to_owned()),
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(Command::Do, 1, 0, Some(NodeTransition::Next(2)),),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Next(3)),
+                ),
+                CommandNode::new(
+                    Command::RepeatIf("...".to_owned()),
+                    3,
+                    0,
+                    Some(NodeTransition::Conditional(1, 4)),
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_repeat_if_with_if() {
+        let commands = vec![
+            Command::Open("open".to_owned()),
+            Command::Do,
+            Command::If("".to_owned()),
+            Command::ElseIf("".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::Else,
+            Command::End,
+            Command::RepeatIf("...".to_owned()),
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("open".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(Command::Do, 1, 0, Some(NodeTransition::Next(2))),
+                CommandNode::new(
+                    Command::If("".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Conditional(3, 3)),
+                ),
+                CommandNode::new(
+                    Command::ElseIf("".to_owned()),
+                    3,
+                    1,
+                    Some(NodeTransition::Conditional(4, 5)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    4,
+                    2,
+                    Some(NodeTransition::Next(6)),
+                ),
+                CommandNode::new(Command::Else, 5, 1, Some(NodeTransition::Next(6)),),
+                CommandNode::new(Command::End, 6, 1, Some(NodeTransition::Next(7)),),
+                CommandNode::new(
+                    Command::RepeatIf("...".to_owned()),
+                    7,
+                    0,
+                    Some(NodeTransition::Conditional(1, 8)),
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_repeat_if_and_while_and_if() {
+        let commands = vec![
+            Command::Open("".to_owned()),
+            Command::Do,
+            Command::While("".to_owned()),
+            Command::If("".to_owned()),
+            Command::ElseIf("".to_owned()),
+            Command::Echo("".to_owned()),
+            Command::Else,
+            Command::End,
+            Command::End,
+            Command::RepeatIf("".to_owned()),
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::Open("".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Next(1)),
+                ),
+                CommandNode::new(Command::Do, 1, 0, Some(NodeTransition::Next(2))),
+                CommandNode::new(
+                    Command::While("".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Conditional(3, 9)),
+                ),
+                CommandNode::new(
+                    Command::If("".to_owned()),
+                    3,
+                    2,
+                    Some(NodeTransition::Conditional(4, 4)),
+                ),
+                CommandNode::new(
+                    Command::ElseIf("".to_owned()),
+                    4,
+                    2,
+                    Some(NodeTransition::Conditional(5, 6)),
+                ),
+                CommandNode::new(
+                    Command::Echo("".to_owned()),
+                    5,
+                    3,
+                    Some(NodeTransition::Next(7)),
+                ),
+                CommandNode::new(Command::Else, 6, 2, Some(NodeTransition::Next(7)),),
+                CommandNode::new(Command::End, 7, 2, Some(NodeTransition::Next(8)),),
+                CommandNode::new(Command::End, 8, 1, Some(NodeTransition::Next(2)),),
+                CommandNode::new(
+                    Command::RepeatIf("".to_owned()),
+                    9,
+                    0,
+                    Some(NodeTransition::Conditional(1, 10)),
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_with_while_and_repeat_if() {
+        let commands = vec![
+            Command::While("..".to_owned()),
+            Command::Do,
+            Command::RepeatIf("...".to_owned()),
+            Command::End,
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::While("..".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Conditional(1, 4)),
+                ),
+                CommandNode::new(Command::Do, 1, 1, Some(NodeTransition::Next(2))),
+                CommandNode::new(
+                    Command::RepeatIf("...".to_owned()),
+                    2,
+                    1,
+                    Some(NodeTransition::Conditional(1, 3)),
+                ),
+                CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(0)),),
             ]
         )
     }

@@ -28,6 +28,7 @@ enum State {
     If,
     ElseIf,
     Else,
+    Do,
     End,
 }
 
@@ -44,6 +45,11 @@ fn validate(cmd: &Command, state: &mut Vec<State>) -> Result<(), RunnerErrorKind
         Command::ElseIf(..) => validate_else_if(state),
         Command::Else => validate_else(state),
         Command::End => validate_end(state),
+        Command::Do => {
+            state.push(State::Do);
+            Ok(())
+        }
+        Command::RepeatIf(..) => validate_do(state),
         _ => Ok(()),
     }
 }
@@ -90,6 +96,18 @@ fn validate_else_if(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
         ))?,
         _ => Err(RunnerErrorKind::BranchValidationError(
             "else if used outside the if scope".to_owned(),
+        ))?,
+    }
+}
+
+fn validate_do(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
+    match state.last() {
+        Some(st) if matches!(st, State::Do) => {
+            state.pop();
+            Ok(())
+        }
+        _ => Err(RunnerErrorKind::BranchValidationError(
+            "repeatIf used outside the if scope".to_owned(),
         ))?,
     }
 }
@@ -164,6 +182,22 @@ mod tests {
             Command::Else,
             Command::End,
             Command::ElseIf("...".to_owned()),
+        ];
+        assert!(validate_conditions(&commands).is_err());
+    }
+
+    #[test]
+    fn test_validation_missed_repeat_if() {
+        let commands = vec![
+            Command::Open("".to_owned()),
+            Command::Do,
+            Command::Echo("".to_owned()),
+        ];
+        assert!(validate_conditions(&commands).is_err());
+        let commands = vec![
+            Command::Open("".to_owned()),
+            Command::Echo("".to_owned()),
+            Command::RepeatIf("".to_owned()),
         ];
         assert!(validate_conditions(&commands).is_err());
     }

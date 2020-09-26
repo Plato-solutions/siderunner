@@ -54,6 +54,8 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "else" => Command::parse_else,
         "end" => Command::parse_end,
         "setWindowSize" => Command::parse_set_window_size,
+        "do" => Command::parse_do,
+        "repeatIf" => Command::parse_repeat_if,
         cmd if cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -128,6 +130,8 @@ pub enum Command {
     If(String),
     ElseIf(String),
     Else,
+    Do,
+    RepeatIf(String),
     End,
     Custom {
         cmd: String,
@@ -257,6 +261,14 @@ impl Command {
             .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
 
         Ok(Command::SetWindowSize(w, h))
+    }
+
+    fn parse_do(_: &format::Command) -> Result<Command, ParseError> {
+        Ok(Command::Do)
+    }
+
+    fn parse_repeat_if(cmd: &format::Command) -> Result<Command, ParseError> {
+        Ok(Command::RepeatIf(cmd.target.clone()))
     }
 
     fn parse_custom_cmd(cmd: &format::Command) -> Result<Command, ParseError> {

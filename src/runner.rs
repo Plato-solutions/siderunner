@@ -4,6 +4,8 @@
 // TODO: Runner may contains basic information to handle relative url
 // TODO: refactoring and test While and If commits
 
+// FIXME: fix `if` command if `true` transition value to the end in case if there's no blocks inside
+
 use crate::{
     error::{RunnerError, RunnerErrorKind},
     parser::{Command, Location, SelectLocator, Test},
@@ -427,6 +429,10 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
 fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usize)>) {
     match cmds[0].command {
         Command::While(..) => {
+            // todo: there's an issue here if a command after while end has a different index
+            // if after the end was a custom command
+            // 
+            // index=`while_end.index + 1` will point to the wrong place
             let while_end = find_next_end_on_level(&cmds[1..], cmds[0].level).unwrap();
             cmds[0].next = Some(NodeTransition::Conditional(
                 cmds[1].index,
@@ -465,40 +471,27 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
                 state.pop();
                 cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
             }
-            _ => {
-                //fixme: is pop missed here?
-                panic!("");
-                cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
-            }
+            _ => unreachable!("the syntax is broken"),
         },
-        _ => {
-            if cmds.len() > 1 {
-                match cmds[1].command {
-                    // Command::End => match state.pop() {
-                    //     Some(("if", ..)) => {
-                    //         // state.pop();
-                    //         cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
-                    //     }
-                    //     _ => {
-                    //         cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
-                    //     }
-                    // },
-                    Command::Else => {
-                        let (_, index) = state.last().unwrap();
-                        cmds[0].next = Some(NodeTransition::Next(*index));
-                    }
-                    Command::ElseIf(..) => {
-                        let (_, index) = state.last().unwrap();
-                        cmds[0].next = Some(NodeTransition::Next(*index));
-                    }
-                    _ => {
-                        cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
-                    }
-                };
-            } else {
-                cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
-            }
+        _ if cmds.len() > 1 && matches!(cmds[1].command, Command::Else | Command::ElseIf(..)) => {
+            let (_, index) = state.last().unwrap();
+            cmds[0].next = Some(NodeTransition::Next(*index));
         }
+        _ if cmds.len() > 1 => {
+            cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
+        }
+        _ => {
+            cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
+        }
+    }
+}
+
+#[inline]
+fn next_index(cmds: &mut [CommandNode]) -> usize {
+    if cmds.len() > 1 {
+        cmds[1].index
+    } else {
+        cmds[0].index + 1
     }
 }
 
@@ -683,6 +676,42 @@ mod tests {
                     0,
                     Some(NodeTransition::Next(6))
                 )
+            ]
+        )
+    }
+
+    #[test]
+    fn test_creating_run_list_with_commeted_command_and_while() {
+        let commands = vec![
+            Command::While("...".to_owned()),
+            Command::Echo("echo".to_owned()),
+            Command::End,
+            Command::empty_custom(),
+            Command::Echo("echo".to_owned()),
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::While("...".to_owned()),
+                    0,
+                    0,
+                    Some(NodeTransition::Conditional(1, 4)),
+                ),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    1,
+                    1,
+                    Some(NodeTransition::Next(2)),
+                ),
+                CommandNode::new(Command::End, 2, 0, Some(NodeTransition::Next(0))),
+                CommandNode::new(
+                    Command::Echo("echo".to_owned()),
+                    4,
+                    0,
+                    Some(NodeTransition::Next(5))
+                ),
             ]
         )
     }

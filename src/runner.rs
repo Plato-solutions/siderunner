@@ -427,40 +427,44 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
 //         // DON'T AFRAID TO MAKE SOMETHING INEFFICHIENT FROM SCRATCH. THAT'S FINE.
 
 fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usize)>) {
+    let next_i = next_index(cmds, 0);
     match cmds[0].command {
         Command::While(..) => {
-            // todo: there's an issue here if a command after while end has a different index
-            // if after the end was a custom command
-            // 
-            // index=`while_end.index + 1` will point to the wrong place
-            let while_end = find_next_end_on_level(&cmds[1..], cmds[0].level).unwrap();
+            let index_of_whiles_end = find_next_end_on_level(&cmds, cmds[0].level).unwrap();
+            let index_of_element_after_end = next_index(cmds, index_of_whiles_end);
             cmds[0].next = Some(NodeTransition::Conditional(
-                cmds[1].index,
-                while_end.index + 1,
+                next_i,
+                index_of_element_after_end,
             ));
             state.push(("while", cmds[0].index));
         }
         Command::Do => {
             state.push(("do", cmds[0].index));
-            cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
+            cmds[0].next = Some(NodeTransition::Next(next_i));
         }
         Command::If(..) => {
-            let if_next = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
-            let cond_end = find_next_end_on_level(&cmds[1..], cmds[0].level).unwrap();
+            let if_next_index = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
+            let if_next = &cmds[1+if_next_index];
+            let cond_end_index = find_next_end_on_level(cmds, cmds[0].level).unwrap();
+            let cond_end = &cmds[cond_end_index];
+            // todo: doesn't we need to increment this value?
+            // now it points to the end value which will point to the next one we could just point it to the next one?
+            // but what is the reason of end in this case?
             state.push(("if", cond_end.index));
-            cmds[0].next = Some(NodeTransition::Conditional(cmds[1].index, if_next.index));
+            cmds[0].next = Some(NodeTransition::Conditional(next_i, if_next.index));
         }
         Command::ElseIf(..) => {
-            let elseif_end = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
-            cmds[0].next = Some(NodeTransition::Conditional(cmds[1].index, elseif_end.index));
+            let elseif_end_i = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
+            let elseif_end = &cmds[elseif_end_i+1];
+            cmds[0].next = Some(NodeTransition::Conditional(next_i, elseif_end.index));
         }
         Command::Else => {
-            cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
+            cmds[0].next = Some(NodeTransition::Next(next_i));
         }
         Command::RepeatIf(..) => {
             let (_do, do_index) = state.pop().unwrap();
             assert_eq!(_do, "do");
-            cmds[0].next = Some(NodeTransition::Conditional(do_index, cmds[0].index + 1));
+            cmds[0].next = Some(NodeTransition::Conditional(do_index, next_i));
         }
         Command::End => match state.last() {
             Some(("while", index)) => {
@@ -469,7 +473,7 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
             }
             Some(("if", _)) => {
                 state.pop();
-                cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
+                cmds[0].next = Some(NodeTransition::Next(next_i));
             }
             _ => unreachable!("the syntax is broken"),
         },
@@ -477,48 +481,51 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
             let (_, index) = state.last().unwrap();
             cmds[0].next = Some(NodeTransition::Next(*index));
         }
-        _ if cmds.len() > 1 => {
-            cmds[0].next = Some(NodeTransition::Next(cmds[1].index));
-        }
         _ => {
-            cmds[0].next = Some(NodeTransition::Next(cmds[0].index + 1));
+            cmds[0].next = Some(NodeTransition::Next(next_i));
         }
     }
 }
 
+// TODO: wrap [CommandNode] list by a structure?
+// and make it its methods.
+/// next_index produces an next element's index in the list
+///
+/// The next element after the last one in the list has index which exceds a list.len().
+/// Which indicates that the list is passed.
+///
+/// An index sometimes is not just an incremental value, so sometimes
+/// `cmds[i].index + 1 !=  cmds[i+1].index`
+/// It's caused by custom commands which are deleted before building a list.
 #[inline]
-fn next_index(cmds: &mut [CommandNode]) -> usize {
-    if cmds.len() > 1 {
-        cmds[1].index
+fn next_index(cmds: &mut [CommandNode], current: usize) -> usize {
+    assert!(current < cmds.len());
+
+    if current + 1 < cmds.len() {
+        cmds[current + 1].index
     } else {
-        cmds[0].index + 1
+        cmds[current].index + 1
     }
 }
 
 fn find_next<Cmp: Fn(&CommandNode) -> bool>(
     commands: &[CommandNode],
     comparator: Cmp,
-) -> Option<&CommandNode> {
-    for cmd in commands {
+) -> Option<usize> {
+    for (i, cmd) in commands.iter().enumerate() {
         if comparator(cmd) {
-            return Some(cmd);
+            return Some(i);
         }
     }
 
     None
 }
 
-fn find_next_on_level(commands: &[CommandNode], level: usize) -> Option<&CommandNode> {
+fn find_next_on_level(commands: &[CommandNode], level: usize) -> Option<usize> {
     find_next(commands, |cmd| cmd.level == level)
 }
 
-fn find_next_repeat_if_on_level(commands: &[CommandNode], level: usize) -> Option<&CommandNode> {
-    find_next(commands, |cmd| {
-        cmd.level == level && matches!(cmd.command, Command::RepeatIf(..))
-    })
-}
-
-fn find_next_end_on_level(commands: &[CommandNode], level: usize) -> Option<&CommandNode> {
+fn find_next_end_on_level(commands: &[CommandNode], level: usize) -> Option<usize> {
     find_next(commands, |cmd| {
         cmd.level == level && matches!(cmd.command, Command::End)
     })

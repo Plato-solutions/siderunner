@@ -426,6 +426,7 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
 //         // find a else/else if structures
 //         // DON'T AFRAID TO MAKE SOMETHING INEFFICHIENT FROM SCRATCH. THAT'S FINE.
 
+// todo: refactoring index usage since its too complex
 fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usize)>) {
     let next_i = next_index(cmds, 0);
     match cmds[0].command {
@@ -444,19 +445,35 @@ fn connect_commands(cmds: &mut [CommandNode], state: &mut Vec<(&'static str, usi
         }
         Command::If(..) => {
             let if_next_index = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
-            let if_next = &cmds[1+if_next_index];
+            let if_next = &cmds[1 + if_next_index];
             let cond_end_index = find_next_end_on_level(cmds, cmds[0].level).unwrap();
             let cond_end = &cmds[cond_end_index];
+
             // todo: doesn't we need to increment this value?
             // now it points to the end value which will point to the next one we could just point it to the next one?
             // but what is the reason of end in this case?
             state.push(("if", cond_end.index));
-            cmds[0].next = Some(NodeTransition::Conditional(next_i, if_next.index));
+
+            let next_element = &cmds[1];
+            if next_element.level != cmds[0].level {
+                cmds[0].next = Some(NodeTransition::Conditional(next_i, if_next.index));
+            } else {
+                cmds[0].next = Some(NodeTransition::Conditional(cond_end.index, if_next.index));
+            }
         }
         Command::ElseIf(..) => {
             let elseif_end_i = find_next_on_level(&cmds[1..], cmds[0].level).unwrap();
-            let elseif_end = &cmds[elseif_end_i+1];
-            cmds[0].next = Some(NodeTransition::Conditional(next_i, elseif_end.index));
+            let elseif_end = &cmds[elseif_end_i + 1];
+
+            let next_element = &cmds[1];
+            if next_element.level != cmds[0].level {
+                cmds[0].next = Some(NodeTransition::Conditional(next_i, elseif_end.index));
+            } else {
+                let (_if, end_index) = state.last().unwrap();
+                assert_eq!(*_if, "if");
+
+                cmds[0].next = Some(NodeTransition::Conditional(*end_index, elseif_end.index));
+            }
         }
         Command::Else => {
             cmds[0].next = Some(NodeTransition::Next(next_i));
@@ -823,13 +840,13 @@ mod tests {
                     Command::If("...".to_owned()),
                     1,
                     0,
-                    Some(NodeTransition::Conditional(2, 2)),
+                    Some(NodeTransition::Conditional(4, 2)),
                 ),
                 CommandNode::new(
                     Command::ElseIf("...".to_owned()),
                     2,
                     0,
-                    Some(NodeTransition::Conditional(3, 3)),
+                    Some(NodeTransition::Conditional(4, 3)),
                 ),
                 CommandNode::new(Command::Else, 3, 0, Some(NodeTransition::Next(4)),),
                 CommandNode::new(Command::End, 4, 0, Some(NodeTransition::Next(5))),
@@ -1040,7 +1057,7 @@ mod tests {
                     Command::If("...".to_owned()),
                     4,
                     2,
-                    Some(NodeTransition::Conditional(5, 5)),
+                    Some(NodeTransition::Conditional(6, 5)),
                 ),
                 CommandNode::new(Command::Else, 5, 2, Some(NodeTransition::Next(6)),),
                 CommandNode::new(Command::End, 6, 2, Some(NodeTransition::Next(7))),
@@ -1087,7 +1104,7 @@ mod tests {
                     Command::If("...".to_owned()),
                     3,
                     1,
-                    Some(NodeTransition::Conditional(4, 4)),
+                    Some(NodeTransition::Conditional(5, 4)),
                 ),
                 CommandNode::new(Command::Else, 4, 1, Some(NodeTransition::Next(5)),),
                 CommandNode::new(Command::End, 5, 1, Some(NodeTransition::Next(6))),
@@ -1158,7 +1175,7 @@ mod tests {
                     Command::If("".to_owned()),
                     2,
                     1,
-                    Some(NodeTransition::Conditional(3, 3)),
+                    Some(NodeTransition::Conditional(6, 3)),
                 ),
                 CommandNode::new(
                     Command::ElseIf("".to_owned()),
@@ -1219,7 +1236,7 @@ mod tests {
                     Command::If("".to_owned()),
                     3,
                     2,
-                    Some(NodeTransition::Conditional(4, 4)),
+                    Some(NodeTransition::Conditional(7, 4)),
                 ),
                 CommandNode::new(
                     Command::ElseIf("".to_owned()),

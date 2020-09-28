@@ -9,7 +9,7 @@ async fn main() {
         .expect("can't connect to webdriver");
     let wiki = std::fs::File::open("examples/wiki.side").unwrap();
     let file = parse(wiki).expect("parsing can't be done...");
-    let mut runner = Runner::new(&mut client);
+    let mut runner = Runner::new(&client);
     runner.run(&file.tests[0]).await.unwrap();
 
     assert_eq!(
@@ -19,5 +19,5 @@ async fn main() {
         ))
     );
 
-    client.close().await.unwrap();
+    runner.close().await.unwrap();
 }

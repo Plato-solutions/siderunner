@@ -3,14 +3,13 @@
 // TODO: provide more direct error location test + command + location(can be determined just by section (target/value etc.)) + cause
 // TODO: Runner may contains basic information to handle relative url
 // TODO: refactoring and test While and If commits
+// TODO: hide hook after feature flag + add a sleep statistic hook
 
-// FIXME: fix `if` command if `true` transition value to the end in case if there's no blocks inside
-
+use crate::webdriver::{self, Locator, Webdriver};
 use crate::{
     error::{RunnerError, RunnerErrorKind},
     parser::{Command, Location, SelectLocator, Test},
 };
-use fantoccini::{Client, Locator};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -18,22 +17,28 @@ use std::collections::HashMap;
 ///
 /// It runs commands and controls program flow(manages conditions and loops).
 /// It manages usage of variables.
-pub struct Runner<'driver> {
+pub struct Runner<D> {
+    webdriver: D,
     pub data: HashMap<String, Value>,
-    webdriver: &'driver mut Client,
     echo_hook: Box<fn(&str)>,
 }
 
-impl<'driver> Runner<'driver> {
+impl<D> Runner<D> {
     /// Create a new runner
-    pub fn new(client: &'driver mut Client) -> Self {
+    pub fn _new(client: D) -> Runner<D> {
         Self {
             webdriver: client,
             data: HashMap::new(),
             echo_hook: Box::new(|s| println!("{}", s)),
         }
     }
+}
 
+impl<D, E> Runner<D>
+where
+    D: Webdriver<Element = E, Error = RunnerErrorKind>,
+    E: webdriver::Element<Driver = D, Error = RunnerErrorKind>,
+{
     /// Runs a test
     pub async fn run(&mut self, test: &Test) -> Result<(), RunnerError> {
         crate::validation::validate_conditions(&test.commands)?;
@@ -121,11 +126,10 @@ impl<'driver> Runner<'driver> {
                     Location::Id(id) => Location::Id(self.emit(id)),
                     Location::XPath(path) => Location::XPath(self.emit(path)),
                 };
-
                 let locator = match &location {
-                    Location::Css(css) => Locator::Css(&css),
-                    Location::Id(id) => Locator::Id(&id),
-                    Location::XPath(path) => Locator::XPath(&path),
+                    Location::Css(css) => Locator::Css(css.to_string()),
+                    Location::Id(id) => Locator::Id(id.to_string()),
+                    Location::XPath(path) => Locator::XPath(path.to_string()),
                 };
 
                 let value = self.webdriver.find(locator).await?.text().await?;
@@ -180,74 +184,47 @@ impl<'driver> Runner<'driver> {
             }
             Command::WaitForElementNotPresent { timeout, target } => {
                 let locator = match &target.location {
-                    Location::Css(css) => Locator::Css(&css),
-                    Location::Id(id) => Locator::Id(&id),
-                    Location::XPath(path) => Locator::XPath(&path),
+                    Location::Css(css) => Locator::Css(css.to_string()),
+                    Location::Id(id) => Locator::Id(id.to_string()),
+                    Location::XPath(path) => Locator::XPath(path.to_string()),
                 };
 
-                let now = std::time::Instant::now();
-                loop {
-                    match self.webdriver.find(locator).await {
-                        Ok(..) => {} // TODO: sleep
-                        Err(fantoccini::error::CmdError::NoSuchElement(..)) => break,
-                        Err(err) => Err(err)?,
-                    }
-
-                    if now.elapsed() > *timeout {
-                        return Err(RunnerErrorKind::Timeout(
-                            "WaitForElementNotPresent".to_owned(),
-                        ))?;
-                    }
-                }
-                // std::thread::sleep_ms(4000);
+                self.webdriver
+                    .wait_for_not_present(locator, *timeout)
+                    .await?
+                    .map_or_else(
+                        || Ok(()),
+                        |e| {
+                            Err(RunnerErrorKind::Timeout(
+                                "WaitForElementNotPresent".to_owned(),
+                            ))
+                        },
+                    )?;
             }
             Command::WaitForElementEditable { timeout, target } => {
-                // std::thread::sleep(*timeout);
-                // std::thread::sleep_ms(4000);
-
                 let locator = match &target.location {
-                    Location::Css(css) => Locator::Css(&css),
-                    Location::Id(id) => Locator::Id(&id),
-                    Location::XPath(path) => Locator::XPath(&path),
+                    Location::Css(css) => Locator::Css(css.to_string()),
+                    Location::Id(id) => Locator::Id(id.to_string()),
+                    Location::XPath(path) => Locator::XPath(path.to_string()),
                 };
 
-                let now = std::time::Instant::now();
-                loop {
-                    match self.webdriver.find(locator).await {
-                        Ok(mut element) => {
-                            let is_displayed = match element.attr("style").await? {
-                                Some(style) if !style.contains("display: none;") => true,
-                                None => true,
-                                _ => false,
-                            };
-
-                            let is_enabled = match element.attr("disabled").await? {
-                                Some(..) => false,
-                                _ => true,
-                            };
-
-                            if is_displayed && is_enabled {
-                                break;
-                            }
-                        }
-                        Err(fantoccini::error::CmdError::NoSuchElement(..)) => {}
-                        Err(err) => Err(err)?,
-                    }
-
-                    if now.elapsed() > *timeout {
-                        return Err(RunnerErrorKind::Timeout(
-                            "WaitForElementEditable".to_owned(),
-                        ))?;
-                    }
-                }
-                // TODO: ...
-                // TODO: #issue https://github.com/jonhoo/fantoccini/issues/93
+                self.webdriver
+                    .wait_for_editable(locator, *timeout)
+                    .await?
+                    .map_or_else(
+                        || Ok(()),
+                        |e| {
+                            Err(RunnerErrorKind::Timeout(
+                                "WaitForElementEditable".to_owned(),
+                            ))
+                        },
+                    )?;
             }
             Command::Select { locator, target } => {
                 let select_locator = match &target.location {
-                    Location::Css(css) => Locator::Css(&css),
-                    Location::Id(id) => Locator::Id(&id),
-                    Location::XPath(path) => Locator::XPath(&path),
+                    Location::Css(css) => Locator::Css(css.to_string()),
+                    Location::Id(id) => Locator::Id(id.to_string()),
+                    Location::XPath(path) => Locator::XPath(path.to_string()),
                 };
 
                 let select = self.webdriver.find(select_locator).await?;
@@ -273,9 +250,9 @@ impl<'driver> Runner<'driver> {
                 };
 
                 let locator = match &location {
-                    Location::Css(css) => Locator::Css(&css),
-                    Location::Id(id) => Locator::Id(&id),
-                    Location::XPath(path) => Locator::XPath(&path),
+                    Location::Css(css) => Locator::Css(css.to_string()),
+                    Location::Id(id) => Locator::Id(id.to_string()),
+                    Location::XPath(path) => Locator::XPath(path.to_string()),
                 };
 
                 self.webdriver.find(locator).await?.click().await?;
@@ -316,6 +293,10 @@ impl<'driver> Runner<'driver> {
 
     fn emit(&self, s: &str) -> String {
         emit_variables(s, &self.data)
+    }
+
+    pub async fn close(self) -> Result<(), RunnerErrorKind> {
+        self.webdriver.close().await
     }
 }
 
@@ -1291,5 +1272,295 @@ mod tests {
                 CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(0)),),
             ]
         )
+    }
+}
+
+#[cfg(test)]
+mod flow {
+    use super::*;
+    use crate::parser::Target;
+    use mock::{Call, Client};
+
+    #[tokio::test]
+    async fn test_run() {
+        let test = Test {
+            name: String::new(),
+            commands: vec![
+                Command::Open("".to_owned()),
+                Command::Click(Target::new(Location::Css("".to_owned()))),
+            ],
+        };
+        let client = Client::new();
+        let mut runner = Runner::_new(client.clone());
+
+        let res = runner.run(&test).await;
+        assert!(res.is_ok());
+        let calls = client.calls();
+        assert_eq!(calls[Call::Goto], 1);
+        assert_eq!(calls[Call::Click], 1);
+    }
+
+    mod mock {
+        use super::*;
+        use crate::webdriver::{Element as WebElement, Locator, Webdriver};
+        use serde_json::Value as Json;
+        use std::collections::HashMap;
+        use std::ops::{Index, IndexMut};
+        use std::sync::{Arc, Mutex};
+        use std::time::Duration;
+
+        #[derive(Default)]
+        pub struct Client {
+            pub calls: Mutex<CallCount>,
+            pub res_find: Option<fn() -> Result<Element, RunnerErrorKind>>,
+            pub res_curr_url: Option<fn() -> Result<url::Url, RunnerErrorKind>>,
+            pub res_exec: Option<fn() -> Result<Json, RunnerErrorKind>>,
+            pub res_set_w_size: Option<fn() -> Result<(), RunnerErrorKind>>,
+            pub res_close: Option<fn() -> Result<(), RunnerErrorKind>>,
+            pub res_goto: Option<fn() -> Result<(), RunnerErrorKind>>,
+            pub res_w8_visib: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
+            pub res_w8_pres: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
+            pub res_w8_npres: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
+            pub res_w8_edit: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
+        }
+
+        impl Client {
+            pub fn new() -> Arc<Self> {
+                Arc::new(Self::default())
+            }
+
+            pub fn calls(&self) -> CallCount {
+                self.calls.lock().unwrap().clone()
+            }
+
+            pub fn inc(&self, c: Call) {
+                let mut calls = self.calls.lock().unwrap();
+                calls[c] += 1;
+            }
+        }
+
+        #[async_trait::async_trait]
+        impl<'a> Webdriver for Arc<Client> {
+            type Element = Element;
+            type Error = crate::error::RunnerErrorKind;
+
+            async fn goto(&mut self, url: &str) -> Result<(), Self::Error> {
+                self.inc(Call::Goto);
+                Ok(())
+            }
+
+            async fn find(&mut self, locator: Locator) -> Result<Self::Element, Self::Error> {
+                self.inc(Call::Find);
+                Ok(Element(Arc::clone(self)))
+            }
+
+            async fn wait_for_visible(
+                &mut self,
+                locator: Locator,
+                timeout: Duration,
+            ) -> Result<Option<Duration>, Self::Error> {
+                todo!()
+            }
+
+            async fn wait_for_not_present(
+                &mut self,
+                locator: Locator,
+                timeout: Duration,
+            ) -> Result<Option<Duration>, Self::Error> {
+                self.inc(Call::W8NPres);
+                Ok(None)
+                // std::thread::sleep_ms(4000);
+            }
+
+            async fn wait_for_present(
+                &mut self,
+                locator: Locator,
+                timeout: Duration,
+            ) -> Result<Option<Duration>, Self::Error> {
+                self.inc(Call::W8Pres);
+                todo!()
+            }
+
+            async fn wait_for_editable(
+                &mut self,
+                locator: Locator,
+                timeout: Duration,
+            ) -> Result<Option<Duration>, Self::Error> {
+                self.inc(Call::W8Edit);
+                Ok(None)
+            }
+
+            async fn current_url(&mut self) -> Result<url::Url, Self::Error> {
+                self.inc(Call::CurrentUrl);
+                Ok(url::Url::parse("http://example.com").unwrap())
+            }
+
+            async fn set_window_size(
+                &mut self,
+                width: u32,
+                height: u32,
+            ) -> Result<(), Self::Error> {
+                self.inc(Call::SetWSize);
+                Ok(())
+            }
+
+            async fn execute(
+                &mut self,
+                script: &str,
+                args: Vec<Json>,
+            ) -> Result<Json, Self::Error> {
+                self.inc(Call::Exec);
+                Ok(Json::Null)
+            }
+
+            async fn close(mut self) -> Result<(), Self::Error> {
+                self.inc(Call::Close);
+                Ok(())
+            }
+        }
+
+        pub struct Element(Arc<Client>);
+
+        impl Element {
+            pub fn inc(&self, call: Call) {
+                self.0.inc(call);
+            }
+        }
+
+        #[async_trait::async_trait]
+        impl WebElement for Element {
+            type Driver = Arc<Client>;
+            type Error = crate::error::RunnerErrorKind;
+
+            async fn attr(&mut self, attribute: &str) -> Result<Option<String>, Self::Error> {
+                self.inc(Call::Attr);
+                Ok(None)
+            }
+
+            async fn prop(&mut self, prop: &str) -> Result<Option<String>, Self::Error> {
+                self.inc(Call::Prop);
+                Ok(None)
+            }
+
+            async fn text(&mut self) -> Result<String, Self::Error> {
+                self.inc(Call::Text);
+                Ok("".to_string())
+            }
+
+            async fn html(&mut self, inner: bool) -> Result<String, Self::Error> {
+                self.inc(Call::Html);
+                Ok("".to_string())
+            }
+
+            async fn find(&mut self, search: Locator) -> Result<Self, Self::Error>
+            where
+                Self: Sized,
+            {
+                self.inc(Call::Find);
+                Ok(Element(self.0.clone()))
+            }
+
+            async fn click(mut self) -> Result<Self::Driver, Self::Error> {
+                self.inc(Call::Click);
+                Ok(self.0.clone())
+            }
+
+            async fn select_by_index(mut self, index: usize) -> Result<Self::Driver, Self::Error> {
+                self.inc(Call::SelectByIndex);
+                Ok(self.0.clone())
+            }
+        }
+
+        #[derive(Clone, Default)]
+        pub struct CallCount {
+            open: usize,
+            click: usize,
+            find: usize,
+            goto: usize,
+            exec: usize,
+            close: usize,
+            current_url: usize,
+            set_w_size: usize,
+            w_8_visib: usize,
+            w_8_pres: usize,
+            w_8_npres: usize,
+            w_8_edit: usize,
+            attr: usize,
+            prop: usize,
+            text: usize,
+            html: usize,
+            select_by_index: usize,
+        }
+
+        #[derive(Hash, PartialEq, Eq)]
+        pub enum Call {
+            Open,
+            Click,
+            Find,
+            Goto,
+            Exec,
+            Close,
+            CurrentUrl,
+            SetWSize,
+            W8Visib,
+            W8Pres,
+            W8NPres,
+            W8Edit,
+            Attr,
+            Prop,
+            Text,
+            Html,
+            SelectByIndex,
+        }
+
+        impl Index<Call> for CallCount {
+            type Output = usize;
+
+            fn index(&self, count: Call) -> &Self::Output {
+                match count {
+                    Call::Open => &self.open,
+                    Call::Click => &self.click,
+                    Call::Find => &self.find,
+                    Call::Goto => &self.goto,
+                    Call::Exec => &self.exec,
+                    Call::Close => &self.close,
+                    Call::CurrentUrl => &self.current_url,
+                    Call::SetWSize => &self.set_w_size,
+                    Call::W8Visib => &self.w_8_visib,
+                    Call::W8Pres => &self.w_8_pres,
+                    Call::W8NPres => &self.w_8_npres,
+                    Call::W8Edit => &self.w_8_edit,
+                    Call::Attr => &self.attr,
+                    Call::Prop => &self.prop,
+                    Call::Text => &self.text,
+                    Call::Html => &self.html,
+                    Call::SelectByIndex => &self.select_by_index,
+                }
+            }
+        }
+
+        impl IndexMut<Call> for CallCount {
+            fn index_mut(&mut self, count: Call) -> &mut Self::Output {
+                match count {
+                    Call::Open => &mut self.open,
+                    Call::Click => &mut self.click,
+                    Call::Find => &mut self.find,
+                    Call::Goto => &mut self.goto,
+                    Call::Exec => &mut self.exec,
+                    Call::Close => &mut self.close,
+                    Call::CurrentUrl => &mut self.current_url,
+                    Call::SetWSize => &mut self.set_w_size,
+                    Call::W8Visib => &mut self.w_8_visib,
+                    Call::W8Pres => &mut self.w_8_pres,
+                    Call::W8NPres => &mut self.w_8_npres,
+                    Call::W8Edit => &mut self.w_8_edit,
+                    Call::Attr => &mut self.attr,
+                    Call::Prop => &mut self.prop,
+                    Call::Text => &mut self.text,
+                    Call::Html => &mut self.html,
+                    Call::SelectByIndex => &mut self.select_by_index,
+                }
+            }
+        }
     }
 }

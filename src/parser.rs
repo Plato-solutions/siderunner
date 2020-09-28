@@ -300,7 +300,7 @@ pub struct Target {
 }
 
 impl Target {
-    fn new(location: Location) -> Self {
+    pub fn new(location: Location) -> Self {
         Target {
             tag: None,
             location,

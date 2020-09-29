@@ -72,7 +72,8 @@ where
                         Command::While(cond) => cond,
                         Command::ElseIf(cond) => cond,
                         Command::If(cond) => cond,
-                        _ => unreachable!(),
+                        Command::RepeatIf(cond) => cond,
+                        _ => unreachable!("unexpected condition"),
                     };
 
                     let script = format!("return {}", condition);

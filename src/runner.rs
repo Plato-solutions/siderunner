@@ -42,7 +42,8 @@ where
     /// Runs a test
     pub async fn run(&mut self, test: &Test) -> Result<(), RunnerError> {
         crate::validation::validate_conditions(&test.commands)?;
-        let nodes = create_nodes(&test.commands);
+        let mut nodes = create_nodes(&test.commands);
+        connect_nodes(&mut nodes);
 
         self.run_nodes(nodes).await
     }
@@ -381,24 +382,24 @@ enum NodeTransition {
 
 fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
     let levels = compute_levels(commands);
-    let mut nodes = commands
+    let nodes = commands
         .iter()
         .zip(levels)
-        // remove commented commands to not influence runtime
         .enumerate()
+        // remove commented commands to not influence runtime
         .filter(|(_, (cmd, _))| !matches!(cmd, Command::Custom { .. }))
         // enumarate after deliting so nodes[i] != nodes.index
-        // todo!: Change it to have an explicit and clear dependency from index and an *array*
-        // might be by not removing nodes but just not connect them
         .map(|(index, (cmd, lvl))| CommandNode::new(cmd.clone(), index, lvl, None))
         .collect::<Vec<_>>();
-    let mut state = Vec::new();
-    (0..nodes.len()).for_each(|i| {
-        // TODO!: connect 2 nodes explicitely { &mut nodes[i], &nodes[i+1], &state }
-        connect_commands(&mut nodes, i, &mut state);
-    });
 
     nodes
+}
+
+fn connect_nodes(nodes: &mut [CommandNode]) {
+    let mut state = Vec::new();
+    (0..nodes.len()).for_each(|i| {
+        connect_commands(nodes, i, i + 1, &mut state);
+    });
 }
 
 // find a coresponding END
@@ -415,9 +416,9 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
 fn connect_commands(
     cmds: &mut [CommandNode],
     current: usize,
+    next: usize,
     state: &mut Vec<(&'static str, usize)>,
 ) {
-    let next = current + 1;
     match cmds[current].command {
         Command::While(..) => {
             let index_of_whiles_end = find_next_end_on_level(&cmds, cmds[current].level).unwrap();

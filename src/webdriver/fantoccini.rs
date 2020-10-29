@@ -20,6 +20,17 @@ impl Webdriver for Client {
         Ok(Element(e))
     }
 
+    async fn find_all(&mut self, locator: Locator) -> Result<Vec<Self::Element>, Self::Error> {
+        let elements = self
+            .0
+            .find_all((&locator).into())
+            .await?
+            .into_iter()
+            .map(|e| Element(e))
+            .collect();
+        Ok(elements)
+    }
+
     async fn wait_for_visible(
         &mut self,
         locator: Locator,

@@ -56,6 +56,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "setWindowSize" => Command::parse_set_window_size,
         "do" => Command::parse_do,
         "repeatIf" => Command::parse_repeat_if,
+        "storeXpathCount" => Command::parse_store_xpath_count,
         cmd if cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -133,6 +134,10 @@ pub enum Command {
     Do,
     RepeatIf(String),
     End,
+    StoreXpathCount {
+        var: String,
+        xpath: String,
+    },
     Custom {
         cmd: String,
         target: String,
@@ -286,6 +291,17 @@ impl Command {
             target: String::default(),
             value: String::default(),
             targets: Vec::default(),
+        }
+    }
+
+    pub fn parse_store_xpath_count(c: &format::Command) -> Result<Command, ParseError> {
+        let var = c.value.clone();
+        let location = parse_location(&c.target)?;
+        match location {
+            Location::XPath(xpath) => Ok(Command::StoreXpathCount { var, xpath }),
+            _ => Err(ParseError::LocatorFormatError(
+                "expected to get an xpath locator".to_owned(),
+            )),
         }
     }
 }

@@ -12,6 +12,7 @@ pub trait Webdriver {
 
     async fn goto(&mut self, url: &str) -> Result<(), Self::Error>;
     async fn find(&mut self, locator: Locator) -> Result<Self::Element, Self::Error>;
+    async fn find_all(&mut self, locator: Locator) -> Result<Vec<Self::Element>, Self::Error>;
     async fn current_url(&mut self) -> Result<url::Url, Self::Error>;
     async fn wait_for_visible(
         &mut self,

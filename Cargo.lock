@@ -172,9 +172,9 @@ checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 
 [[package]]
 name = "fantoccini"
-version = "0.14.0"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0088861b1b1ec22cb7a41092b58e7ab383ed8e10308be0c1f6f22758503c51a"
+checksum = "fc4eadcfdf79804c8be3835451fa83d3e41ba0ec10c33355b7670e49fdc40c08"
 dependencies = [
  "base64",
  "cookie 0.14.2",

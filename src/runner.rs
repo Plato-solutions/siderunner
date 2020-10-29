@@ -265,6 +265,11 @@ where
             Command::SetWindowSize(w, h) => {
                 self.webdriver.set_window_size(*w, *h).await?;
             }
+            Command::StoreXpathCount { var, xpath } => {
+                let locator = Locator::XPath(xpath.clone());
+                let elements = self.webdriver.find_all(locator).await?;
+                self.data.insert(var.clone(), elements.len().into());
+            }
             cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };
 
@@ -1389,6 +1394,14 @@ mod flow {
                 Ok(Element(Arc::clone(self)))
             }
 
+            async fn find_all(
+                &mut self,
+                locator: Locator,
+            ) -> Result<Vec<Self::Element>, Self::Error> {
+                self.inc(Call::FindAll);
+                Ok(vec![Element(Arc::clone(self))])
+            }
+
             async fn wait_for_visible(
                 &mut self,
                 locator: Locator,
@@ -1511,6 +1524,7 @@ mod flow {
             open: usize,
             click: usize,
             find: usize,
+            findall: usize,
             goto: usize,
             exec: usize,
             close: usize,
@@ -1532,6 +1546,7 @@ mod flow {
             Open,
             Click,
             Find,
+            FindAll,
             Goto,
             Exec,
             Close,
@@ -1556,6 +1571,7 @@ mod flow {
                     Call::Open => &self.open,
                     Call::Click => &self.click,
                     Call::Find => &self.find,
+                    Call::FindAll => &self.findall,
                     Call::Goto => &self.goto,
                     Call::Exec => &self.exec,
                     Call::Close => &self.close,
@@ -1580,6 +1596,7 @@ mod flow {
                     Call::Open => &mut self.open,
                     Call::Click => &mut self.click,
                     Call::Find => &mut self.find,
+                    Call::FindAll => &mut self.findall,
                     Call::Goto => &mut self.goto,
                     Call::Exec => &mut self.exec,
                     Call::Close => &mut self.close,

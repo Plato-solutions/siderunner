@@ -427,8 +427,10 @@ fn connect_commands(
 ) {
     match cmds[current].command {
         Command::While(..) => {
-            let index_of_whiles_end = find_next_end_on_level(&cmds, cmds[current].level).unwrap();
+            let index_of_whiles_end =
+                find_next_end_on_level(&cmds[next..], cmds[current].level).unwrap() + next;
             let index_of_element_after_end = next_index(cmds, index_of_whiles_end);
+
             cmds[current].next = Some(NodeTransition::Conditional(
                 next,
                 index_of_element_after_end,
@@ -443,8 +445,8 @@ fn connect_commands(
             let if_next_index = find_next_on_level(&cmds[next..], cmds[current].level).unwrap();
             let if_next = &cmds[next + if_next_index];
             let cond_end_index =
-                find_next_end_on_level(&cmds[current..], cmds[current].level).unwrap();
-            let cond_end = &cmds[current + cond_end_index];
+                find_next_end_on_level(&cmds[current..], cmds[current].level).unwrap() + current;
+            let cond_end = &cmds[cond_end_index];
 
             // todo: doesn't we need to increment this value?
             // now it points to the end value which will point to the next one we could just point it to the next one?
@@ -1292,6 +1294,71 @@ mod tests {
                 CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(0)),),
             ]
         )
+    }
+
+    #[test]
+    fn test_creating_run_list_with_2_whiles_and_2_ifs() {
+        let commands = vec![
+            Command::While(String::new()),
+            Command::If(String::new()),
+            Command::End,
+            Command::End,
+            Command::While(String::new()),
+            Command::End,
+            Command::While(String::new()),
+            Command::If(String::new()),
+            Command::Else,
+            Command::End,
+            Command::End,
+        ];
+        let node = create_nodes(&commands);
+        assert_eq!(
+            node,
+            vec![
+                CommandNode::new(
+                    Command::While(String::new()),
+                    0,
+                    0,
+                    Some(NodeTransition::Conditional(1, 4)),
+                ),
+                CommandNode::new(
+                    Command::If(String::new()),
+                    1,
+                    1,
+                    Some(NodeTransition::Conditional(2, 2)),
+                ),
+                CommandNode::new(Command::End, 2, 1, Some(NodeTransition::Next(3))),
+                CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(0))),
+                CommandNode::new(
+                    Command::While(String::new()),
+                    4,
+                    0,
+                    Some(NodeTransition::Conditional(5, 6)),
+                ),
+                CommandNode::new(Command::End, 5, 0, Some(NodeTransition::Next(4))),
+                CommandNode::new(
+                    Command::While(String::new()),
+                    6,
+                    0,
+                    Some(NodeTransition::Conditional(7, 11)),
+                ),
+                CommandNode::new(
+                    Command::If(String::new()),
+                    7,
+                    1,
+                    Some(NodeTransition::Conditional(9, 8)),
+                ),
+                CommandNode::new(Command::Else, 8, 1, Some(NodeTransition::Next(9))),
+                CommandNode::new(Command::End, 9, 1, Some(NodeTransition::Next(10))),
+                CommandNode::new(Command::End, 10, 0, Some(NodeTransition::Next(6))),
+            ]
+        )
+    }
+
+    fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
+        let mut nodes = super::create_nodes(&commands);
+        super::connect_nodes(&mut nodes);
+        nodes
     }
 }
 

@@ -57,7 +57,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "do" => Command::parse_do,
         "repeatIf" => Command::parse_repeat_if,
         "storeXpathCount" => Command::parse_store_xpath_count,
-        cmd if cmd.starts_with("//") => {
+        cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
             //
@@ -488,6 +488,74 @@ mod tests {
             file.tests[0].commands[2],
             Command::Execute {ref script, ref var} if script == "return \"hello world\"" && var == &Some("variable_name".to_string())
         ));
+    }
+
+    #[test]
+    fn _parse_empty_commands() {
+        let file: Vec<u8> = r#"{
+            "id": "bfc1bd56-39bd-4a0d-be2b-583ad75ac104",
+            "version": "2.0",
+            "name": "",
+            "url": "",
+            "tests": [{
+              "id": "5d61ce01-d373-4b14-a1a1-7474a4e192e5",
+              "name": "basic",
+              "commands": [{
+                "id": "5de247d8-432a-4c79-a44c-2e1fdc0c0ff9",
+                "comment": "",
+                "command": "",
+                "target": "",
+                "targets": [],
+                "value": ""
+              }, {
+                "id": "5de247d8-432a-4c79-a44c-2e1fdc0c0ff9",
+                "comment": "",
+                "command": "//open",
+                "target": "http://google.com",
+                "targets": [],
+                "value": ""
+              }, {
+                "id": "3c00633c-4237-4c1b-b1e5-b8c2fc05e57d",
+                "comment": "",
+                "command": "open",
+                "target": "http://google.com",
+                "targets": [],
+                "value": ""
+              }]
+            }],
+            "suites": [{
+              "id": "925de5ce-03ae-4dcb-9146-c956ff3f090d",
+              "name": "Default Suite",
+              "persistSession": false,
+              "parallel": false,
+              "timeout": 300,
+              "tests": ["5d61ce01-d373-4b14-a1a1-7474a4e192e5"]
+            }],
+            "urls": ["https://bsscommerce.com/magento-2-one-step-checkout-extension.html"],
+            "plugins": []
+          }"#
+        .as_bytes()
+        .iter()
+        .cloned()
+        .collect();
+
+        let reader = file.as_slice();
+        let file = parse(reader);
+        assert!(file.is_ok());
+        let file = file.unwrap();
+        assert_eq!(file.tests.len(), 1);
+        let test = &file.tests[0];
+        let commands = &test.commands;
+        assert_eq!(commands.len(), 3);
+        assert!(matches!(
+            commands[0],
+            Command::Custom{..}
+        ));
+        assert!(matches!(
+            commands[1],
+            Command::Custom{..}
+        ));
+        assert!(matches!(commands[2], Command::Open(..)));
     }
 
     fn side_file() -> Vec<u8> {

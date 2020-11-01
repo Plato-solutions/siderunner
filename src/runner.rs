@@ -184,6 +184,21 @@ where
 
                 std::thread::sleep(*timeout);
             }
+            Command::WaitForElementPresent { timeout, target } => {
+                let locator = match &target.location {
+                    Location::Css(css) => Locator::Css(css.to_string()),
+                    Location::Id(id) => Locator::Id(id.to_string()),
+                    Location::XPath(path) => Locator::XPath(path.to_string()),
+                };
+
+                self.webdriver
+                    .wait_for_present(locator, *timeout)
+                    .await?
+                    .map_or_else(
+                        || Ok(()),
+                        |e| Err(RunnerErrorKind::Timeout("WaitForElementPresent".to_owned())),
+                    )?;
+            }
             Command::WaitForElementNotPresent { timeout, target } => {
                 let locator = match &target.location {
                     Location::Css(css) => Locator::Css(css.to_string()),

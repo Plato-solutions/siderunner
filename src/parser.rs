@@ -44,6 +44,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "waitForElementVisible" => Command::parse_wait_for_visible,
         "waitForElementEditable" => Command::parse_wait_for_editable,
         "waitForElementNotPresent" => Command::parse_wait_for_not_present,
+        "waitForElementPresent" => Command::parse_wait_for_present,
         "select" => Command::parse_select,
         "echo" => Command::parse_echo,
         "pause" => Command::parse_pause,
@@ -111,6 +112,10 @@ pub enum Command {
         timeout: Duration,
     },
     WaitForElementNotPresent {
+        target: Target,
+        timeout: Duration,
+    },
+    WaitForElementPresent {
         target: Target,
         timeout: Duration,
     },
@@ -197,6 +202,14 @@ impl Command {
         let timeout = cast_timeout(&c.value)?;
 
         Ok(Command::WaitForElementNotPresent { target, timeout })
+    }
+
+    fn parse_wait_for_present(c: &format::Command) -> Result<Command, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let timeout = cast_timeout(&c.value)?;
+
+        Ok(Command::WaitForElementPresent { target, timeout })
     }
 
     fn parse_select(c: &format::Command) -> Result<Command, ParseError> {

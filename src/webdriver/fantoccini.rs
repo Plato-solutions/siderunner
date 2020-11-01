@@ -66,7 +66,20 @@ impl Webdriver for Client {
         locator: Locator,
         timeout: Duration,
     ) -> Result<Option<Duration>, Self::Error> {
-        todo!()
+        let locator = (&locator).into();
+
+        let now = std::time::Instant::now();
+        loop {
+            match self.0.find(locator).await {
+                Ok(..) => break Ok(None),
+                Err(fantoccini::error::CmdError::NoSuchElement(..)) => (), // TODO: sleep
+                Err(err) => Err(err)?,
+            }
+
+            if now.elapsed() > timeout {
+                break Ok(Some(now.elapsed()));
+            }
+        }
     }
 
     async fn wait_for_editable(

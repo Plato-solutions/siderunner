@@ -341,6 +341,9 @@ impl Target {
 pub enum SelectLocator {
     // todo: Looks like we should handle ${} stored values right in parsing stage too?
     Index(String),
+    Label(String),
+    Id(String),
+    Value(String),
 }
 
 trait IncompleteStr<T> {
@@ -399,6 +402,9 @@ fn parse_select_locator(text: &str) -> Result<SelectLocator, ParseError> {
 
     match locator_type {
         "index" => Ok(SelectLocator::Index(locator.to_owned())),
+        "label" => Ok(SelectLocator::Label(locator.to_owned())),
+        "id" => Ok(SelectLocator::Id(locator.to_owned())),
+        "value" => Ok(SelectLocator::Value(locator.to_owned())),
         _ => Err(ParseError::LocatorFormatError(ERROR_TEXT.to_owned()))?,
     }
 }

@@ -244,18 +244,38 @@ where
                     Location::XPath(path) => Locator::XPath(path.to_string()),
                 };
 
-                let select = self.webdriver.find(select_locator).await?;
+                let mut select = self.webdriver.find(select_locator).await?;
                 match locator {
                     SelectLocator::Index(index) => {
                         let index = self.emit(index);
                         match index.parse() {
-                            Ok(index) => select.select_by_index(index).await?,
+                            Ok(index) => {
+                                select.select_by_index(index).await?;
+                            }
                             // TODO: IlligalSyntax  Failed: Illegal Index: {version_counter}
-                            Err(..) => Err(RunnerErrorKind::MismatchedType(format!(
-                                "expected to get int type but got {:?}",
-                                index
-                            )))?,
+                            Err(..) => {
+                                return Err(RunnerErrorKind::MismatchedType(format!(
+                                    "expected to get int type but got {:?}",
+                                    index
+                                )))?
+                            }
                         }
+                    }
+                    SelectLocator::Value(value) => {
+                        let value = self.emit(value);
+                        select.select_by_value(&value).await?;
+                    }
+                    SelectLocator::Id(id) => {
+                        let id = self.emit(id);
+                        // TODO: contrib to fantocini
+                        let locator = format!(r#"option[id='"{}"']"#, id);
+                        select.find(Locator::Css(locator)).await?.click().await?;
+                    }
+                    SelectLocator::Label(label) => {
+                        let label = self.emit(label);
+                        // TODO: contrib to fantocini
+                        let locator = format!(r#"option[value='"{}"']"#, label);
+                        select.find(Locator::Css(locator)).await?.click().await?;
                     }
                 };
             }
@@ -1599,6 +1619,11 @@ mod flow {
                 self.inc(Call::SelectByIndex);
                 Ok(self.0.clone())
             }
+
+            async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, Self::Error> {
+                self.inc(Call::SelectByValue);
+                Ok(self.0.clone())
+            }
         }
 
         #[derive(Clone, Default)]
@@ -1621,6 +1646,7 @@ mod flow {
             text: usize,
             html: usize,
             select_by_index: usize,
+            select_by_value: usize,
         }
 
         #[derive(Hash, PartialEq, Eq)]
@@ -1643,6 +1669,7 @@ mod flow {
             Text,
             Html,
             SelectByIndex,
+            SelectByValue,
         }
 
         impl Index<Call> for CallCount {
@@ -1668,6 +1695,7 @@ mod flow {
                     Call::Text => &self.text,
                     Call::Html => &self.html,
                     Call::SelectByIndex => &self.select_by_index,
+                    Call::SelectByValue => &self.select_by_value,
                 }
             }
         }
@@ -1693,6 +1721,7 @@ mod flow {
                     Call::Text => &mut self.text,
                     Call::Html => &mut self.html,
                     Call::SelectByIndex => &mut self.select_by_index,
+                    Call::SelectByValue => &mut self.select_by_value,
                 }
             }
         }

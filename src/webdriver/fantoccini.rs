@@ -187,6 +187,11 @@ impl WebElement for Element {
         let c = self.0.select_by_index(index).await?;
         Ok(Client(c))
     }
+
+    async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, Self::Error> {
+        let c = self.0.select_by_value(value).await?;
+        Ok(Client(c))
+    }
 }
 
 impl<'a> Into<fan::Locator<'a>> for &'a Locator {

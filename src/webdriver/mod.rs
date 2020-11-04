@@ -35,8 +35,7 @@ pub trait Webdriver {
         timeout: Duration,
     ) -> Result<Option<Duration>, Self::Error>;
     async fn set_window_size(&mut self, width: u32, height: u32) -> Result<(), Self::Error>;
-    async fn execute(&mut self, script: &str, mut args: Vec<Json>)
-        -> Result<Json, Self::Error>;
+    async fn execute(&mut self, script: &str, mut args: Vec<Json>) -> Result<Json, Self::Error>;
     async fn close(self) -> Result<(), Self::Error>;
 }
 
@@ -54,6 +53,7 @@ pub trait Element {
         Self: Sized;
     async fn click(mut self) -> Result<Self::Driver, Self::Error>;
     async fn select_by_index(mut self, index: usize) -> Result<Self::Driver, Self::Error>;
+    async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, Self::Error>;
 }
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]

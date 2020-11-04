@@ -274,8 +274,9 @@ where
                     SelectLocator::Label(label) => {
                         let label = self.emit(label);
                         // TODO: contrib to fantocini
-                        let locator = format!(r#"option[value='"{}"']"#, label);
-                        select.find(Locator::Css(locator)).await?.click().await?;
+                        // todo: escape Quotes?
+                        let locator = format!(r#".//option[normalize-space(.)='{}']"#, label);
+                        select.find(Locator::XPath(locator)).await?.click().await?;
                     }
                 };
             }

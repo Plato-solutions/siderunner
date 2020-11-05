@@ -267,14 +267,11 @@ where
                     }
                     SelectLocator::Id(id) => {
                         let id = self.emit(id);
-                        // TODO: contrib to fantocini
-                        let locator = format!(r#"option[id='"{}"']"#, id);
+                        let locator = format!(r#"option[id='{}']"#, id);
                         select.find(Locator::Css(locator)).await?.click().await?;
                     }
                     SelectLocator::Label(label) => {
                         let label = self.emit(label);
-                        // TODO: contrib to fantocini
-                        // todo: escape Quotes?
                         let locator = format!(r#".//option[normalize-space(.)='{}']"#, label);
                         select.find(Locator::XPath(locator)).await?.click().await?;
                     }

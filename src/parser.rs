@@ -70,7 +70,12 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
             // The overhead is removed on a stage of creationn of running list.
             Command::parse_custom_cmd
         }
-        cmd => unimplemented!("Command {:?} doesn't implemted", cmd),
+        cmd => {
+            return Err(ParseError::ValidationError(format!(
+                "Command {:?} doesn't implemted",
+                cmd
+            )))
+        }
     };
 
     parse_fn(command)

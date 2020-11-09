@@ -51,7 +51,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "click" => Command::parse_click,
         "while" => Command::parse_while,
         "if" => Command::parse_if,
-        "else if" => Command::parse_else_if,
+        "elseIf" => Command::parse_else_if,
         "else" => Command::parse_else,
         "end" => Command::parse_end,
         "setWindowSize" => Command::parse_set_window_size,

@@ -57,6 +57,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "setWindowSize" => Command::parse_set_window_size,
         "do" => Command::parse_do,
         "repeatIf" => Command::parse_repeat_if,
+        "close" => Command::parse_close,
         "storeXpathCount" => Command::parse_store_xpath_count,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
@@ -143,6 +144,7 @@ pub enum Command {
         var: String,
         xpath: String,
     },
+    Close,
     Custom {
         cmd: String,
         target: String,
@@ -287,6 +289,10 @@ impl Command {
 
     fn parse_repeat_if(cmd: &format::Command) -> Result<Command, ParseError> {
         Ok(Command::RepeatIf(cmd.target.clone()))
+    }
+
+    fn parse_close(_: &format::Command) -> Result<Command, ParseError> {
+        Ok(Command::Close)
     }
 
     fn parse_custom_cmd(cmd: &format::Command) -> Result<Command, ParseError> {

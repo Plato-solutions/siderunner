@@ -137,7 +137,7 @@ impl Webdriver for Client {
         Ok(json)
     }
 
-    async fn close(mut self) -> Result<(), Self::Error> {
+    async fn close(&mut self) -> Result<(), Self::Error> {
         self.0.close().await?;
         Ok(())
     }

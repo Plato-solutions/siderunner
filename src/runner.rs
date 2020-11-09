@@ -303,6 +303,7 @@ where
                 let elements = self.webdriver.find_all(locator).await?;
                 self.data.insert(var.clone(), elements.len().into());
             }
+            Command::Close => self.webdriver.close().await?,
             cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };
 
@@ -335,7 +336,7 @@ where
         emit_variables(s, &self.data)
     }
 
-    pub async fn close(self) -> Result<(), RunnerErrorKind> {
+    pub async fn close(mut self) -> Result<(), RunnerErrorKind> {
         self.webdriver.close().await
     }
 }
@@ -1561,7 +1562,7 @@ mod flow {
                 Ok(Json::Null)
             }
 
-            async fn close(mut self) -> Result<(), Self::Error> {
+            async fn close(&mut self) -> Result<(), Self::Error> {
                 self.inc(Call::Close);
                 Ok(())
             }

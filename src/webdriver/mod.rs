@@ -36,7 +36,7 @@ pub trait Webdriver {
     ) -> Result<Option<Duration>, Self::Error>;
     async fn set_window_size(&mut self, width: u32, height: u32) -> Result<(), Self::Error>;
     async fn execute(&mut self, script: &str, mut args: Vec<Json>) -> Result<Json, Self::Error>;
-    async fn close(self) -> Result<(), Self::Error>;
+    async fn close(&mut self) -> Result<(), Self::Error>;
 }
 
 #[async_trait::async_trait]

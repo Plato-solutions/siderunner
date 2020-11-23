@@ -367,6 +367,7 @@ fn emit_variables_custom(text: &str) -> (String, Vec<String>) {
 }
 
 fn emit_vars<P: FnMut(&str) -> String>(s: &str, mut printer: P) -> String {
+    // todo: use lazystatic for regex
     // TODO: check how to emit string in quotes or not
     //
     // regex look up for variable name in brackets #{var}

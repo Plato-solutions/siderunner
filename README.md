@@ -2,6 +2,9 @@
 
 A library for parsing and running selenium files.
 
+*THE PROJECT HAS A WIP STATUS*
+*WE ARE AWARE THAT SOME COMMANDS ARE NOT IMPLEMENTED*
+
 # Get started
 
 An example of running a selenium file against wikipedia.

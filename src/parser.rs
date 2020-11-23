@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // TODO: parse basic information
 // TODO: custom errors with test name + command + field information where the error occuried
 // TODO: do we need Target tag?

@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // TODO: Mock webdriver
 // TODO: interface for fantocini and possibly choose webdriver provider by feature
 // TODO: provide more direct error location test + command + location(can be determined just by section (target/value etc.)) + cause

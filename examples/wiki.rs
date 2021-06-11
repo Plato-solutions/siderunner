@@ -4,7 +4,7 @@ use pantheon::{parse, Runner};
 
 #[tokio::main]
 async fn main() {
-    let mut client = Client::new("http://localhost:4444")
+    let client = Client::new("http://localhost:4444")
         .await
         .expect("can't connect to webdriver");
     let wiki = std::fs::File::open("examples/wiki.side").unwrap();

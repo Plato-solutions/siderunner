@@ -121,11 +121,7 @@ where
                 let url = self.webdriver.current_url().await?;
                 assert_eq!(url.as_ref(), url.as_ref());
             }
-            Command::StoreText {
-                var,
-                target,
-                targets,
-            } => {
+            Command::StoreText { var, target, .. } => {
                 let location = match &target.location {
                     // TODO: get back to the privious variant with IncompleteString.
                     Location::Css(css) => Location::Css(self.emit(css)),
@@ -166,7 +162,7 @@ where
                 // TODO: create a hook in library to call as a writer
                 self.echo_hook.as_ref()(text.as_str());
             }
-            Command::WaitForElementVisible { timeout, target } => {
+            Command::WaitForElementVisible { timeout, .. } => {
                 // todo: implemented wrongly
                 // it's implmenetation more suited for WaitForElementPresent
                 //
@@ -200,7 +196,7 @@ where
                     .await?
                     .map_or_else(
                         || Ok(()),
-                        |e| Err(RunnerErrorKind::Timeout("WaitForElementPresent".to_owned())),
+                        |_| Err(RunnerErrorKind::Timeout("WaitForElementPresent".to_owned())),
                     )?;
             }
             Command::WaitForElementNotPresent { timeout, target } => {
@@ -215,7 +211,7 @@ where
                     .await?
                     .map_or_else(
                         || Ok(()),
-                        |e| {
+                        |_| {
                             Err(RunnerErrorKind::Timeout(
                                 "WaitForElementNotPresent".to_owned(),
                             ))
@@ -234,7 +230,7 @@ where
                     .await?
                     .map_or_else(
                         || Ok(()),
-                        |e| {
+                        |_| {
                             Err(RunnerErrorKind::Timeout(
                                 "WaitForElementEditable".to_owned(),
                             ))
@@ -308,6 +304,7 @@ where
                 self.data.insert(var.clone(), elements.len().into());
             }
             Command::Close => self.webdriver.close().await?,
+            #[allow(unused_variables)]
             cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };
 
@@ -1467,7 +1464,6 @@ mod flow {
         use super::*;
         use crate::webdriver::{Element as WebElement, Locator, Webdriver};
         use serde_json::Value as Json;
-        use std::collections::HashMap;
         use std::ops::{Index, IndexMut};
         use std::sync::{Arc, Mutex};
         use std::time::Duration;
@@ -1507,19 +1503,19 @@ mod flow {
             type Element = Element;
             type Error = crate::error::RunnerErrorKind;
 
-            async fn goto(&mut self, url: &str) -> Result<(), Self::Error> {
+            async fn goto(&mut self, _: &str) -> Result<(), Self::Error> {
                 self.inc(Call::Goto);
                 Ok(())
             }
 
-            async fn find(&mut self, locator: Locator) -> Result<Self::Element, Self::Error> {
+            async fn find(&mut self, _: Locator) -> Result<Self::Element, Self::Error> {
                 self.inc(Call::Find);
                 Ok(Element(Arc::clone(self)))
             }
 
             async fn find_all(
                 &mut self,
-                locator: Locator,
+                _: Locator,
             ) -> Result<Vec<Self::Element>, Self::Error> {
                 self.inc(Call::FindAll);
                 Ok(vec![Element(Arc::clone(self))])
@@ -1527,16 +1523,16 @@ mod flow {
 
             async fn wait_for_visible(
                 &mut self,
-                locator: Locator,
-                timeout: Duration,
+                _: Locator,
+                _: Duration,
             ) -> Result<Option<Duration>, Self::Error> {
                 todo!()
             }
 
             async fn wait_for_not_present(
                 &mut self,
-                locator: Locator,
-                timeout: Duration,
+                _: Locator,
+                _: Duration,
             ) -> Result<Option<Duration>, Self::Error> {
                 self.inc(Call::W8NPres);
                 Ok(None)
@@ -1545,8 +1541,8 @@ mod flow {
 
             async fn wait_for_present(
                 &mut self,
-                locator: Locator,
-                timeout: Duration,
+                _: Locator,
+                _: Duration,
             ) -> Result<Option<Duration>, Self::Error> {
                 self.inc(Call::W8Pres);
                 todo!()
@@ -1554,8 +1550,8 @@ mod flow {
 
             async fn wait_for_editable(
                 &mut self,
-                locator: Locator,
-                timeout: Duration,
+                _: Locator,
+                _: Duration,
             ) -> Result<Option<Duration>, Self::Error> {
                 self.inc(Call::W8Edit);
                 Ok(None)
@@ -1568,8 +1564,8 @@ mod flow {
 
             async fn set_window_size(
                 &mut self,
-                width: u32,
-                height: u32,
+                _: u32,
+                _: u32,
             ) -> Result<(), Self::Error> {
                 self.inc(Call::SetWSize);
                 Ok(())
@@ -1577,8 +1573,8 @@ mod flow {
 
             async fn execute(
                 &mut self,
-                script: &str,
-                args: Vec<Json>,
+                _: &str,
+                _: Vec<Json>,
             ) -> Result<Json, Self::Error> {
                 self.inc(Call::Exec);
                 Ok(Json::Null)
@@ -1603,12 +1599,12 @@ mod flow {
             type Driver = Arc<Client>;
             type Error = crate::error::RunnerErrorKind;
 
-            async fn attr(&mut self, attribute: &str) -> Result<Option<String>, Self::Error> {
+            async fn attr(&mut self, _: &str) -> Result<Option<String>, Self::Error> {
                 self.inc(Call::Attr);
                 Ok(None)
             }
 
-            async fn prop(&mut self, prop: &str) -> Result<Option<String>, Self::Error> {
+            async fn prop(&mut self, _: &str) -> Result<Option<String>, Self::Error> {
                 self.inc(Call::Prop);
                 Ok(None)
             }
@@ -1618,12 +1614,12 @@ mod flow {
                 Ok("".to_string())
             }
 
-            async fn html(&mut self, inner: bool) -> Result<String, Self::Error> {
+            async fn html(&mut self, _: bool) -> Result<String, Self::Error> {
                 self.inc(Call::Html);
                 Ok("".to_string())
             }
 
-            async fn find(&mut self, search: Locator) -> Result<Self, Self::Error>
+            async fn find(&mut self, _: Locator) -> Result<Self, Self::Error>
             where
                 Self: Sized,
             {
@@ -1636,12 +1632,12 @@ mod flow {
                 Ok(self.0.clone())
             }
 
-            async fn select_by_index(mut self, index: usize) -> Result<Self::Driver, Self::Error> {
+            async fn select_by_index(mut self, _: usize) -> Result<Self::Driver, Self::Error> {
                 self.inc(Call::SelectByIndex);
                 Ok(self.0.clone())
             }
 
-            async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, Self::Error> {
+            async fn select_by_value(mut self, _: &str) -> Result<Self::Driver, Self::Error> {
                 self.inc(Call::SelectByValue);
                 Ok(self.0.clone())
             }

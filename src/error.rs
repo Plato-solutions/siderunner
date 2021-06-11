@@ -4,7 +4,6 @@
 
 use fantoccini::error as ferorr;
 use std::fmt;
-use std::result;
 
 pub struct RunnerError {
     pub kind: RunnerErrorKind,

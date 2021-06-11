@@ -33,6 +33,7 @@ enum State {
     ElseIf,
     Else,
     Do,
+    #[allow(dead_code)]
     End,
 }
 

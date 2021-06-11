@@ -37,8 +37,8 @@ impl Webdriver for Client {
 
     async fn wait_for_visible(
         &mut self,
-        locator: Locator,
-        timeout: Duration,
+        _: Locator,
+        _: Duration,
     ) -> Result<Option<Duration>, Self::Error> {
         todo!()
     }

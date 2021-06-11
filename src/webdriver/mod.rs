@@ -7,7 +7,8 @@
 use serde_json::Value as Json;
 use std::time::Duration;
 
-pub mod fantoccini;
+pub(crate) mod fantoccini;
+pub(crate) mod thirtyfour;
 
 #[async_trait::async_trait]
 pub trait Webdriver {

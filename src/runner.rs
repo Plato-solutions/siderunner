@@ -293,7 +293,7 @@ where
                 self.webdriver.find(locator).await?.click().await?;
             }
             Command::Pause(timeout) => {
-                tokio::time::delay_for(*timeout).await;
+                tokio::time::sleep(*timeout).await;
             }
             Command::SetWindowSize(w, h) => {
                 self.webdriver.set_window_size(*w, *h).await?;

@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use fantoccini::error as ferorr;
 use std::fmt;
 
 pub struct RunnerError {
@@ -28,7 +27,10 @@ impl std::fmt::Debug for RunnerError {
 
 // TODO: IlligalSyntax
 pub enum RunnerErrorKind {
-    WebdriverError(ferorr::CmdError),
+    #[cfg(feature = "fantoccini_backend")]
+    WebdriverError(fantoccini::error::CmdError),
+    #[cfg(feature = "thirtyfour_backend")]
+    WebdriverError(thirtyfour::error::WebDriverError),
     BranchValidationError(String),
     MismatchedType(String),
     Timeout(String),
@@ -45,8 +47,16 @@ impl std::fmt::Debug for RunnerErrorKind {
     }
 }
 
-impl From<ferorr::CmdError> for RunnerErrorKind {
+#[cfg(feature = "fantoccini_backend")]
+impl From<fantoccini::error::CmdError> for RunnerErrorKind {
     fn from(err: ferorr::CmdError) -> Self {
+        RunnerErrorKind::WebdriverError(err)
+    }
+}
+
+    #[cfg(feature = "thirtyfour_backend")]
+    impl From<thirtyfour::error::WebDriverError> for RunnerErrorKind {
+    fn from(err: thirtyfour::error::WebDriverError) -> Self {
         RunnerErrorKind::WebdriverError(err)
     }
 }

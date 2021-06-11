@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#![cfg(feature = "fantoccini_backend")]
+
 use super::{Element as WebElement, Locator, Webdriver};
 use fantoccini as fan;
 use serde_json::Value as Json;

@@ -9,7 +9,7 @@ fn main() {
 async fn main() {
     use fantoccini::Client;
     use pantheon::{parse, Runner};
-    
+
     let client = Client::new("http://localhost:4444")
         .await
         .expect("can't connect to webdriver");

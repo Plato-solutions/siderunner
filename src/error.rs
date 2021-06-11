@@ -54,8 +54,8 @@ impl From<fantoccini::error::CmdError> for RunnerErrorKind {
     }
 }
 
-    #[cfg(feature = "thirtyfour_backend")]
-    impl From<thirtyfour::error::WebDriverError> for RunnerErrorKind {
+#[cfg(feature = "thirtyfour_backend")]
+impl From<thirtyfour::error::WebDriverError> for RunnerErrorKind {
     fn from(err: thirtyfour::error::WebDriverError) -> Self {
         RunnerErrorKind::WebdriverError(err)
     }

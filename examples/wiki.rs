@@ -6,7 +6,7 @@ use thirtyfour::{DesiredCapabilities, WebDriver};
 async fn main() {
     let wiki = std::fs::File::open("examples/wiki.side").unwrap();
     let file = parse(wiki).expect("parsing can't be done...");
-    
+
     let client = WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox())
         .await
         .expect("can't connect to webdriver");

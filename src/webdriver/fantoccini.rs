@@ -147,7 +147,7 @@ impl Webdriver for Client {
     }
 }
 
-pub struct Element(fan::Element);
+pub struct Element(fan::elements::Element);
 
 #[async_trait::async_trait]
 impl WebElement for Element {

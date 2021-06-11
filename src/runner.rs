@@ -348,7 +348,7 @@ where
 fn emit_variables(s: &str, vars: &HashMap<String, Value>) -> String {
     emit_vars(s, |var| match vars.get(var) {
         Some(value) => print_plain_value(value),
-        None => "".to_string(),
+        None => format!("${{{}}}", var),
     })
 }
 
@@ -654,6 +654,23 @@ mod tests {
         assert_eq!("Hello World", emit_variables("${hello_world}", &vars));
     }
 
+    #[test]
+    fn test_emit_variables_in_template_strings() {
+        let mut vars = HashMap::new();
+
+        assert_eq!(
+            "let bar = \"123\"; return `${bar} hello`",
+            emit_variables("let bar = \"123\"; return `${bar} hello`", &vars)
+        );
+
+        vars.insert("bar".to_string(), json!("Hello"));
+
+        assert_eq!(
+            "let bar = \"123\"; return `Hello hello`",
+            emit_variables("let bar = \"123\"; return `${bar} hello`", &vars)
+        );
+    }
+
     // there could be added a support for internal variables by
     // r#"\$\{(.*?)\}+"# and recursive calling + handling spaces
     // but is there any use case for it?
@@ -664,7 +681,7 @@ mod tests {
         let mut vars = HashMap::new();
         vars.insert("something".to_string(), json!("XXX"));
 
-        assert_eq!("}", emit_variables("${${something}}", &vars));
+        assert_eq!("${${something}}", emit_variables("${${something}}", &vars));
     }
 
     #[test]

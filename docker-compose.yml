@@ -1,0 +1,19 @@
+version: "3"
+services:
+  selenium:
+    image: selenium/standalone-chrome:4.0.0-beta-4-20210608
+    volumes:
+      - "/dev/shm:/dev/shm"
+    network_mode: host
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    # ports:
+    #   - "4444:4444"
+    #   - "7900:7900"
+  server:
+    image: python:3.9.5
+    command: python3 -m http.server 8000
+    volumes: 
+        - "./tests:/tests:z"
+    ports:
+      - "8000:8000"

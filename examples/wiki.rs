@@ -1,9 +1,16 @@
 /// The example requires to geckodriver have been run
-use pantheon::{parse, Runner};
-use thirtyfour::{DesiredCapabilities, WebDriver};
 
+#[cfg(feature = "fantoccini_backend")]
+fn main() {
+    panic!("This example requires 'fantoccini_backend' feature")
+}
+
+#[cfg(feature = "thirtyfour_backend")]
 #[tokio::main]
 async fn main() {
+    use pantheon::{parse, Runner};
+    use thirtyfour::{DesiredCapabilities, WebDriver};
+
     let wiki = std::fs::File::open("examples/wiki.side").unwrap();
     let file = parse(wiki).expect("parsing can't be done...");
 

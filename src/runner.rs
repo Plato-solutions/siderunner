@@ -193,11 +193,8 @@ where
 
                 self.webdriver
                     .wait_for_present(locator, *timeout)
-                    .await?
-                    .map_or_else(
-                        || Ok(()),
-                        |_| Err(RunnerErrorKind::Timeout("WaitForElementPresent".to_owned())),
-                    )?;
+                    .await
+                    .map_err(|_| RunnerErrorKind::Timeout("WaitForElementPresent".to_owned()))?;
             }
             Command::WaitForElementNotPresent { timeout, target } => {
                 let locator = match &target.location {
@@ -208,15 +205,8 @@ where
 
                 self.webdriver
                     .wait_for_not_present(locator, *timeout)
-                    .await?
-                    .map_or_else(
-                        || Ok(()),
-                        |_| {
-                            Err(RunnerErrorKind::Timeout(
-                                "WaitForElementNotPresent".to_owned(),
-                            ))
-                        },
-                    )?;
+                    .await
+                    .map_err(|_| RunnerErrorKind::Timeout("WaitForElementNotPresent".to_owned()))?;
             }
             Command::WaitForElementEditable { timeout, target } => {
                 let locator = match &target.location {
@@ -227,15 +217,8 @@ where
 
                 self.webdriver
                     .wait_for_editable(locator, *timeout)
-                    .await?
-                    .map_or_else(
-                        || Ok(()),
-                        |_| {
-                            Err(RunnerErrorKind::Timeout(
-                                "WaitForElementEditable".to_owned(),
-                            ))
-                        },
-                    )?;
+                    .await
+                    .map_err(|_| RunnerErrorKind::Timeout("WaitForElementEditable".to_owned()))?;
             }
             Command::Select { locator, target } => {
                 let select_locator = match &target.location {
@@ -1513,10 +1496,7 @@ mod flow {
                 Ok(Element(Arc::clone(self)))
             }
 
-            async fn find_all(
-                &mut self,
-                _: Locator,
-            ) -> Result<Vec<Self::Element>, Self::Error> {
+            async fn find_all(&mut self, _: Locator) -> Result<Vec<Self::Element>, Self::Error> {
                 self.inc(Call::FindAll);
                 Ok(vec![Element(Arc::clone(self))])
             }
@@ -1525,36 +1505,36 @@ mod flow {
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<Option<Duration>, Self::Error> {
-                todo!()
+            ) -> Result<(), Self::Error> {
+                self.inc(Call::W8Visib);
+                Ok(())
             }
 
             async fn wait_for_not_present(
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<Option<Duration>, Self::Error> {
+            ) -> Result<(), Self::Error> {
                 self.inc(Call::W8NPres);
-                Ok(None)
-                // std::thread::sleep_ms(4000);
+                Ok(())
             }
 
             async fn wait_for_present(
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<Option<Duration>, Self::Error> {
+            ) -> Result<(), Self::Error> {
                 self.inc(Call::W8Pres);
-                todo!()
+                Ok(())
             }
 
             async fn wait_for_editable(
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<Option<Duration>, Self::Error> {
+            ) -> Result<(), Self::Error> {
                 self.inc(Call::W8Edit);
-                Ok(None)
+                Ok(())
             }
 
             async fn current_url(&mut self) -> Result<url::Url, Self::Error> {
@@ -1562,20 +1542,12 @@ mod flow {
                 Ok(url::Url::parse("http://example.com").unwrap())
             }
 
-            async fn set_window_size(
-                &mut self,
-                _: u32,
-                _: u32,
-            ) -> Result<(), Self::Error> {
+            async fn set_window_size(&mut self, _: u32, _: u32) -> Result<(), Self::Error> {
                 self.inc(Call::SetWSize);
                 Ok(())
             }
 
-            async fn execute(
-                &mut self,
-                _: &str,
-                _: Vec<Json>,
-            ) -> Result<Json, Self::Error> {
+            async fn execute(&mut self, _: &str, _: Vec<Json>) -> Result<Json, Self::Error> {
                 self.inc(Call::Exec);
                 Ok(Json::Null)
             }

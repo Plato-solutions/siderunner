@@ -1,14 +1,17 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 #![cfg(feature = "thirtyfour_backend")]
 
 use super::{Element, Locator, Webdriver};
 use serde_json::Value as Json;
 use std::time::Duration;
-use thirtyfour::{By, OptionRect, ScriptArgs, WebDriverCommands, components::select::SelectElement, error::WebDriverError};
+use thirtyfour::{
+    components::select::SelectElement, prelude::ElementQueryable, By, OptionRect, ScriptArgs,
+    WebDriverCommands,
+};
 use url::Url;
-
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub struct Client<'a>(pub &'a thirtyfour::WebDriver);
 
@@ -42,104 +45,69 @@ impl<'a> Webdriver for Client<'a> {
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
+    ) -> Result<(), Self::Error> {
         let locator: By = (&locator).into();
+        let (e, _) = elapsed_fn(
+            self.0
+                .query(locator)
+                .and_displayed()
+                .wait(timeout, timeout / 3)
+                .first(),
+        )
+        .await;
+        e?;
 
-        let now = std::time::Instant::now();
-        loop {
-            match self.0.find_element(locator.clone()).await {
-                Ok(e) => {
-                    if e.is_displayed().await? {
-                        break Ok(None);
-                    }
-                }
-                Err(WebDriverError::NoSuchElement(..)) => (),
-                Err(err) => Err(err)?,
-            }
-
-            if now.elapsed() > timeout {
-                break Ok(Some(now.elapsed()));
-            }
-        }
+        Ok(())
     }
 
     async fn wait_for_not_present(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
+    ) -> Result<(), Self::Error> {
         let locator: By = (&locator).into();
+        let (e, _) = elapsed_fn(
+            self.0
+                .query(locator)
+                .wait(timeout, timeout / 3)
+                .not_exists(),
+        )
+        .await;
+        e?;
 
-        let now = std::time::Instant::now();
-        loop {
-            match self.0.find_element(locator.clone()).await {
-                Ok(..) => {}
-                Err(WebDriverError::NoSuchElement(..)) => break Ok(None),
-                Err(err) => Err(err)?,
-            }
-
-            if now.elapsed() > timeout {
-                break Ok(Some(now.elapsed()));
-            }
-        }
-        // std::thread::sleep_ms(4000);
+        Ok(())
     }
 
     async fn wait_for_present(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
+    ) -> Result<(), Self::Error> {
         let locator: By = (&locator).into();
+        let (e, _) = elapsed_fn(self.0.query(locator).wait(timeout, timeout / 3).exists()).await;
+        e?;
 
-        let now = std::time::Instant::now();
-        loop {
-            match self.0.find_element(locator.clone()).await {
-                Ok(..) => break Ok(None),
-                Err(WebDriverError::NoSuchElement(..)) => (), // TODO: sleep
-                Err(err) => Err(err)?,
-            }
-
-            if now.elapsed() > timeout {
-                break Ok(Some(now.elapsed()));
-            }
-        }
+        Ok(())
     }
 
     async fn wait_for_editable(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
-        let now = std::time::Instant::now();
-        loop {
-            match self.0.find_element((&locator).into()).await {
-                Ok(element) => {
-                    let is_displayed = match element.get_attribute("style").await? {
-                        Some(style) if !style.contains("display: none;") => true,
-                        None => true,
-                        _ => false,
-                    };
+    ) -> Result<(), Self::Error> {
+        let locator: By = (&locator).into();
+        let (e, _) = elapsed_fn(
+            self.0
+                .query(locator)
+                .wait(timeout, timeout / 3)
+                .and_clickable()
+                .and_enabled()
+                .first(),
+        )
+        .await;
+        e?;
 
-                    let is_enabled = match element.get_attribute("disabled").await? {
-                        Some(..) => false,
-                        _ => true,
-                    };
-
-                    if is_displayed && is_enabled {
-                        break Ok(None);
-                    }
-                }
-                Err(WebDriverError::NoSuchElement(..)) => {}
-                Err(err) => Err(err)?,
-            }
-
-            if now.elapsed() > timeout {
-                break Ok(Some(now.elapsed()));
-            }
-        }
-        // TODO: ...
-        // TODO: #issue https://github.com/jonhoo/fantoccini/issues/93
+        Ok(())
     }
 
     async fn current_url(&mut self) -> Result<Url, Self::Error> {
@@ -236,6 +204,17 @@ impl<'a> Element for WebElement<'a> {
 
         Ok(Client(self.1))
     }
+}
+
+async fn elapsed_fn<F, R>(foo: F) -> (R, Duration)
+where
+    F: std::future::Future<Output = R>,
+{
+    let now = tokio::time::Instant::now();
+    let result = foo.await;
+    let elapsed = now.elapsed();
+
+    (result, elapsed)
 }
 
 impl<'a> Into<By<'a>> for &'a Locator {

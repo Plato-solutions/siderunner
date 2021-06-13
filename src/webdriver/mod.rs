@@ -2,8 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// todo: refactoring of wait_for_*
-
 use serde_json::Value as Json;
 use std::time::Duration;
 
@@ -23,22 +21,22 @@ pub trait Webdriver {
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error>;
+    ) -> Result<(), Self::Error>;
     async fn wait_for_not_present(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error>;
+    ) -> Result<(), Self::Error>;
     async fn wait_for_present(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error>;
+    ) -> Result<(), Self::Error>;
     async fn wait_for_editable(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error>;
+    ) -> Result<(), Self::Error>;
     async fn set_window_size(&mut self, width: u32, height: u32) -> Result<(), Self::Error>;
     async fn execute(&mut self, script: &str, mut args: Vec<Json>) -> Result<Json, Self::Error>;
     async fn close(&mut self) -> Result<(), Self::Error>;

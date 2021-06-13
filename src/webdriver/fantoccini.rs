@@ -5,6 +5,7 @@
 #![cfg(feature = "fantoccini_backend")]
 
 use super::{Element as WebElement, Locator, Webdriver};
+use crate::error::RunnerErrorKind;
 use fantoccini as fan;
 use serde_json::Value as Json;
 use std::time::Duration;
@@ -14,7 +15,7 @@ pub struct Client(pub fan::Client);
 #[async_trait::async_trait]
 impl Webdriver for Client {
     type Element = Element;
-    type Error = crate::error::RunnerErrorKind;
+    type Error = RunnerErrorKind;
 
     async fn goto(&mut self, url: &str) -> Result<(), Self::Error> {
         self.0.goto(url).await?;
@@ -39,51 +40,54 @@ impl Webdriver for Client {
 
     async fn wait_for_visible(
         &mut self,
-        _: Locator,
-        _: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
-        todo!()
+        locator: Locator,
+        timeout: Duration,
+    ) -> Result<(), Self::Error> {
+        self.wait_for_present(locator, timeout).await
     }
 
     async fn wait_for_not_present(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
+    ) -> Result<(), Self::Error> {
         let locator = (&locator).into();
 
         let now = std::time::Instant::now();
         loop {
             match self.0.find(locator).await {
-                Ok(..) => {} // TODO: sleep
-                Err(fantoccini::error::CmdError::NoSuchElement(..)) => break Ok(None),
+                Ok(..) => {}
+                Err(fantoccini::error::CmdError::NoSuchElement(..)) => break Ok(()),
                 Err(err) => Err(err)?,
             }
 
             if now.elapsed() > timeout {
-                break Ok(Some(now.elapsed()));
+                break Err(RunnerErrorKind::Timeout(
+                    "Wait for element not present timeout".to_string(),
+                ));
             }
         }
-        // std::thread::sleep_ms(4000);
     }
 
     async fn wait_for_present(
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
+    ) -> Result<(), Self::Error> {
         let locator = (&locator).into();
 
         let now = std::time::Instant::now();
         loop {
             match self.0.find(locator).await {
-                Ok(..) => break Ok(None),
-                Err(fantoccini::error::CmdError::NoSuchElement(..)) => (), // TODO: sleep
+                Ok(..) => break Ok(()),
+                Err(fantoccini::error::CmdError::NoSuchElement(..)) => (),
                 Err(err) => Err(err)?,
             }
 
             if now.elapsed() > timeout {
-                break Ok(Some(now.elapsed()));
+                break Err(RunnerErrorKind::Timeout(
+                    "Wait for element present timeout".to_string(),
+                ));
             }
         }
     }
@@ -92,10 +96,7 @@ impl Webdriver for Client {
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<Option<Duration>, Self::Error> {
-        // std::thread::sleep(*timeout);
-        // std::thread::sleep_ms(4000);
-
+    ) -> Result<(), Self::Error> {
         let locator = (&locator).into();
         let now = std::time::Instant::now();
         loop {
@@ -113,7 +114,7 @@ impl Webdriver for Client {
                     };
 
                     if is_displayed && is_enabled {
-                        break Ok(None);
+                        break Ok(());
                     }
                 }
                 Err(fantoccini::error::CmdError::NoSuchElement(..)) => {}
@@ -121,11 +122,11 @@ impl Webdriver for Client {
             }
 
             if now.elapsed() > timeout {
-                break Ok(Some(now.elapsed()));
+                break Err(RunnerErrorKind::Timeout(
+                    "Wait for element editable timeout".to_string(),
+                ));
             }
         }
-        // TODO: ...
-        // TODO: #issue https://github.com/jonhoo/fantoccini/issues/93
     }
 
     async fn current_url(&mut self) -> Result<url::Url, Self::Error> {
@@ -154,7 +155,7 @@ pub struct Element(fan::elements::Element);
 #[async_trait::async_trait]
 impl WebElement for Element {
     type Driver = Client;
-    type Error = crate::error::RunnerErrorKind;
+    type Error = RunnerErrorKind;
 
     async fn attr(&mut self, attribute: &str) -> Result<Option<String>, Self::Error> {
         let attr = self.0.attr(attribute).await?;

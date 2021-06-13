@@ -49,7 +49,7 @@ impl std::fmt::Debug for RunnerErrorKind {
 
 #[cfg(feature = "fantoccini_backend")]
 impl From<fantoccini::error::CmdError> for RunnerErrorKind {
-    fn from(err: ferorr::CmdError) -> Self {
+    fn from(err: fantoccini::error::CmdError) -> Self {
         RunnerErrorKind::WebdriverError(err)
     }
 }

@@ -22,9 +22,7 @@ async fn main() {
 
     assert_eq!(
         runner.data.get("slogan"),
-        Some(&serde_json::Value::String(
-            "The Free Encyclopedia".to_owned()
-        ))
+        Some(&serde_json::json!("The Free Encyclopedia")),
     );
 
     runner.close().await.unwrap();

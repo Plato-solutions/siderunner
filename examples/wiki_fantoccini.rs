@@ -9,7 +9,7 @@ fn main() {
 #[tokio::main]
 async fn main() {
     use fantoccini::Client;
-    use pantheon::{parse, Runner};
+    use siderunner::{parse, Runner};
 
     let client = Client::new("http://localhost:4444")
         .await

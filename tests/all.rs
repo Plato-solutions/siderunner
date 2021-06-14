@@ -1,4 +1,4 @@
-use pantheon::{parse, Runner};
+use siderunner::{parse, Runner};
 use std::fs::File;
 use thirtyfour::{DesiredCapabilities, WebDriver};
 use tokio::test;

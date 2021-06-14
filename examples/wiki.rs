@@ -8,7 +8,7 @@ fn main() {
 #[cfg(feature = "thirtyfour_backend")]
 #[tokio::main]
 async fn main() {
-    use pantheon::{parse, Runner};
+    use siderunner::{parse, Runner};
     use thirtyfour::{DesiredCapabilities, WebDriver};
 
     let wiki = std::fs::File::open("examples/wiki.side").unwrap();

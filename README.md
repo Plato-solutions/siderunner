@@ -38,3 +38,25 @@ runner.close().await.unwrap();
 * [`fantoccini`](https://github.com/jonhoo/fantoccini)
 
 #### Notion that currently not all [commands](https://www.selenium.dev/selenium-ide/docs/en/api/commands) are covered.
+
+## Testing
+
+### Unit tests
+
+```
+cargo test --lib
+```
+
+### Integrational tests
+
+To run a integration test suit you must set an environment.
+You can use `test.bash` file to run tests and manage the environment.
+Just run it.
+
+```
+./test.bash
+```
+
+#### Requirements
+
+* `docker-compose`

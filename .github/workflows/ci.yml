@@ -30,6 +30,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
       - run: cargo check --no-default-features --features fantoccini_backend
 
   windows:
@@ -37,9 +41,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
       - run: cargo check
-      
+
   unit-test:
     name: Unit Test Suite
     runs-on: ubuntu-latest

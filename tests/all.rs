@@ -38,3 +38,7 @@ macro_rules! test_file {
 }
 
 test_file!("tests/resources/basic/test.side.json", basic);
+test_file!(
+    "tests/resources/commands/assert/test.side.json",
+    command_assert
+);

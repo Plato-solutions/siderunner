@@ -34,6 +34,10 @@ pub enum RunnerErrorKind {
     BranchValidationError(String),
     MismatchedType(String),
     Timeout(String),
+    AssertFailed {
+        lhs: String,
+        rhs: String,
+    },
 }
 
 impl std::fmt::Debug for RunnerErrorKind {
@@ -43,6 +47,7 @@ impl std::fmt::Debug for RunnerErrorKind {
             Self::WebdriverError(err) => write!(f, "webdriver error {:?}", err),
             Self::MismatchedType(desc) => write!(f, "mismatched type {}", desc),
             Self::Timeout(desc) => write!(f, "timeout {}", desc),
+            Self::AssertFailed { lhs, rhs } => write!(f, "assert failed {} == {}", lhs, rhs),
         }
     }
 }

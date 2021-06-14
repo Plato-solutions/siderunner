@@ -63,6 +63,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "repeatIf" => Command::parse_repeat_if,
         "close" => Command::parse_close,
         "storeXpathCount" => Command::parse_store_xpath_count,
+        "assert" => Command::parse_assert,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -76,7 +77,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         }
         cmd => {
             return Err(ParseError::ValidationError(format!(
-                "Command {:?} doesn't implemted",
+                "Command {:?} is not implemented",
                 cmd
             )))
         }
@@ -158,6 +159,10 @@ pub enum Command {
         cmd: String,
         target: String,
         targets: Vec<Vec<String>>,
+        value: String,
+    },
+    Assert {
+        var: String,
         value: String,
     },
 }
@@ -331,6 +336,12 @@ impl Command {
                 "expected to get an xpath locator".to_owned(),
             )),
         }
+    }
+
+    pub fn parse_assert(c: &format::Command) -> Result<Command, ParseError> {
+        let var = c.target.clone();
+        let value = c.value.clone();
+        Ok(Command::Assert { value, var })
     }
 }
 
@@ -581,14 +592,8 @@ mod tests {
         let test = &file.tests[0];
         let commands = &test.commands;
         assert_eq!(commands.len(), 3);
-        assert!(matches!(
-            commands[0],
-            Command::Custom{..}
-        ));
-        assert!(matches!(
-            commands[1],
-            Command::Custom{..}
-        ));
+        assert!(matches!(commands[0], Command::Custom { .. }));
+        assert!(matches!(commands[1], Command::Custom { .. }));
         assert!(matches!(commands[2], Command::Open(..)));
     }
 

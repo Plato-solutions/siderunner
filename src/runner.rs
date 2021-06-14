@@ -287,6 +287,19 @@ where
                 self.data.insert(var.clone(), elements.len().into());
             }
             Command::Close => self.webdriver.close().await?,
+            Command::Assert { var, value } => {
+                // NOTION: intentially don't use a print_plain_value even though SELENIUM IDE uses this approach
+                let var = self.data.get(var).map_or_else(
+                    || "undefined".to_string(),
+                    |v| v.to_string().trim_matches('\"').to_string(),
+                );
+                if var != *value {
+                    Err(RunnerErrorKind::AssertFailed {
+                        lhs: var,
+                        rhs: value.clone(),
+                    })?
+                }
+            }
             #[allow(unused_variables)]
             cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };

@@ -206,20 +206,20 @@ impl<'a> Element for WebElement<'a> {
     }
 }
 
-async fn elapsed_fn<F, R>(foo: F) -> (R, Duration)
+async fn elapsed_fn<F, R>(func: F) -> (R, Duration)
 where
     F: std::future::Future<Output = R>,
 {
     let now = tokio::time::Instant::now();
-    let result = foo.await;
+    let result = func.await;
     let elapsed = now.elapsed();
 
     (result, elapsed)
 }
 
-impl<'a> Into<By<'a>> for &'a Locator {
-    fn into(self) -> By<'a> {
-        match self {
+impl<'a> From<&'a Locator> for By<'a> {
+    fn from(locator: &'a Locator) -> By<'a> {
+        match locator {
             Locator::LinkText(s) => By::LinkText(&s),
             Locator::Css(s) => By::Css(&s),
             Locator::Id(s) => By::Id(&s),

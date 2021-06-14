@@ -279,12 +279,12 @@ impl Command {
     }
 
     fn parse_set_window_size(c: &format::Command) -> Result<Command, ParseError> {
-        let settings = c.target.split("x").map(|n| n.parse()).collect::<Vec<_>>();
+        let settings = c.target.split('x').map(|n| n.parse()).collect::<Vec<_>>();
         if settings.len() != 2 {
-            Err(ParseError::TypeError(
+            return Err(ParseError::TypeError(
                 "window size expected to get in a form like this 1916x1034 (Width x Height)"
                     .to_owned(),
-            ))?
+            ));
         }
 
         let w = settings[0]
@@ -394,23 +394,23 @@ impl Location {
             _ => Err(ParseError::LocatorFormatError(format!(
                 "unexpected locator type {}, supported xpath|css|id",
                 tp
-            )))?,
+            ))),
         }
     }
 }
 
 fn parse_location(text: &str) -> Result<Location, ParseError> {
     let mut target_location = text.splitn(2, '=');
-    let location_type = target_location
-        .next()
-        .ok_or(ParseError::LocatorFormatError(
+    let location_type = target_location.next().ok_or_else(|| {
+        ParseError::LocatorFormatError(
             "target should contain a type of selector and a selector splited by '='".to_owned(),
-        ))?;
-    let location = target_location
-        .next()
-        .ok_or(ParseError::LocatorFormatError(
+        )
+    })?;
+    let location = target_location.next().ok_or_else(|| {
+        ParseError::LocatorFormatError(
             "target should contain a type of selector and a selector splited by '='".to_owned(),
-        ))?;
+        )
+    })?;
 
     Location::new(location_type, location)
 }
@@ -421,17 +421,17 @@ fn parse_select_locator(text: &str) -> Result<SelectLocator, ParseError> {
     let mut locator = text.splitn(2, '=');
     let locator_type = locator
         .next()
-        .ok_or(ParseError::LocatorFormatError(ERROR_TEXT.to_owned()))?;
+        .ok_or_else(|| ParseError::LocatorFormatError(ERROR_TEXT.to_owned()))?;
     let locator = locator
         .next()
-        .ok_or(ParseError::LocatorFormatError(ERROR_TEXT.to_owned()))?;
+        .ok_or_else(|| ParseError::LocatorFormatError(ERROR_TEXT.to_owned()))?;
 
     match locator_type {
         "index" => Ok(SelectLocator::Index(locator.to_owned())),
         "label" => Ok(SelectLocator::Label(locator.to_owned())),
         "id" => Ok(SelectLocator::Id(locator.to_owned())),
         "value" => Ok(SelectLocator::Value(locator.to_owned())),
-        _ => Err(ParseError::LocatorFormatError(ERROR_TEXT.to_owned()))?,
+        _ => Err(ParseError::LocatorFormatError(ERROR_TEXT.to_owned())),
     }
 }
 
@@ -439,9 +439,9 @@ fn parse_targets(targets: &[Vec<String>]) -> Result<Vec<Target>, ParseError> {
     let mut out = Vec::new();
     for target in targets {
         if target.len() != 2 {
-            Err(ParseError::LocatorFormatError(
+            return Err(ParseError::LocatorFormatError(
                 "targets wrong format".to_owned(),
-            ))?
+            ));
         }
 
         let location = parse_location(&target[0])?;
@@ -457,12 +457,10 @@ fn parse_targets(targets: &[Vec<String>]) -> Result<Vec<Target>, ParseError> {
     Ok(out)
 }
 
-fn parse_target_tag<'a>(tag: &'a str) -> Result<&'a str, ParseError> {
+fn parse_target_tag(tag: &str) -> Result<&'_ str, ParseError> {
     tag.splitn(2, ':')
         .nth(1)
-        .ok_or(ParseError::LocatorFormatError(
-            "type of selector is unknown".to_owned(),
-        ))
+        .ok_or_else(|| ParseError::LocatorFormatError("type of selector is unknown".to_owned()))
 }
 
 fn cast_timeout(s: &str) -> Result<Duration, ParseError> {
@@ -474,7 +472,7 @@ fn cast_timeout(s: &str) -> Result<Duration, ParseError> {
     // }
     s.parse()
         .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))
-        .map(|timeout| Duration::from_millis(timeout))
+        .map(Duration::from_millis)
 }
 
 mod format {
@@ -580,9 +578,7 @@ mod tests {
             "plugins": []
           }"#
         .as_bytes()
-        .iter()
-        .cloned()
-        .collect();
+        .to_vec();
 
         let reader = file.as_slice();
         let file = parse(reader);
@@ -641,8 +637,6 @@ mod tests {
             "plugins": []
           }"#
         .as_bytes()
-        .iter()
-        .cloned()
-        .collect()
+        .to_vec()
     }
 }

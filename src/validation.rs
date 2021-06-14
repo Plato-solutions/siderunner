@@ -71,7 +71,7 @@ fn validate_end(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
         }
         _ => Err(RunnerErrorKind::BranchValidationError(
             "end used in wrong way".to_owned(),
-        ))?,
+        )),
     }
 }
 
@@ -83,10 +83,10 @@ fn validate_else(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
         }
         Some(st) if matches!(st, State::Else) => Err(RunnerErrorKind::BranchValidationError(
             "too many else operations".to_owned(),
-        ))?,
+        )),
         _ => Err(RunnerErrorKind::BranchValidationError(
             "else used out of if scope".to_owned(),
-        ))?,
+        )),
     }
 }
 
@@ -98,10 +98,10 @@ fn validate_else_if(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
         }
         Some(st) if matches!(st, State::Else) => Err(RunnerErrorKind::BranchValidationError(
             "usage of elseif after else".to_owned(),
-        ))?,
+        )),
         _ => Err(RunnerErrorKind::BranchValidationError(
             "else if used outside the if scope".to_owned(),
-        ))?,
+        )),
     }
 }
 
@@ -113,7 +113,7 @@ fn validate_do(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
         }
         _ => Err(RunnerErrorKind::BranchValidationError(
             "repeatIf used outside the if scope".to_owned(),
-        ))?,
+        )),
     }
 }
 

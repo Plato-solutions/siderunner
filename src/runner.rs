@@ -240,7 +240,7 @@ where
                                 return Err(RunnerErrorKind::MismatchedType(format!(
                                     "expected to get int type but got {:?}",
                                     index
-                                )))?
+                                )));
                             }
                         }
                     }
@@ -294,10 +294,10 @@ where
                     |v| v.to_string().trim_matches('\"').to_string(),
                 );
                 if var != *value {
-                    Err(RunnerErrorKind::AssertFailed {
+                    return Err(RunnerErrorKind::AssertFailed {
                         lhs: var,
                         rhs: value.clone(),
-                    })?
+                    });
                 }
             }
             #[allow(unused_variables)]
@@ -348,7 +348,7 @@ fn emit_variables(s: &str, vars: &HashMap<String, Value>) -> String {
 fn emit_variables_custom(text: &str) -> (String, Vec<String>) {
     let mut emited_vars = Vec::new();
 
-    let new_text = emit_vars(text.as_ref(), |var| {
+    let new_text = emit_vars(text, |var| {
         let arg_pos = match emited_vars.iter().position(|arg| arg == var) {
             Some(pos) => pos,
             None => {
@@ -385,7 +385,7 @@ fn print_plain_value(val: &Value) -> String {
         Value::Number(val) => val.to_string(),
         Value::Object(..) => "[object Object]".to_string(), // is it ok behaviour?
         Value::Array(values) => values
-            .into_iter()
+            .iter()
             .map(|v| print_plain_value(v))
             .collect::<Vec<_>>()
             .join(","),
@@ -794,13 +794,13 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_while_loop() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::While("...".to_owned()),
             Command::Echo("echo".to_owned()),
             Command::End,
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -829,14 +829,14 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_if() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::If("...".to_owned()),
             Command::Echo("echo".to_owned()),
             Command::End,
             Command::Echo("echo".to_owned()),
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -871,14 +871,14 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_if_complex_empty_conditions() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::If("...".to_owned()),
             Command::ElseIf("...".to_owned()),
             Command::Else,
             Command::End,
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -908,7 +908,7 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_if_complex() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::If("...".to_owned()),
             Command::Echo("echo".to_owned()),
@@ -919,7 +919,7 @@ mod tests {
             Command::Echo("echo".to_owned()),
             Command::End,
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -973,7 +973,7 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_if_complex_without_else() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::If("...".to_owned()),
             Command::Echo("echo".to_owned()),
@@ -981,7 +981,7 @@ mod tests {
             Command::Echo("echo".to_owned()),
             Command::End,
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -1022,7 +1022,7 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_multi_while() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::While("...".to_owned()),
             Command::While("...".to_owned()),
@@ -1030,7 +1030,7 @@ mod tests {
             Command::End,
             Command::End,
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -1066,7 +1066,7 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_multi_while_with_if() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::While("...".to_owned()),
             Command::While("...".to_owned()),
@@ -1077,7 +1077,7 @@ mod tests {
             Command::End,
             Command::End,
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -1121,7 +1121,7 @@ mod tests {
 
     #[test]
     fn test_creating_run_list_while_with_if() {
-        let mut commands = vec![
+        let commands = vec![
             Command::Open("open".to_owned()),
             Command::While("...".to_owned()),
             Command::Echo("echo".to_owned()),
@@ -1130,7 +1130,7 @@ mod tests {
             Command::End,
             Command::End,
         ];
-        let node = create_nodes(&mut commands);
+        let node = create_nodes(&commands);
         assert_eq!(
             node,
             vec![
@@ -1473,10 +1473,10 @@ mod flow {
             pub res_set_w_size: Option<fn() -> Result<(), RunnerErrorKind>>,
             pub res_close: Option<fn() -> Result<(), RunnerErrorKind>>,
             pub res_goto: Option<fn() -> Result<(), RunnerErrorKind>>,
-            pub res_w8_visib: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
-            pub res_w8_pres: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
-            pub res_w8_npres: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
-            pub res_w8_edit: Option<fn() -> Result<Option<Duration>, RunnerErrorKind>>,
+            pub res_w8_visib: Option<fn() -> Result<(), RunnerErrorKind>>,
+            pub res_w8_pres: Option<fn() -> Result<(), RunnerErrorKind>>,
+            pub res_w8_npres: Option<fn() -> Result<(), RunnerErrorKind>>,
+            pub res_w8_edit: Option<fn() -> Result<(), RunnerErrorKind>>,
         }
 
         impl Client {
@@ -1614,17 +1614,17 @@ mod flow {
 
             async fn click(mut self) -> Result<Self::Driver, Self::Error> {
                 self.inc(Call::Click);
-                Ok(self.0.clone())
+                Ok(self.0)
             }
 
             async fn select_by_index(mut self, _: usize) -> Result<Self::Driver, Self::Error> {
                 self.inc(Call::SelectByIndex);
-                Ok(self.0.clone())
+                Ok(self.0)
             }
 
             async fn select_by_value(mut self, _: &str) -> Result<Self::Driver, Self::Error> {
                 self.inc(Call::SelectByValue);
-                Ok(self.0.clone())
+                Ok(self.0)
             }
         }
 

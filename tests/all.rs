@@ -42,3 +42,7 @@ test_file!(
     "tests/resources/commands/assert/test.side.json",
     command_assert
 );
+test_file!(
+    "tests/resources/commands/click/test.side.json",
+    command_click
+);

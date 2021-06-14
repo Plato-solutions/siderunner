@@ -46,3 +46,7 @@ test_file!(
     "tests/resources/commands/click/test.side.json",
     command_click
 );
+test_file!(
+    "tests/resources/commands/execute/test.side.json",
+    command_execute
+);

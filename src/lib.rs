@@ -9,21 +9,24 @@
 //! use siderunner::{parse, Runner};
 //! use thirtyfour::{DesiredCapabilities, WebDriver};
 //!
-//! let wiki = std::fs::File::open("examples/wiki.side").unwrap();
-//! let file = parse(wiki).expect("parsing can't be done...");
+//! #[tokio::main]
+//! async fn main() {
+//!     let wiki = std::fs::File::open("examples/wiki.side").expect("Can't open a side file");
+//!     let file = parse(wiki).expect("Failed parsing a file");
 //!
-//! let client = WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox())
-//!     .await
-//!     .expect("can't connect to webdriver");
-//! let mut runner = Runner::new(&client);
-//! runner.run(&file.tests[0]).await.unwrap();
+//!     let client = WebDriver::new("http://localhost:4444", DesiredCapabilities::chrome())
+//!         .await
+//!         .expect("can't connect to webdriver");
+//!     let mut runner = Runner::new(&client);
+//!     runner.run(&file.tests[0]).await.expect("Fail in running a 0 test");
 //!
-//! assert_eq!(
-//!     runner.get_data().get("slogan"),
-//!     Some(&serde_json::json!("The Free Encyclopedia")),
-//! );
+//!     assert_eq!(
+//!         runner.get_data().get("slogan"),
+//!         Some(&serde_json::json!("The Free Encyclopedia")),
+//!     );
 //!
-//! runner.close().await.unwrap();
+//!     runner.close().await.expect("Error occured while closing webdriver");
+//! }
 //! ```
 
 mod error;

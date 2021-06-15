@@ -23,12 +23,12 @@ use std::collections::HashMap;
 /// It manages usage of variables.
 pub struct Runner<D> {
     webdriver: D,
-    pub data: HashMap<String, Value>,
+    data: HashMap<String, Value>,
     echo_hook: Box<fn(&str)>,
 }
 
 impl<D> Runner<D> {
-    /// Create a new runner
+    /// Create a new Runner which uses a client as a Backend
     pub fn _new(client: D) -> Runner<D> {
         Self {
             webdriver: client,
@@ -43,13 +43,30 @@ where
     D: Webdriver<Element = E, Error = RunnerErrorKind>,
     E: webdriver::Element<Driver = D, Error = RunnerErrorKind>,
 {
-    /// Runs a test
+    /// Run runs a test
     pub async fn run(&mut self, test: &Test) -> Result<(), RunnerError> {
         crate::validation::validate_conditions(&test.commands)?;
         let mut nodes = create_nodes(&test.commands);
         connect_nodes(&mut nodes);
 
         self.run_nodes(nodes).await
+    }
+
+    /// Close underlying webdriver client.
+    ///
+    /// It must be run as some backends require it's call to release a Webdriver session.
+    pub async fn close(mut self) -> Result<(), RunnerErrorKind> {
+        self.webdriver.close().await
+    }
+
+    /// Sets a callback which will be run on each Echo command.
+    pub fn set_echo(&mut self, func: fn(&str)) {
+        self.echo_hook = Box::new(func);
+    }
+
+    /// Gets a list of variables which were collected over the runs.
+    pub fn get_data(&self) -> &HashMap<String, Value> {
+        &self.data
     }
 
     async fn run_nodes(&mut self, nodes: Vec<CommandNode>) -> Result<(), RunnerError> {
@@ -306,11 +323,6 @@ where
 
         Ok(())
     }
-    // argument[0] -> argument[1] -> argument[2] goes to implementing JS formatting
-
-    pub fn set_echo(&mut self, func: fn(&str)) {
-        self.echo_hook = Box::new(func);
-    }
 
     async fn exec(
         &mut self,
@@ -331,10 +343,6 @@ where
 
     fn emit(&self, s: &str) -> String {
         emit_variables(s, &self.data)
-    }
-
-    pub async fn close(mut self) -> Result<(), RunnerErrorKind> {
-        self.webdriver.close().await
     }
 }
 

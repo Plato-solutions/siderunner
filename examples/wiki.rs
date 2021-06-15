@@ -21,7 +21,7 @@ async fn main() {
     runner.run(&file.tests[0]).await.unwrap();
 
     assert_eq!(
-        runner.data.get("slogan"),
+        runner.get_data().get("slogan"),
         Some(&serde_json::json!("The Free Encyclopedia")),
     );
 

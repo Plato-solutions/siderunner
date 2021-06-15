@@ -4,18 +4,23 @@
 
 use std::fmt;
 
+/// RunnerError represents a Error which may occure while running
+/// running [`Command`].
+///
+/// [`Command`]: enum.Command.html
 pub struct RunnerError {
     pub kind: RunnerErrorKind,
     pub index: usize,
 }
 
 impl RunnerError {
+    /// New creates a new instance of RunnerError
     pub fn new(kind: RunnerErrorKind, index: usize) -> Self {
         Self { kind, index }
     }
 }
 
-impl std::fmt::Debug for RunnerError {
+impl fmt::Debug for RunnerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -25,7 +30,10 @@ impl std::fmt::Debug for RunnerError {
     }
 }
 
-// TODO: IlligalSyntax
+/// RunnerErrorKind represents errors which may occure while
+/// running a particular [`Test`].
+///
+/// [`Test`]: struct.Test.html
 pub enum RunnerErrorKind {
     #[cfg(feature = "fantoccini_backend")]
     WebdriverError(fantoccini::error::CmdError),
@@ -66,6 +74,8 @@ impl From<thirtyfour::error::WebDriverError> for RunnerErrorKind {
     }
 }
 
+/// ParseError represents errors which may occure while
+/// parsing a `Side` file.
 pub enum ParseError {
     FormatError(serde_json::Error),
     LocatorFormatError(String),

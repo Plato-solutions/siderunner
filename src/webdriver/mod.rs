@@ -8,6 +8,9 @@ use std::time::Duration;
 pub(crate) mod fantoccini;
 pub(crate) mod thirtyfour;
 
+/// Webdriver an interface over a ebdriver functionality.
+///
+/// Mainly created for test purpouses and to be able to support 2 backends.
 #[async_trait::async_trait]
 pub trait Webdriver {
     type Element;
@@ -42,6 +45,7 @@ pub trait Webdriver {
     async fn close(&mut self) -> Result<(), Self::Error>;
 }
 
+/// Element represents functionality which may be taken agains a WebElement by means of Webdriver.
 #[async_trait::async_trait]
 pub trait Element {
     type Driver;
@@ -59,6 +63,7 @@ pub trait Element {
     async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, Self::Error>;
 }
 
+/// Locator represents a way how to find a particular web element.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]
 pub enum Locator {
     Css(String),

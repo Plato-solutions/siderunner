@@ -10,6 +10,7 @@ use fantoccini as fan;
 use serde_json::Value as Json;
 use std::time::Duration;
 
+/// Fantoccini Webdriver interface
 pub struct Client(pub fan::Client);
 
 #[async_trait::async_trait]

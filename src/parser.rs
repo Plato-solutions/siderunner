@@ -2,11 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// TODO: parse basic information
-// TODO: custom errors with test name + command + field information where the error occuried
-// TODO: do we need Target tag?
-// TODO: create a default errors?
-
 use crate::error::ParseError;
 use std::result::Result;
 use std::time::Duration;
@@ -86,22 +81,31 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
     parse_fn(command)
 }
 
+/// File represent a [`Side` file] information
+///
+/// [`Side` file]: https://github.com/SeleniumHQ/selenium-ide/issues/77
 pub struct File {
+    /// Version of a scheme
     pub version: String,
+    /// Name of a project
     pub name: String,
+    /// Address of a parsed site
     pub url: String,
+    /// A list of [`Test`]s
+    ///
+    /// [`Test`]: struct.Test.html
     pub tests: Vec<Test>,
 }
 
 /// The structure represent a selenium test
 pub struct Test {
+    /// Name of the test
     pub name: String,
+    /// A list of commands
     pub commands: Vec<Command>,
 }
 
 /// Command corresponds a selenium command
-///
-/// The list of commands still not completed
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Command {
     Open(String),
@@ -327,7 +331,7 @@ impl Command {
         }
     }
 
-    pub fn parse_store_xpath_count(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_store_xpath_count(c: &format::Command) -> Result<Command, ParseError> {
         let var = c.value.clone();
         let location = parse_location(&c.target)?;
         match location {
@@ -338,7 +342,7 @@ impl Command {
         }
     }
 
-    pub fn parse_assert(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_assert(c: &format::Command) -> Result<Command, ParseError> {
         let var = c.target.clone();
         let value = c.value.clone();
         Ok(Command::Assert { value, var })
@@ -348,8 +352,9 @@ impl Command {
 /// Target represents a locator of html element
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Target {
+    /// Location is a way to find an element
     pub location: Location,
-    /// tag is an additional information of location type e.g.
+    /// Tag is an additional information of location type e.g.
     /// location = xpath, tag = Some(relative) | Some(positional) | None
     pub tag: Option<String>,
 }
@@ -365,18 +370,13 @@ impl Target {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SelectLocator {
-    // todo: Looks like we should handle ${} stored values right in parsing stage too?
     Index(String),
     Label(String),
     Id(String),
     Value(String),
 }
 
-trait IncompleteStr<T> {
-    fn eval(vars: Vec<usize>) -> T;
-}
-
-/// Locator of a HTML element
+/// Location is a locator of a HTML element
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Location {
     XPath(String),

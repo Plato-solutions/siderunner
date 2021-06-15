@@ -13,6 +13,7 @@ use thirtyfour::{
 };
 use url::Url;
 
+/// Thirtyfour Webdriver interface
 pub struct Client<'a>(pub &'a thirtyfour::WebDriver);
 
 #[async_trait::async_trait]

@@ -7,10 +7,8 @@ use crate::{
     parser::Command,
 };
 
-// TODO: error with position when
-//      there's missing END
-//      there's more ENDs
-//      END used wrongly
+/// Validate_conditions verifies a corrent state of command list.
+/// That there's enough `Ends`, `Cycles` and `If` statements.
 pub fn validate_conditions(commands: &[Command]) -> Result<(), RunnerError> {
     let mut state = Vec::new();
     for (index, cmd) in commands.iter().enumerate() {

@@ -317,6 +317,12 @@ where
                     });
                 }
             }
+            Command::RunScript { script } => {
+                // Acording to Selenium specification we would have to instrument a script block in HTML,
+                // but from what I see in there code base they don't follow there own spec?
+                // https://github.com/SeleniumHQ/selenium/issues/9583
+                self.exec(script).await?;
+            }
             #[allow(unused_variables)]
             cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };

@@ -50,3 +50,7 @@ test_file!(
     "tests/resources/commands/execute/test.side.json",
     command_execute
 );
+test_file!(
+    "tests/resources/commands/run script/test.side.json",
+    command_run_script
+);

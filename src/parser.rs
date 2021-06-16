@@ -59,6 +59,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "close" => Command::parse_close,
         "storeXpathCount" => Command::parse_store_xpath_count,
         "assert" => Command::parse_assert,
+        "runScript" => Command::parse_run_script,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -168,6 +169,9 @@ pub enum Command {
     Assert {
         var: String,
         value: String,
+    },
+    RunScript {
+        script: String,
     },
 }
 
@@ -346,6 +350,12 @@ impl Command {
         let var = c.target.clone();
         let value = c.value.clone();
         Ok(Command::Assert { value, var })
+    }
+
+    fn parse_run_script(c: &format::Command) -> Result<Command, ParseError> {
+        let script = c.target.clone();
+
+        Ok(Command::RunScript { script })
     }
 }
 

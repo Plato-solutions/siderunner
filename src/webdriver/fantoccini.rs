@@ -145,6 +145,11 @@ impl Webdriver for Client {
         Ok(json)
     }
 
+    async fn execute_async(&mut self, script: &str, args: Vec<Json>) -> Result<Json, Self::Error> {
+        let json = self.0.execute_async(script, args).await?;
+        Ok(json)
+    }
+
     async fn close(&mut self) -> Result<(), Self::Error> {
         self.0.close().await?;
         Ok(())

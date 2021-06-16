@@ -51,6 +51,10 @@ test_file!(
     command_execute
 );
 test_file!(
+    "tests/resources/commands/execute async/test.side.json",
+    command_execute_async
+);
+test_file!(
     "tests/resources/commands/run script/test.side.json",
     command_run_script
 );

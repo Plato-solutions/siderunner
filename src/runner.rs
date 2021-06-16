@@ -174,6 +174,12 @@ where
                     None => (),
                 }
             }
+            Command::ExecuteAsync { script, var } => {
+                let res = self.exec_async(script).await?;
+                if let Some(var) = var {
+                    self.data.insert(var.clone(), res);
+                }
+            }
             Command::Echo(text) => {
                 let text = self.emit(text);
                 // TODO: create a hook in library to call as a writer
@@ -331,6 +337,23 @@ where
     }
 
     async fn exec(
+        &mut self,
+        script: &str,
+    ) -> std::result::Result<serde_json::Value, RunnerErrorKind> {
+        let (script, used_vars) = emit_variables_custom(script);
+        let args = used_vars.iter().map(|var| self.data[var].clone()).collect();
+        let value = self
+            .webdriver
+            .execute(
+                &format!("return (function(arguments) {{ {} }})(arguments)", script),
+                args,
+            )
+            .await?;
+
+        Ok(value)
+    }
+
+    async fn exec_async(
         &mut self,
         script: &str,
     ) -> std::result::Result<serde_json::Value, RunnerErrorKind> {
@@ -1579,6 +1602,11 @@ mod flow {
                 Ok(Json::Null)
             }
 
+            async fn execute_async(&mut self, _: &str, _: Vec<Json>) -> Result<Json, Self::Error> {
+                self.inc(Call::ExecAsync);
+                Ok(Json::Null)
+            }
+
             async fn close(&mut self) -> Result<(), Self::Error> {
                 self.inc(Call::Close);
                 Ok(())
@@ -1650,6 +1678,7 @@ mod flow {
             findall: usize,
             goto: usize,
             exec: usize,
+            exec_async: usize,
             close: usize,
             current_url: usize,
             set_w_size: usize,
@@ -1673,6 +1702,7 @@ mod flow {
             FindAll,
             Goto,
             Exec,
+            ExecAsync,
             Close,
             CurrentUrl,
             SetWSize,
@@ -1699,6 +1729,7 @@ mod flow {
                     Call::FindAll => &self.findall,
                     Call::Goto => &self.goto,
                     Call::Exec => &self.exec,
+                    Call::ExecAsync => &self.exec_async,
                     Call::Close => &self.close,
                     Call::CurrentUrl => &self.current_url,
                     Call::SetWSize => &self.set_w_size,
@@ -1725,6 +1756,7 @@ mod flow {
                     Call::FindAll => &mut self.findall,
                     Call::Goto => &mut self.goto,
                     Call::Exec => &mut self.exec,
+                    Call::ExecAsync => &mut self.exec_async,
                     Call::Close => &mut self.close,
                     Call::CurrentUrl => &mut self.current_url,
                     Call::SetWSize => &mut self.set_w_size,

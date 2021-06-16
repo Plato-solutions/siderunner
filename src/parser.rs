@@ -40,6 +40,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "store" => Command::parse_store,
         "storeText" => Command::parse_store_text,
         "executeScript" => Command::parse_execute_script,
+        "executeScriptAsync" => Command::parse_execute_async_script,
         "waitForElementVisible" => Command::parse_wait_for_visible,
         "waitForElementEditable" => Command::parse_wait_for_editable,
         "waitForElementNotPresent" => Command::parse_wait_for_not_present,
@@ -148,6 +149,10 @@ pub enum Command {
         script: String,
         var: Option<String>,
     },
+    ExecuteAsync {
+        script: String,
+        var: Option<String>,
+    },
     While(String),
     If(String),
     ElseIf(String),
@@ -202,6 +207,17 @@ impl Command {
         let script = c.target.clone();
 
         Ok(Command::Execute { script, var })
+    }
+
+    fn parse_execute_async_script(c: &format::Command) -> Result<Command, ParseError> {
+        let var = if c.value.is_empty() {
+            None
+        } else {
+            Some(c.value.clone())
+        };
+        let script = c.target.clone();
+
+        Ok(Command::ExecuteAsync { script, var })
     }
 
     fn parse_wait_for_visible(c: &format::Command) -> Result<Command, ParseError> {

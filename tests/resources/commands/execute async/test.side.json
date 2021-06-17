@@ -12,7 +12,7 @@
                     "id": "839bb8c7-14da-49dd-9554-e593be46fd3e",
                     "comment": "",
                     "command": "open",
-                    "target": "http://localhost:8000/tests/resources/commands/click/index.xhtml",
+                    "target": "http://localhost:8000/tests/resources/basic/index.xhtml",
                     "targets": [],
                     "value": ""
                 },

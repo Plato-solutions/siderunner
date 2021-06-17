@@ -10,12 +10,14 @@
 // TODO: hide hook after feature flag + add a sleep statistic hook
 
 use crate::webdriver::{self, Locator, Webdriver};
+use crate::File;
 use crate::{
     error::{RunnerError, RunnerErrorKind},
     parser::{Command, Location, SelectLocator, Test},
 };
 use serde_json::Value;
 use std::collections::HashMap;
+use url::Url;
 
 /// A runtime for running test
 ///
@@ -43,13 +45,31 @@ where
     D: Webdriver<Element = E, Error = RunnerErrorKind>,
     E: webdriver::Element<Driver = D, Error = RunnerErrorKind>,
 {
-    /// Run runs a test
-    pub async fn run(&mut self, test: &Test) -> Result<(), RunnerError> {
+    /// Run all tests in a side file
+    pub async fn run(&mut self, file: &File) -> Result<(), RunnerError> {
+        for test in 0..file.tests.len() {
+            self.run_test(file, test).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn run_test(&mut self, file: &File, test_index: usize) -> Result<(), RunnerError> {
+        let test = &file.tests[test_index];
+        let err_wrap = |mut e: RunnerError| {
+            e.test = Some(test.name.clone());
+            e
+        };
+        let nodes = Self::build_nodes(test).map_err(err_wrap)?;
+        self.run_nodes(&file.url, nodes).await.map_err(err_wrap)?;
+        Ok(())
+    }
+
+    fn build_nodes(test: &Test) -> Result<Vec<CommandNode>, RunnerError> {
         crate::validation::validate_conditions(&test.commands)?;
         let mut nodes = create_nodes(&test.commands);
         connect_nodes(&mut nodes);
-
-        self.run_nodes(nodes).await
+        Ok(nodes)
     }
 
     /// Close underlying webdriver client.
@@ -69,7 +89,11 @@ where
         &self.data
     }
 
-    async fn run_nodes(&mut self, nodes: Vec<CommandNode>) -> Result<(), RunnerError> {
+    async fn run_nodes(
+        &mut self,
+        file_url: &str,
+        nodes: Vec<CommandNode>,
+    ) -> Result<(), RunnerError> {
         if nodes.is_empty() {
             return Ok(());
         }
@@ -84,7 +108,7 @@ where
                 Some(NodeTransition::Next(next)) => {
                     i = next;
                     let cmd = &run.command;
-                    self.run_command(cmd)
+                    self.run_command(file_url, cmd)
                         .await
                         .map_err(|e| RunnerError::new(e, run.index))?;
                 }
@@ -166,14 +190,16 @@ where
         }
     }
 
-    async fn run_command(&mut self, cmd: &Command) -> Result<(), RunnerErrorKind> {
+    async fn run_command(&mut self, file_url: &str, cmd: &Command) -> Result<(), RunnerErrorKind> {
         // TODO: emit variables in value field too
         match cmd {
             Command::Open(url) => {
                 // todo: unify emiting variables
                 let url = self.emit(url);
+                let url = build_url(file_url, &url)?;
+                let url = url.as_str();
 
-                self.webdriver.goto(&url).await?;
+                self.webdriver.goto(url).await?;
                 let url = self.webdriver.current_url().await?;
                 assert_eq!(url.as_ref(), url.as_ref());
             }
@@ -700,6 +726,14 @@ fn compute_levels(commands: &[Command]) -> Vec<usize> {
     }
 
     levels
+}
+
+fn build_url(base: &str, url: &str) -> Result<Url, url::ParseError> {
+    match Url::parse(url) {
+        Ok(url) => Ok(url),
+        Err(url::ParseError::RelativeUrlWithoutBase) => Url::parse(base)?.join(&url),
+        e => e,
+    }
 }
 
 #[cfg(test)]
@@ -1504,17 +1538,17 @@ mod flow {
 
     #[tokio::test]
     async fn test_run() {
-        let test = Test {
+        let file = create_file_with_test(Test {
             name: String::new(),
             commands: vec![
-                Command::Open("".to_owned()),
+                Command::Open("http://example.com".to_owned()),
                 Command::Click(Target::new(Location::Css("".to_owned()))),
             ],
-        };
+        });
         let client = Client::new();
         let mut runner = Runner::_new(client.clone());
 
-        let res = runner.run(&test).await;
+        let res = runner.run(&file).await;
         assert!(res.is_ok());
         let calls = client.calls();
         assert_eq!(calls[Call::Goto], 1);
@@ -1523,18 +1557,18 @@ mod flow {
 
     #[tokio::test]
     async fn test_run_with_custom_command() {
-        let test = Test {
+        let file = create_file_with_test(Test {
             name: String::new(),
             commands: vec![
                 Command::empty_custom(),
-                Command::Open("".to_owned()),
+                Command::Open("http://example.com".to_owned()),
                 Command::Click(Target::new(Location::Css("".to_owned()))),
             ],
-        };
+        });
         let client = Client::new();
         let mut runner = Runner::_new(client.clone());
 
-        let res = runner.run(&test).await;
+        let res = runner.run(&file).await;
         assert!(res.is_ok());
         let calls = client.calls();
         assert_eq!(calls[Call::Goto], 1);
@@ -1543,10 +1577,10 @@ mod flow {
 
     #[tokio::test]
     async fn test_for_each() {
-        let test = Test {
+        let file = create_file_with_test(Test {
             name: String::new(),
             commands: vec![
-                Command::Open("".to_owned()),
+                Command::Open("http://example.com".to_owned()),
                 Command::ForEach {
                     var: "element".to_string(),
                     iterator: "array".to_string(),
@@ -1554,7 +1588,7 @@ mod flow {
                 Command::Echo("${element}".to_string()),
                 Command::End,
             ],
-        };
+        });
         let client = Client::new();
         let mut runner = Runner::_new(client.clone());
         runner
@@ -1565,13 +1599,56 @@ mod flow {
         let echo_vector1 = echo_vector.clone();
         runner.set_echo(move |e| echo_vector1.lock().unwrap().push(e.to_string()));
 
-        let res = runner.run(&test).await;
+        let res = runner.run(&file).await;
         assert!(res.is_ok());
 
         assert_eq!(echo_vector.lock().unwrap().len(), 3);
         assert_eq!(echo_vector.lock().unwrap()[0], "E1");
         assert_eq!(echo_vector.lock().unwrap()[1], "E2");
         assert_eq!(echo_vector.lock().unwrap()[2], "E3");
+    }
+
+    #[tokio::test]
+    async fn test_open_relative_url() {
+        let file = File::new(
+            "".into(),
+            "http://example.com".into(),
+            "".into(),
+            vec![Test {
+                name: String::new(),
+                commands: vec![Command::Open("/index.html".to_owned())],
+            }],
+        );
+
+        let client = Client::with_functions(
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(|url| {
+                assert_eq!(url, "http://example.com/index.html");
+                Ok(())
+            }),
+            None,
+            None,
+            None,
+            None,
+        );
+        let mut runner = Runner::_new(client.clone());
+
+        runner.run(&file).await.unwrap();
+
+        assert_eq!(client.calls()[Call::Goto], 1);
+    }
+
+    fn create_file_with_test(test: Test) -> File {
+        File {
+            name: String::new(),
+            url: String::new(),
+            version: String::new(),
+            tests: vec![test],
+        }
     }
 
     mod mock {
@@ -1590,7 +1667,8 @@ mod flow {
             pub res_exec: Option<fn() -> Result<Json, RunnerErrorKind>>,
             pub res_set_w_size: Option<fn() -> Result<(), RunnerErrorKind>>,
             pub res_close: Option<fn() -> Result<(), RunnerErrorKind>>,
-            pub res_goto: Option<fn() -> Result<(), RunnerErrorKind>>,
+            #[allow(clippy::type_complexity)]
+            pub res_goto: Option<fn(&str) -> Result<(), RunnerErrorKind>>,
             pub res_w8_visib: Option<fn() -> Result<(), RunnerErrorKind>>,
             pub res_w8_pres: Option<fn() -> Result<(), RunnerErrorKind>>,
             pub res_w8_npres: Option<fn() -> Result<(), RunnerErrorKind>>,
@@ -1600,6 +1678,36 @@ mod flow {
         impl Client {
             pub fn new() -> Arc<Self> {
                 Arc::new(Self::default())
+            }
+
+            #[allow(clippy::type_complexity)]
+            #[allow(clippy::too_many_arguments)]
+            #[allow(clippy::field_reassign_with_default)]
+            pub fn with_functions(
+                res_find: Option<fn() -> Result<Element, RunnerErrorKind>>,
+                res_curr_url: Option<fn() -> Result<url::Url, RunnerErrorKind>>,
+                res_exec: Option<fn() -> Result<Json, RunnerErrorKind>>,
+                res_set_w_size: Option<fn() -> Result<(), RunnerErrorKind>>,
+                res_close: Option<fn() -> Result<(), RunnerErrorKind>>,
+                res_goto: Option<fn(&str) -> Result<(), RunnerErrorKind>>,
+                res_w8_visib: Option<fn() -> Result<(), RunnerErrorKind>>,
+                res_w8_pres: Option<fn() -> Result<(), RunnerErrorKind>>,
+                res_w8_npres: Option<fn() -> Result<(), RunnerErrorKind>>,
+                res_w8_edit: Option<fn() -> Result<(), RunnerErrorKind>>,
+            ) -> Arc<Self> {
+                let mut client = Self::default();
+                client.res_find = res_find;
+                client.res_curr_url = res_curr_url;
+                client.res_exec = res_exec;
+                client.res_set_w_size = res_set_w_size;
+                client.res_close = res_close;
+                client.res_goto = res_goto;
+                client.res_w8_visib = res_w8_visib;
+                client.res_w8_pres = res_w8_pres;
+                client.res_w8_npres = res_w8_npres;
+                client.res_w8_edit = res_w8_edit;
+
+                Arc::new(client)
             }
 
             pub fn calls(&self) -> CallCount {
@@ -1617,7 +1725,8 @@ mod flow {
             type Element = Element;
             type Error = crate::error::RunnerErrorKind;
 
-            async fn goto(&mut self, _: &str) -> Result<(), Self::Error> {
+            async fn goto(&mut self, url: &str) -> Result<(), Self::Error> {
+                self.res_goto.as_ref().map(|f| (f)(url));
                 self.inc(Call::Goto);
                 Ok(())
             }

@@ -12,7 +12,7 @@ A library for parsing and running selenium files.
 use siderunner::{parse, Runner};
 use thirtyfour::{DesiredCapabilities, WebDriver};
 
-let wiki = std::fs::File::open("examples/wiki.side").unwrap();
+let wiki = std::fs::File::open("examples/wiki.side").expect("Can't open a side file");
 let file = parse(wiki).expect("parsing can't be done...");
 
 let client = WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox())
@@ -20,7 +20,7 @@ let client = WebDriver::new("http://localhost:4444", DesiredCapabilities::firefo
     .expect("can't connect to webdriver");
 
 let mut runner = Runner::new(&client);
-runner.run(&file.tests[0]).await.unwrap();
+runner.run(&file).await.expect("Error occured while running a side file");
 
 assert_eq!(
     runner.data.get("slogan"),

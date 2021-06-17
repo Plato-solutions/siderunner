@@ -11,14 +11,14 @@ async fn main() {
     use siderunner::{parse, Runner};
     use thirtyfour::{DesiredCapabilities, WebDriver};
 
-    let wiki = std::fs::File::open("examples/wiki.side").unwrap();
+    let wiki = std::fs::File::open("examples/wiki.side").expect("Faield to open a file");
     let file = parse(wiki).expect("parsing can't be done...");
 
     let client = WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox())
         .await
         .expect("can't connect to webdriver");
     let mut runner = Runner::new(&client);
-    runner.run(&file.tests[0]).await.unwrap();
+    runner.run(&file).await.expect("Failed to run a file");
 
     assert_eq!(
         runner.get_data().get("slogan"),

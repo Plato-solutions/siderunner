@@ -100,6 +100,17 @@ pub struct File {
     pub tests: Vec<Test>,
 }
 
+impl File {
+    pub fn new(name: String, url: String, version: String, tests: Vec<Test>) -> Self {
+        Self {
+            version,
+            name,
+            url,
+            tests,
+        }
+    }
+}
+
 /// The structure represent a selenium test
 pub struct Test {
     /// Name of the test

@@ -17,7 +17,7 @@ async fn main() {
     let wiki = std::fs::File::open("examples/wiki.side").unwrap();
     let file = parse(wiki).expect("parsing can't be done...");
     let mut runner = Runner::new(client);
-    runner.run(&file.tests[0]).await.unwrap();
+    runner.run(&file).await.unwrap();
 
     assert_eq!(
         runner.get_data().get("slogan"),

@@ -57,6 +57,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "setWindowSize" => Command::parse_set_window_size,
         "do" => Command::parse_do,
         "repeatIf" => Command::parse_repeat_if,
+        "forEach" => Command::parse_for_each,
         "close" => Command::parse_close,
         "storeXpathCount" => Command::parse_store_xpath_count,
         "assert" => Command::parse_assert,
@@ -159,6 +160,10 @@ pub enum Command {
     Else,
     Do,
     RepeatIf(String),
+    ForEach {
+        iterator: String,
+        var: String,
+    },
     End,
     StoreXpathCount {
         var: String,
@@ -327,6 +332,12 @@ impl Command {
 
     fn parse_repeat_if(cmd: &format::Command) -> Result<Command, ParseError> {
         Ok(Command::RepeatIf(cmd.target.clone()))
+    }
+
+    fn parse_for_each(cmd: &format::Command) -> Result<Command, ParseError> {
+        let iterator = cmd.target.clone();
+        let var = cmd.value.clone();
+        Ok(Command::ForEach { iterator, var })
     }
 
     fn parse_close(_: &format::Command) -> Result<Command, ParseError> {

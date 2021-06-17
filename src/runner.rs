@@ -24,7 +24,7 @@ use std::collections::HashMap;
 pub struct Runner<D> {
     webdriver: D,
     data: HashMap<String, Value>,
-    echo_hook: Box<fn(&str)>,
+    echo_hook: Box<dyn FnMut(&str)>,
 }
 
 impl<D> Runner<D> {
@@ -60,7 +60,7 @@ where
     }
 
     /// Sets a callback which will be run on each Echo command.
-    pub fn set_echo(&mut self, func: fn(&str)) {
+    pub fn set_echo<F: FnMut(&str) + 'static>(&mut self, func: F) {
         self.echo_hook = Box::new(func);
     }
 
@@ -89,42 +89,81 @@ where
                         .map_err(|e| RunnerError::new(e, run.index))?;
                 }
                 Some(NodeTransition::Conditional(next, or_else)) => {
-                    let condition = match &run.command {
-                        Command::While(cond) => cond,
-                        Command::ElseIf(cond) => cond,
-                        Command::If(cond) => cond,
-                        Command::RepeatIf(cond) => cond,
-                        _ => unreachable!("unexpected condition"),
-                    };
-
-                    let script = format!("return {}", condition);
-                    let res = self
-                        .exec(&script)
-                        .await
-                        .map_err(|e| RunnerError::new(e, run.index))?;
-                    match res.as_bool() {
-                        Some(b) => {
-                            if b {
+                    match &run.command {
+                        Command::While(condition)
+                        | Command::ElseIf(condition)
+                        | Command::If(condition)
+                        | Command::RepeatIf(condition) => {
+                            let cond = self
+                                .run_condition(condition)
+                                .await
+                                .map_err(|e| RunnerError::new(e, i))?;
+                            if cond {
                                 i = next;
                             } else {
                                 i = or_else;
                             }
                         }
-                        None => {
-                            return Err(RunnerError::new(
-                                RunnerErrorKind::MismatchedType(
-                                    "expected boolean type in condition".to_owned(),
-                                ),
-                                run.index,
-                            ))
+                        Command::ForEach { iterator, var } => {
+                            let key = format!("ITERATOR_INDEX_{}_{}", iterator, var);
+                            match self.data.get_mut(&key) {
+                                Some(Value::Array(array)) => {
+                                    if array.is_empty() {
+                                        i = or_else;
+                                    } else {
+                                        let e = array.remove(0);
+                                        self.data.insert(var.clone(), e);
+                                        i = next;
+                                    }
+                                }
+                                None => {
+                                    let mut array = match self.data.get(iterator) {
+                                        Some(Value::Array(arr)) => {
+                                            serde_json::json!(arr)
+                                        }
+                                        Some(Value::String(s)) => {
+                                            let arr = s.chars().collect::<Vec<_>>();
+                                            serde_json::json!(arr)
+                                        }
+                                        // Itarator is invalid; skip inner block
+                                        _ => {
+                                            i = or_else;
+                                            continue;
+                                        }
+                                    };
+
+                                    let arr = array.as_array_mut().unwrap();
+                                    if arr.is_empty() {
+                                        i = or_else;
+                                    } else {
+                                        let e = arr.remove(0);
+                                        self.data.insert(var.clone(), e);
+                                        self.data.insert(key, array);
+                                        i = next;
+                                    }
+                                }
+                                Some(_) => unreachable!(),
+                            }
                         }
-                    }
+                        _ => unreachable!("unexpected condition"),
+                    };
                 }
                 None => unreachable!(),
             };
         }
 
         Ok(())
+    }
+
+    async fn run_condition(&mut self, condition: &str) -> Result<bool, RunnerErrorKind> {
+        let script = format!("return {}", condition);
+        let res = self.exec(&script).await?;
+        match res.as_bool() {
+            Some(b) => Ok(b),
+            None => Err(RunnerErrorKind::MismatchedType(
+                "expected boolean type in condition".to_owned(),
+            )),
+        }
     }
 
     async fn run_command(&mut self, cmd: &Command) -> Result<(), RunnerErrorKind> {
@@ -183,7 +222,7 @@ where
             Command::Echo(text) => {
                 let text = self.emit(text);
                 // TODO: create a hook in library to call as a writer
-                self.echo_hook.as_ref()(text.as_str());
+                self.echo_hook.as_mut()(text.as_str());
             }
             Command::WaitForElementVisible { timeout, .. } => {
                 // todo: implemented wrongly
@@ -506,6 +545,14 @@ fn connect_commands(
             ));
             state.push(("while", current));
         }
+        Command::ForEach { .. } => {
+            let index_end =
+                find_next_end_on_level(&cmds[next..], cmds[current].level).unwrap() + next;
+            let index_after_end = next_index(cmds, index_end);
+
+            cmds[current].next = Some(NodeTransition::Conditional(next, index_after_end));
+            state.push(("forEach", current));
+        }
         Command::Do => {
             state.push(("do", current));
             cmds[current].next = Some(NodeTransition::Next(next));
@@ -554,7 +601,7 @@ fn connect_commands(
             cmds[current].next = Some(NodeTransition::Conditional(do_index, next));
         }
         Command::End => match state.last() {
-            Some(("while", index)) => {
+            Some(("while", index)) | Some(("forEach", index)) => {
                 cmds[current].next = Some(NodeTransition::Next(*index));
                 state.pop();
             }
@@ -625,7 +672,7 @@ fn compute_levels(commands: &[Command]) -> Vec<usize> {
     let mut levels = Vec::with_capacity(commands.len());
     for cmd in commands {
         match cmd {
-            Command::While(..) | Command::If(..) => {
+            Command::While(..) | Command::If(..) | Command::ForEach { .. } => {
                 levels.push(level);
                 level += 1;
             }
@@ -1453,6 +1500,7 @@ mod flow {
     use super::*;
     use crate::parser::Target;
     use mock::{Call, Client};
+    use std::sync::{Arc, Mutex};
 
     #[tokio::test]
     async fn test_run() {
@@ -1491,6 +1539,39 @@ mod flow {
         let calls = client.calls();
         assert_eq!(calls[Call::Goto], 1);
         assert_eq!(calls[Call::Click], 1);
+    }
+
+    #[tokio::test]
+    async fn test_for_each() {
+        let test = Test {
+            name: String::new(),
+            commands: vec![
+                Command::Open("".to_owned()),
+                Command::ForEach {
+                    var: "element".to_string(),
+                    iterator: "array".to_string(),
+                },
+                Command::Echo("${element}".to_string()),
+                Command::End,
+            ],
+        };
+        let client = Client::new();
+        let mut runner = Runner::_new(client.clone());
+        runner
+            .data
+            .insert("array".to_string(), serde_json::json!(["E1", "E2", "E3"]));
+
+        let echo_vector: Arc<Mutex<Vec<String>>> = Arc::default();
+        let echo_vector1 = echo_vector.clone();
+        runner.set_echo(move |e| echo_vector1.lock().unwrap().push(e.to_string()));
+
+        let res = runner.run(&test).await;
+        assert!(res.is_ok());
+
+        assert_eq!(echo_vector.lock().unwrap().len(), 3);
+        assert_eq!(echo_vector.lock().unwrap()[0], "E1");
+        assert_eq!(echo_vector.lock().unwrap()[1], "E2");
+        assert_eq!(echo_vector.lock().unwrap()[2], "E3");
     }
 
     mod mock {

@@ -58,3 +58,7 @@ test_file!(
     "tests/resources/commands/run script/test.side.json",
     command_run_script
 );
+test_file!(
+    "tests/resources/commands/for each/test.side.json",
+    command_for_each
+);

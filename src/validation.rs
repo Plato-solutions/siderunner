@@ -31,6 +31,7 @@ enum State {
     ElseIf,
     Else,
     Do,
+    ForEach,
     #[allow(dead_code)]
     End,
 }
@@ -53,13 +54,17 @@ fn validate(cmd: &Command, state: &mut Vec<State>) -> Result<(), RunnerErrorKind
             Ok(())
         }
         Command::RepeatIf(..) => validate_do(state),
+        Command::ForEach { .. } => {
+            state.push(State::ForEach);
+            Ok(())
+        }
         _ => Ok(()),
     }
 }
 
 fn validate_end(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
     match state.last() {
-        Some(st) if matches!(st, State::While | State::If) => {
+        Some(st) if matches!(st, State::While | State::If | State::ForEach) => {
             state.pop();
             Ok(())
         }
@@ -203,5 +208,24 @@ mod tests {
             Command::RepeatIf("".to_owned()),
         ];
         assert!(validate_conditions(&commands).is_err());
+    }
+
+    #[test]
+    fn test_validation_for_each() {
+        assert!(validate_conditions(&[
+            Command::ForEach {
+                iterator: String::new(),
+                var: String::new()
+            },
+            Command::Echo(String::new()),
+            Command::End,
+        ])
+        .is_ok());
+
+        assert!(validate_conditions(&[Command::ForEach {
+            iterator: String::new(),
+            var: String::new()
+        },])
+        .is_err());
     }
 }

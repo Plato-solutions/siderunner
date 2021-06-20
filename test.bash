@@ -20,7 +20,9 @@ else
    
    docker-compose up --no-start
    docker-compose start
-   sleep 5
+
+   echo "Wait for containers are ready"
+   sleep 10
    
    integration_tests
 

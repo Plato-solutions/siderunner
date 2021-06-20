@@ -46,6 +46,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "waitForElementNotPresent" => Command::parse_wait_for_not_present,
         "waitForElementPresent" => Command::parse_wait_for_present,
         "select" => Command::parse_select,
+        "addSelection" => Command::parse_add_selection,
         "echo" => Command::parse_echo,
         "pause" => Command::parse_pause,
         "click" => Command::parse_click,
@@ -270,6 +271,14 @@ impl Command {
 
     fn parse_select(c: &format::Command) -> Result<Command, ParseError> {
         let locator = parse_select_locator(&c.value)?;
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+
+        Ok(Command::Select { target, locator })
+    }
+
+    fn parse_add_selection(c: &format::Command) -> Result<Command, ParseError> {
+        let locator = SelectLocator::Label(c.value.clone());
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
 

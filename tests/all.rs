@@ -64,3 +64,7 @@ test_file!(
     "tests/resources/commands/for each/test.side.json",
     command_for_each
 );
+test_file!(
+    "tests/resources/commands/add selection/test.side.json",
+    command_add_selection
+);

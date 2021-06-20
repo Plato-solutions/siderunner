@@ -343,7 +343,8 @@ where
                     }
                     SelectLocator::Label(label) => {
                         let label = self.emit(label);
-                        let locator = format!(r#".//option[normalize-space(.)='{}']"#, label);
+                        // somehow .//option[normalize-space(.)='{}'] doesn work...
+                        let locator = format!(".//*[normalize-space(.)='{}']", label);
                         select.find(Locator::XPath(locator)).await?.click().await?;
                     }
                 };

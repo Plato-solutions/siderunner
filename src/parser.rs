@@ -179,7 +179,7 @@ pub enum Command {
     },
     End,
     StoreXpathCount {
-        var: String,
+        var: Option<String>,
         xpath: String,
     },
     Close,
@@ -385,7 +385,11 @@ impl Command {
     }
 
     fn parse_store_xpath_count(c: &format::Command) -> Result<Command, ParseError> {
-        let var = c.value.clone();
+        let var = if c.value.is_empty() {
+            None
+        } else {
+            Some(c.value.clone())
+        };
         let location = parse_location(&c.target)?;
         match location {
             Location::XPath(xpath) => Ok(Command::StoreXpathCount { var, xpath }),

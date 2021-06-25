@@ -29,11 +29,12 @@
 //! }
 //! ```
 
+mod command;
 mod error;
 mod parser;
 mod runner;
 mod validation;
-pub mod webdriver;
+mod webdriver;
 
 pub use error::{ParseError, RunnerError};
 pub use parser::{parse, Command, File, Test};

@@ -9,6 +9,27 @@
 // TODO: refactoring and test While and If commits
 // TODO: hide hook after feature flag + add a sleep statistic hook
 
+use crate::command::answer_on_next_prompt::AnswerOnNextPrompt;
+use crate::command::assert::Assert;
+use crate::command::click::Click;
+use crate::command::close::Close;
+use crate::command::echo::Echo;
+use crate::command::execute::Execute;
+use crate::command::execute_async::ExecuteAsync;
+use crate::command::open::Open;
+use crate::command::pause::Pause;
+use crate::command::run_script::RunScript;
+use crate::command::select::Select;
+use crate::command::set_window_size::SetWindowSize;
+use crate::command::store::Store;
+use crate::command::store_text::StoreText;
+use crate::command::store_xpath_count::StoreXpathCount;
+use crate::command::wait_for_element_editable::WaitForElementEditable;
+use crate::command::wait_for_element_not_present::WaitForElementNotPresent;
+use crate::command::wait_for_element_present::WaitForElementPresent;
+use crate::command::wait_for_element_visible::WaitForElementVisible;
+use crate::command::Command as Cmd;
+use crate::parser::Target;
 use crate::webdriver::{self, Locator, Webdriver};
 use crate::File;
 use crate::{
@@ -26,7 +47,7 @@ use url::Url;
 pub struct Runner<D> {
     webdriver: D,
     data: HashMap<String, Value>,
-    echo_hook: Box<dyn FnMut(&str)>,
+    echo_hook: Box<dyn Fn(&str) + Send>,
 }
 
 impl<D> Runner<D> {
@@ -38,12 +59,28 @@ impl<D> Runner<D> {
             echo_hook: Box::new(|s| println!("{}", s)),
         }
     }
+
+    pub fn get_webdriver(&mut self) -> &mut D {
+        &mut self.webdriver
+    }
+
+    pub fn save_value(&mut self, var: String, value: Value) {
+        self.data.insert(var, value);
+    }
+
+    pub fn get_value(&mut self, var: &str) -> Option<&Value> {
+        self.data.get(var)
+    }
+
+    pub fn echo(&self, message: &str) {
+        self.echo_hook.as_ref()(message)
+    }
 }
 
 impl<D, E> Runner<D>
 where
-    D: Webdriver<Element = E, Error = RunnerErrorKind>,
-    E: webdriver::Element<Driver = D, Error = RunnerErrorKind>,
+    D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
+    E: webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send,
 {
     /// Run all tests in a side file
     pub async fn run(&mut self, file: &File) -> Result<(), RunnerError> {
@@ -80,7 +117,7 @@ where
     }
 
     /// Sets a callback which will be run on each Echo command.
-    pub fn set_echo<F: FnMut(&str) + 'static>(&mut self, func: F) {
+    pub fn set_echo<F: Fn(&str) + Send + 'static>(&mut self, func: F) {
         self.echo_hook = Box::new(func);
     }
 
@@ -105,6 +142,9 @@ where
             }
             let run = &nodes[i];
             match run.next {
+                Some(NodeTransition::Next(next)) if matches!(run.command, Command::End) => {
+                    i = next;
+                }
                 Some(NodeTransition::Next(next)) => {
                     i = next;
                     let cmd = &run.command;
@@ -192,275 +232,80 @@ where
 
     async fn run_command(&mut self, file_url: &str, cmd: &Command) -> Result<(), RunnerErrorKind> {
         // TODO: emit variables in value field too
+        println!("CMD {:?}", cmd);
         match cmd {
-            Command::Open(url) => {
-                // todo: unify emiting variables
-                let url = self.emit(url);
-                let url = build_url(file_url, &url)?;
-                let url = url.as_str();
-
-                self.webdriver.goto(url).await?;
-                let url = self.webdriver.current_url().await?;
-                assert_eq!(url.as_ref(), url.as_ref());
-            }
+            Command::Open(url) => Open::new(url.clone(), file_url.to_owned()).run(self).await,
             Command::StoreText { var, target, .. } => {
-                let location = match &target.location {
-                    // TODO: get back to the privious variant with IncompleteString.
-                    Location::Css(css) => Location::Css(self.emit(css)),
-                    Location::Id(id) => Location::Id(self.emit(id)),
-                    Location::XPath(path) => Location::XPath(self.emit(path)),
-                };
-                let locator = match &location {
-                    Location::Css(css) => Locator::Css(css.to_string()),
-                    Location::Id(id) => Locator::Id(id.to_string()),
-                    Location::XPath(path) => Locator::XPath(path.to_string()),
-                };
-
-                let value = self.webdriver.find(locator).await?.text().await?;
-
-                let value = Value::String(value);
-                self.data.insert(var.clone(), value);
-
-                // TODO: if `target` not found we should look up targets?
+                StoreText::new(target.clone().into(), var.to_owned())
+                    .run(self)
+                    .await
             }
-            Command::Store { var, value } => {
-                self.data.insert(var.clone(), Value::String(value.clone()));
-            }
+            Command::Store { var, value } => Store::new(var.clone(), value.clone()).run(self).await,
             Command::Execute { script, var } => {
-                // TODO: the logic is different from Selenium IDE
-                // If the element is not loaded on the page IDE will fail not emidiately but our implementation will.
-                // they might wait a little bit or something but there's something there
-
-                let res = self.exec(script).await?;
-                match var {
-                    Some(var) => {
-                        self.data.insert(var.clone(), res);
-                    }
-                    None => (),
-                }
+                Execute::new(script.clone(), var.clone()).run(self).await
             }
             Command::ExecuteAsync { script, var } => {
-                let res = self.exec_async(script).await?;
-                if let Some(var) = var {
-                    self.data.insert(var.clone(), res);
-                }
+                ExecuteAsync::new(script.clone(), var.clone())
+                    .run(self)
+                    .await
             }
-            Command::Echo(text) => {
-                let text = self.emit(text);
-                // TODO: create a hook in library to call as a writer
-                self.echo_hook.as_mut()(text.as_str());
-            }
-            Command::WaitForElementVisible { timeout, .. } => {
-                // todo: implemented wrongly
-                // it's implmenetation more suited for WaitForElementPresent
-                //
-                // TODO: timout implementation is a bit wrong since we need to 'gracefully' stop running feature
-                // let locator = match &target.location {
-                //     Location::Css(css) => Locator::Css(&css),
-                //     Location::Id(id) => Locator::Id(&id),
-                //     Location::XPath(path) => Locator::XPath(&path),
-                // };
-
-                // match tokio::time::timeout(*timeout, self.webdriver.wait_for_find(locator)).await {
-                //     Ok(err) => {
-                //         err?;
-                //     }
-                //     Err(..) => Err(SideRunnerError::Timeout(
-                //         "waitForElemementVisible".to_string(),
-                //     ))?,
-                // }
-
-                std::thread::sleep(*timeout);
+            Command::Echo(text) => Echo::new(text.clone()).run(self).await,
+            Command::WaitForElementVisible { timeout, target } => {
+                WaitForElementVisible::new(target.clone().into(), timeout.clone())
+                    .run(self)
+                    .await
             }
             Command::WaitForElementPresent { timeout, target } => {
-                let locator = match &target.location {
-                    Location::Css(css) => Locator::Css(css.to_string()),
-                    Location::Id(id) => Locator::Id(id.to_string()),
-                    Location::XPath(path) => Locator::XPath(path.to_string()),
-                };
-
-                self.webdriver
-                    .wait_for_present(locator, *timeout)
+                WaitForElementPresent::new(target.clone().into(), timeout.clone())
+                    .run(self)
                     .await
-                    .map_err(|_| RunnerErrorKind::Timeout("WaitForElementPresent".to_owned()))?;
             }
             Command::WaitForElementNotPresent { timeout, target } => {
-                let locator = match &target.location {
-                    Location::Css(css) => Locator::Css(css.to_string()),
-                    Location::Id(id) => Locator::Id(id.to_string()),
-                    Location::XPath(path) => Locator::XPath(path.to_string()),
-                };
-
-                self.webdriver
-                    .wait_for_not_present(locator, *timeout)
+                WaitForElementNotPresent::new(target.clone().into(), timeout.clone())
+                    .run(self)
                     .await
-                    .map_err(|_| RunnerErrorKind::Timeout("WaitForElementNotPresent".to_owned()))?;
             }
             Command::WaitForElementEditable { timeout, target } => {
-                let locator = match &target.location {
-                    Location::Css(css) => Locator::Css(css.to_string()),
-                    Location::Id(id) => Locator::Id(id.to_string()),
-                    Location::XPath(path) => Locator::XPath(path.to_string()),
-                };
-
-                self.webdriver
-                    .wait_for_editable(locator, *timeout)
+                WaitForElementEditable::new(target.clone().into(), timeout.clone())
+                    .run(self)
                     .await
-                    .map_err(|_| RunnerErrorKind::Timeout("WaitForElementEditable".to_owned()))?;
             }
             Command::Select { locator, target } => {
-                let select_locator = match &target.location {
-                    Location::Css(css) => Locator::Css(css.to_string()),
-                    Location::Id(id) => Locator::Id(id.to_string()),
-                    Location::XPath(path) => Locator::XPath(path.to_string()),
-                };
-
-                let mut select = self.webdriver.find(select_locator).await?;
-                match locator {
-                    SelectLocator::Index(index) => {
-                        let index = self.emit(index);
-                        match index.parse() {
-                            Ok(index) => {
-                                select.select_by_index(index).await?;
-                            }
-                            // TODO: IlligalSyntax  Failed: Illegal Index: {version_counter}
-                            Err(..) => {
-                                return Err(RunnerErrorKind::MismatchedType(format!(
-                                    "expected to get int type but got {:?}",
-                                    index
-                                )));
-                            }
-                        }
-                    }
-                    SelectLocator::Value(value) => {
-                        let value = self.emit(value);
-                        select.select_by_value(&value).await?;
-                    }
-                    SelectLocator::Id(id) => {
-                        let id = self.emit(id);
-                        let locator = format!(r#"option[id='{}']"#, id);
-                        select.find(Locator::Css(locator)).await?.click().await?;
-                    }
-                    SelectLocator::Label(label) => {
-                        let label = self.emit(label);
-                        // somehow .//option[normalize-space(.)='{}'] doesn work...
-                        let locator = format!(".//*[normalize-space(.)='{}']", label);
-                        select.find(Locator::XPath(locator)).await?.click().await?;
-                    }
-                };
+                Select::new(target.clone().into(), locator.clone())
+                    .run(self)
+                    .await
             }
-            Command::Click(target) => {
-                let location = match &target.location {
-                    Location::Css(css) => Location::Css(self.emit(css)),
-                    Location::Id(id) => Location::Id(self.emit(id)),
-                    Location::XPath(path) => Location::XPath(self.emit(path)),
-                };
-
-                let locator = match &location {
-                    Location::Css(css) => Locator::Css(css.to_string()),
-                    Location::Id(id) => Locator::Id(id.to_string()),
-                    Location::XPath(path) => Locator::XPath(path.to_string()),
-                };
-
-                self.webdriver.find(locator).await?.click().await?;
-            }
-            Command::Pause(timeout) => {
-                tokio::time::sleep(*timeout).await;
-            }
+            Command::Click(target) => Click::new(target.clone().into()).run(self).await,
+            Command::Pause(timeout) => Pause::new(timeout.clone()).run(self).await,
             Command::SetWindowSize(w, h) => {
-                self.webdriver.set_window_size(*w, *h).await?;
+                SetWindowSize::new(w.clone(), h.clone()).run(self).await
             }
             Command::StoreXpathCount { var, xpath } => {
-                let locator = Locator::XPath(xpath.clone());
-                let elements = self.webdriver.find_all(locator).await?;
-                self.data.insert(var.clone(), elements.len().into());
+                StoreXpathCount::new(xpath.clone(), var.clone())
+                    .run(self)
+                    .await
             }
-            Command::Close => self.webdriver.close().await?,
+            Command::Close => Close.run(self).await,
             Command::Assert { var, value } => {
-                // NOTION: intentially don't use a print_plain_value even though SELENIUM IDE uses this approach
-                let var = self.data.get(var).map_or_else(
-                    || "undefined".to_string(),
-                    |v| v.to_string().trim_matches('\"').to_string(),
-                );
-                if var != *value {
-                    return Err(RunnerErrorKind::AssertFailed {
-                        lhs: var,
-                        rhs: value.clone(),
-                    });
-                }
+                Assert::new(var.clone(), value.clone()).run(self).await
             }
-            Command::RunScript { script } => {
-                // Acording to Selenium specification we would have to instrument a script block in HTML,
-                // but from what I see in there code base they don't follow there own spec?
-                // https://github.com/SeleniumHQ/selenium/issues/9583
-                self.exec(script).await?;
-            }
+            Command::RunScript { script } => RunScript::new(script.clone()).run(self).await,
             Command::AnswerOnNextPrompt(message) => {
-                let override_confirm_alert =  concat!(
-                    "var canUseLocalStorage = false; ",
-                    "try { canUseLocalStorage = !!window.localStorage; } catch(ex) { /* probe failed */ }",
-                    "var canUseJSON = false; ",
-                    "try { canUseJSON = !!JSON; } catch(ex) { /* probe failed */ } ",
-                    "if (canUseLocalStorage && canUseJSON) { ",
-                    "  window.localStorage.setItem('__webdriverAlerts', JSON.stringify([])); ",
-                    "  window.alert = function(msg) { ",
-                    "    var alerts = JSON.parse(window.localStorage.getItem('__webdriverAlerts')); ",
-                    "    alerts.push(msg); ",
-                    "    window.localStorage.setItem('__webdriverAlerts', JSON.stringify(alerts)); ",
-                    "  }; ",
-                    "  window.localStorage.setItem('__webdriverConfirms', JSON.stringify([])); ",
-                    "  if (!('__webdriverNextConfirm' in window.localStorage)) { ",
-                    "    window.localStorage.setItem('__webdriverNextConfirm', JSON.stringify(true)); ",
-                    "  } ",
-                    "  window.confirm = function(msg) { ",
-                    "    var confirms = JSON.parse(window.localStorage.getItem('__webdriverConfirms')); ",
-                    "    confirms.push(msg); ",
-                    "    window.localStorage.setItem('__webdriverConfirms', JSON.stringify(confirms)); ",
-                    "    var res = JSON.parse(window.localStorage.getItem('__webdriverNextConfirm')); ",
-                    "    window.localStorage.setItem('__webdriverNextConfirm', JSON.stringify(true)); ",
-                    "    return res; ",
-                    "  }; ",
-                    "} else { ",
-                    "  if (window.__webdriverAlerts) { return; } ",
-                    "  window.__webdriverAlerts = []; ",
-                    "  window.alert = function(msg) { window.__webdriverAlerts.push(msg); }; ",
-                    "  window.__webdriverConfirms = []; ",
-                    "  window.__webdriverNextConfirm = true; ",
-                    "  window.confirm = function(msg) { ",
-                    "    window.__webdriverConfirms.push(msg); ",
-                    "    var res = window.__webdriverNextConfirm; ",
-                    "    window.__webdriverNextConfirm = true; ",
-                    "    return res; ",
-                    "  }; ",
-                    "}",
-                );
-
-                let js = r"
-                    function answerOnNextPrompt(answer) {
-                        var canUseLocalStorage = false;
-                            try { canUseLocalStorage = !!window.localStorage; } catch(ex) { /* probe failed */ }
-                        var canUseJSON = false;
-                            try { canUseJSON = !!JSON; } catch(ex) { /* probe failed */ }
-                        if (canUseLocalStorage && canUseJSON) {
-                            window.localStorage.setItem('__webdriverNextPrompt', JSON.stringify(answer));
-                        } else {
-                            window.__webdriverNextPrompt = answer;
-                        }
-                    }";
-
-                let js = format!("{} \n answerOnNextPrompt({:?});", js, message);
-
-                self.exec(&override_confirm_alert).await?;
-                self.exec(&js).await?;
+                AnswerOnNextPrompt::new(message.clone()).run(self).await
             }
-            #[allow(unused_variables)]
-            cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
-        };
-
-        Ok(())
+            Command::While(..)
+            | Command::Else
+            | Command::If(..)
+            | Command::ElseIf(..)
+            | Command::ForEach { .. }
+            | Command::RepeatIf(..)
+            | Command::Do
+            | Command::End
+            | Command::Custom { .. } => unreachable!("All flow commands are handled at this point"),
+        }
     }
 
-    async fn exec(
+    pub(crate) async fn exec(
         &mut self,
         script: &str,
     ) -> std::result::Result<serde_json::Value, RunnerErrorKind> {
@@ -473,7 +318,7 @@ where
         Ok(value)
     }
 
-    async fn exec_async(
+    pub(crate) async fn exec_async(
         &mut self,
         script: &str,
     ) -> std::result::Result<serde_json::Value, RunnerErrorKind> {
@@ -490,7 +335,7 @@ where
         Ok(value)
     }
 
-    fn emit(&self, s: &str) -> String {
+    pub(crate) fn emit(&self, s: &str) -> String {
         emit_variables(s, &self.data)
     }
 }
@@ -783,11 +628,13 @@ fn compute_levels(commands: &[Command]) -> Vec<usize> {
     levels
 }
 
-fn build_url(base: &str, url: &str) -> Result<Url, url::ParseError> {
-    match Url::parse(url) {
-        Ok(url) => Ok(url),
-        Err(url::ParseError::RelativeUrlWithoutBase) => Url::parse(base)?.join(&url),
-        e => e,
+impl From<Target> for Locator {
+    fn from(target: Target) -> Self {
+        match target.location {
+            Location::Css(css) => Locator::Css(css),
+            Location::Id(id) => Locator::Id(id),
+            Location::XPath(path) => Locator::XPath(path),
+        }
     }
 }
 

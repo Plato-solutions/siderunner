@@ -395,6 +395,64 @@ where
                 // https://github.com/SeleniumHQ/selenium/issues/9583
                 self.exec(script).await?;
             }
+            Command::AnswerOnNextPrompt(message) => {
+                let override_confirm_alert =  concat!(
+                    "var canUseLocalStorage = false; ",
+                    "try { canUseLocalStorage = !!window.localStorage; } catch(ex) { /* probe failed */ }",
+                    "var canUseJSON = false; ",
+                    "try { canUseJSON = !!JSON; } catch(ex) { /* probe failed */ } ",
+                    "if (canUseLocalStorage && canUseJSON) { ",
+                    "  window.localStorage.setItem('__webdriverAlerts', JSON.stringify([])); ",
+                    "  window.alert = function(msg) { ",
+                    "    var alerts = JSON.parse(window.localStorage.getItem('__webdriverAlerts')); ",
+                    "    alerts.push(msg); ",
+                    "    window.localStorage.setItem('__webdriverAlerts', JSON.stringify(alerts)); ",
+                    "  }; ",
+                    "  window.localStorage.setItem('__webdriverConfirms', JSON.stringify([])); ",
+                    "  if (!('__webdriverNextConfirm' in window.localStorage)) { ",
+                    "    window.localStorage.setItem('__webdriverNextConfirm', JSON.stringify(true)); ",
+                    "  } ",
+                    "  window.confirm = function(msg) { ",
+                    "    var confirms = JSON.parse(window.localStorage.getItem('__webdriverConfirms')); ",
+                    "    confirms.push(msg); ",
+                    "    window.localStorage.setItem('__webdriverConfirms', JSON.stringify(confirms)); ",
+                    "    var res = JSON.parse(window.localStorage.getItem('__webdriverNextConfirm')); ",
+                    "    window.localStorage.setItem('__webdriverNextConfirm', JSON.stringify(true)); ",
+                    "    return res; ",
+                    "  }; ",
+                    "} else { ",
+                    "  if (window.__webdriverAlerts) { return; } ",
+                    "  window.__webdriverAlerts = []; ",
+                    "  window.alert = function(msg) { window.__webdriverAlerts.push(msg); }; ",
+                    "  window.__webdriverConfirms = []; ",
+                    "  window.__webdriverNextConfirm = true; ",
+                    "  window.confirm = function(msg) { ",
+                    "    window.__webdriverConfirms.push(msg); ",
+                    "    var res = window.__webdriverNextConfirm; ",
+                    "    window.__webdriverNextConfirm = true; ",
+                    "    return res; ",
+                    "  }; ",
+                    "}",
+                );
+
+                let js = r"
+                    function answerOnNextPrompt(answer) {
+                        var canUseLocalStorage = false;
+                            try { canUseLocalStorage = !!window.localStorage; } catch(ex) { /* probe failed */ }
+                        var canUseJSON = false;
+                            try { canUseJSON = !!JSON; } catch(ex) { /* probe failed */ }
+                        if (canUseLocalStorage && canUseJSON) {
+                            window.localStorage.setItem('__webdriverNextPrompt', JSON.stringify(answer));
+                        } else {
+                            window.__webdriverNextPrompt = answer;
+                        }
+                    }";
+
+                let js = format!("{} \n answerOnNextPrompt({:?});", js, message);
+
+                self.exec(&override_confirm_alert).await?;
+                self.exec(&js).await?;
+            }
             #[allow(unused_variables)]
             cmd => {} // CAN BE AN END command at least if we panic here there will be PRODUCED A WEARD ERORR such as Box<Any>...
         };
@@ -408,13 +466,9 @@ where
     ) -> std::result::Result<serde_json::Value, RunnerErrorKind> {
         let (script, used_vars) = emit_variables_custom(script);
         let args = used_vars.iter().map(|var| self.data[var].clone()).collect();
-        let value = self
-            .webdriver
-            .execute(
-                &format!("return (function(arguments) {{ {} }})(arguments)", script),
-                args,
-            )
-            .await?;
+        let prepared_script = format!("return (function(arguments) {{ {} }})(arguments)", script);
+
+        let value = self.webdriver.execute(&prepared_script, args).await?;
 
         Ok(value)
     }

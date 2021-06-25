@@ -63,6 +63,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "storeXpathCount" => Command::parse_store_xpath_count,
         "assert" => Command::parse_assert,
         "runScript" => Command::parse_run_script,
+        "answerOnNextPrompt" => Command::parse_answer_on_next_prompt,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -195,6 +196,7 @@ pub enum Command {
     RunScript {
         script: String,
     },
+    AnswerOnNextPrompt(String),
 }
 
 impl Command {
@@ -403,6 +405,12 @@ impl Command {
         let script = c.target.clone();
 
         Ok(Command::RunScript { script })
+    }
+
+    fn parse_answer_on_next_prompt(c: &format::Command) -> Result<Command, ParseError> {
+        let message = c.target.clone();
+
+        Ok(Command::AnswerOnNextPrompt(message))
     }
 }
 

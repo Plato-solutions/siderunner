@@ -1,6 +1,6 @@
 use siderunner::{parse, Runner};
-use std::fs::File;
-use thirtyfour::{DesiredCapabilities, WebDriver};
+use std::{fs::File, thread};
+use thirtyfour::{Capabilities, DesiredCapabilities, WebDriver, WebDriverCommands};
 use tokio::test;
 
 async fn testing(path: &str) {
@@ -10,6 +10,8 @@ async fn testing(path: &str) {
     let mut cops = DesiredCapabilities::chrome();
     cops.set_headless()
         .expect("Failed to set a headless setting");
+    cops.set_unexpected_alert_behaviour(thirtyfour::AlertBehaviour::Ignore)
+        .expect("Failed to set an option setting");
     let wb = WebDriver::new("http://localhost:4444/wd/hub", cops)
         .await
         .expect("Failed to create a webdriver");
@@ -67,4 +69,8 @@ test_file!(
 test_file!(
     "tests/resources/commands/add selection/test.side.json",
     command_add_selection
+);
+test_file!(
+    "tests/resources/commands/answer on next prompt/test.side.json",
+    command_answer_on_next_prompt
 );

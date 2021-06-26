@@ -11,6 +11,7 @@
 
 use crate::command::answer_on_next_prompt::AnswerOnNextPrompt;
 use crate::command::assert::Assert;
+use crate::command::assert_alert::AssertAlert;
 use crate::command::click::Click;
 use crate::command::close::Close;
 use crate::command::echo::Echo;
@@ -293,6 +294,7 @@ where
             Command::AnswerOnNextPrompt(message) => {
                 AnswerOnNextPrompt::new(message.clone()).run(self).await
             }
+            Command::AssertAlert(expect) => AssertAlert::new(expect.clone()).run(self).await,
             Command::While(..)
             | Command::Else
             | Command::If(..)
@@ -1703,6 +1705,21 @@ mod flow {
                 self.inc(Call::Close);
                 Ok(())
             }
+
+            async fn alert_text(&mut self) -> Result<String, Self::Error> {
+                self.inc(Call::AlertText);
+                Ok("".to_string())
+            }
+
+            async fn alert_accept(&mut self) -> Result<(), Self::Error> {
+                self.inc(Call::AlertAccept);
+                Ok(())
+            }
+
+            async fn alert_dissmis(&mut self) -> Result<(), Self::Error> {
+                self.inc(Call::AlertDissmis);
+                Ok(())
+            }
         }
 
         pub struct Element(Arc<Client>);
@@ -1784,6 +1801,9 @@ mod flow {
             html: usize,
             select_by_index: usize,
             select_by_value: usize,
+            alert_text: usize,
+            alert_accept: usize,
+            alert_dissmis: usize,
         }
 
         #[derive(Hash, PartialEq, Eq)]
@@ -1808,6 +1828,9 @@ mod flow {
             Html,
             SelectByIndex,
             SelectByValue,
+            AlertText,
+            AlertAccept,
+            AlertDissmis,
         }
 
         impl Index<Call> for CallCount {
@@ -1835,6 +1858,9 @@ mod flow {
                     Call::Html => &self.html,
                     Call::SelectByIndex => &self.select_by_index,
                     Call::SelectByValue => &self.select_by_value,
+                    Call::AlertText => &self.alert_text,
+                    Call::AlertAccept => &self.alert_accept,
+                    Call::AlertDissmis => &self.alert_dissmis,
                 }
             }
         }
@@ -1862,6 +1888,9 @@ mod flow {
                     Call::Html => &mut self.html,
                     Call::SelectByIndex => &mut self.select_by_index,
                     Call::SelectByValue => &mut self.select_by_value,
+                    Call::AlertText => &mut self.alert_text,
+                    Call::AlertAccept => &mut self.alert_accept,
+                    Call::AlertDissmis => &mut self.alert_dissmis,
                 }
             }
         }

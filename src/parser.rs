@@ -64,6 +64,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "assert" => Command::parse_assert,
         "runScript" => Command::parse_run_script,
         "answerOnNextPrompt" => Command::parse_answer_on_next_prompt,
+        "assertAlert" => Command::parse_assert_alert,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -197,6 +198,7 @@ pub enum Command {
         script: String,
     },
     AnswerOnNextPrompt(String),
+    AssertAlert(String),
 }
 
 impl Command {
@@ -415,6 +417,11 @@ impl Command {
         let message = c.target.clone();
 
         Ok(Command::AnswerOnNextPrompt(message))
+    }
+
+    fn parse_assert_alert(c: &format::Command) -> Result<Command, ParseError> {
+        let expected = c.target.clone();
+        Ok(Command::AssertAlert(expected))
     }
 }
 

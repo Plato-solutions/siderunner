@@ -151,6 +151,21 @@ impl<'a> Webdriver for Client<'a> {
         self.0.close().await?;
         Ok(())
     }
+
+    async fn alert_text(&mut self) -> Result<String, Self::Error> {
+        let text = self.0.switch_to().alert().text().await?;
+        Ok(text)
+    }
+
+    async fn alert_accept(&mut self) -> Result<(), Self::Error> {
+        self.0.switch_to().alert().accept().await?;
+        Ok(())
+    }
+
+    async fn alert_dissmis(&mut self) -> Result<(), Self::Error> {
+        self.0.switch_to().alert().dismiss().await?;
+        Ok(())
+    }
 }
 
 pub struct WebElement<'a>(thirtyfour::WebElement<'a>, &'a thirtyfour::WebDriver);

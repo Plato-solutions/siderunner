@@ -154,6 +154,18 @@ impl Webdriver for Client {
         self.0.close().await?;
         Ok(())
     }
+
+    async fn alert_text(&mut self) -> Result<String, Self::Error> {
+        todo!()
+    }
+
+    async fn alert_accept(&mut self) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    async fn alert_dissmis(&mut self) -> Result<(), Self::Error> {
+        todo!()
+    }
 }
 
 pub struct Element(fan::elements::Element);

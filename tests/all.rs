@@ -21,6 +21,18 @@ async fn testing(path: &str) {
         Ok(()) => {}
         Err(err) => {
             wb.quit().await.expect("Failed to stop a webdriver");
+
+            // TODO: change command interface to not lose all information
+            // let test = side_file
+            //     .tests
+            //     .iter()
+            //     .find(|test| test.name.as_str() == err.test.as_ref().unwrap())
+            //     .unwrap();
+            // let failed_command = &test.commands[err.index];
+            // if failed_command.comment == "FAIL" {
+            //     // it's OK
+            // }
+
             panic!("Failed to run a file {:?} test: {:?}", path, err);
         }
     }
@@ -73,4 +85,10 @@ test_file!(
 test_file!(
     "tests/resources/commands/answer on next prompt/test.side.json",
     command_answer_on_next_prompt
+);
+
+#[cfg(not(feature = "fantoccini_backend"))]
+test_file!(
+    "tests/resources/commands/assert alert/test.side.json",
+    command_assert_alert
 );

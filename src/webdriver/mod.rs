@@ -48,6 +48,9 @@ pub trait Webdriver {
         mut args: Vec<Json>,
     ) -> Result<Json, Self::Error>;
     async fn close(&mut self) -> Result<(), Self::Error>;
+    async fn alert_text(&mut self) -> Result<String, Self::Error>;
+    async fn alert_accept(&mut self) -> Result<(), Self::Error>;
+    async fn alert_dissmis(&mut self) -> Result<(), Self::Error>;
 }
 
 /// Element represents functionality which may be taken agains a WebElement by means of Webdriver.

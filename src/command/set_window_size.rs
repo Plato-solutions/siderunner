@@ -1,12 +1,5 @@
-use std::time::Duration;
-
 use super::Command;
-use crate::{
-    error::RunnerErrorKind,
-    parser::SelectLocator,
-    webdriver::{Element, Locator, Webdriver},
-    File, Runner,
-};
+use crate::{error::RunnerErrorKind, webdriver::Webdriver};
 
 pub struct SetWindowSize {
     width: u32,

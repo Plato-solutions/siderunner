@@ -35,11 +35,10 @@ use crate::webdriver::{self, Locator, Webdriver};
 use crate::File;
 use crate::{
     error::{RunnerError, RunnerErrorKind},
-    parser::{Command, Location, SelectLocator, Test},
+    parser::{Command, Location, Test},
 };
 use serde_json::Value;
 use std::collections::HashMap;
-use url::Url;
 
 /// A runtime for running test
 ///
@@ -252,22 +251,22 @@ where
             }
             Command::Echo(text) => Echo::new(text.clone()).run(self).await,
             Command::WaitForElementVisible { timeout, target } => {
-                WaitForElementVisible::new(target.clone().into(), timeout.clone())
+                WaitForElementVisible::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
             Command::WaitForElementPresent { timeout, target } => {
-                WaitForElementPresent::new(target.clone().into(), timeout.clone())
+                WaitForElementPresent::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
             Command::WaitForElementNotPresent { timeout, target } => {
-                WaitForElementNotPresent::new(target.clone().into(), timeout.clone())
+                WaitForElementNotPresent::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
             Command::WaitForElementEditable { timeout, target } => {
-                WaitForElementEditable::new(target.clone().into(), timeout.clone())
+                WaitForElementEditable::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
@@ -277,10 +276,8 @@ where
                     .await
             }
             Command::Click(target) => Click::new(target.clone().into()).run(self).await,
-            Command::Pause(timeout) => Pause::new(timeout.clone()).run(self).await,
-            Command::SetWindowSize(w, h) => {
-                SetWindowSize::new(w.clone(), h.clone()).run(self).await
-            }
+            Command::Pause(timeout) => Pause::new(*timeout).run(self).await,
+            Command::SetWindowSize(w, h) => SetWindowSize::new(*w, *h).run(self).await,
             Command::StoreXpathCount { var, xpath } => {
                 StoreXpathCount::new(xpath.clone(), var.clone())
                     .run(self)

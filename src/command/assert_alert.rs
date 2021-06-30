@@ -1,12 +1,5 @@
 use super::Command;
-use crate::{
-    error::RunnerErrorKind,
-    parser::SelectLocator,
-    webdriver::{Element, Locator, Webdriver},
-    File, Runner,
-};
-use serde_json::Value;
-use std::time::Duration;
+use crate::{error::RunnerErrorKind, webdriver::Webdriver};
 
 pub struct AssertAlert {
     text: String,

@@ -1,4 +1,4 @@
-use crate::{error::RunnerErrorKind, webdriver::Webdriver, File, Runner};
+use crate::{error::RunnerErrorKind, webdriver::Webdriver};
 use url::Url;
 
 use super::Command;

@@ -2,7 +2,6 @@ use crate::{
     error::RunnerErrorKind,
     runner::Runner,
     webdriver::{self, Webdriver},
-    File,
 };
 
 pub mod answer_on_next_prompt;

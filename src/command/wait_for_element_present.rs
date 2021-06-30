@@ -3,7 +3,6 @@ use std::time::Duration;
 use crate::{
     error::RunnerErrorKind,
     webdriver::{Locator, Webdriver},
-    File, Runner,
 };
 
 use super::Command;

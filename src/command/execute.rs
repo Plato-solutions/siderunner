@@ -1,14 +1,9 @@
 use super::Command;
-use crate::{
-    error::RunnerErrorKind,
-    webdriver::{Element, Locator, Webdriver},
-    File, Runner,
-};
-use serde_json::Value;
+use crate::{error::RunnerErrorKind, webdriver::Webdriver};
 
 pub struct Execute {
-    variable: Option<String>,
     script: String,
+    variable: Option<String>,
 }
 
 impl Execute {

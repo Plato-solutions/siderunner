@@ -1,6 +1,6 @@
 use siderunner::{parse, Runner};
-use std::{fs::File, thread};
-use thirtyfour::{Capabilities, DesiredCapabilities, WebDriver, WebDriverCommands};
+use std::fs::File;
+use thirtyfour::{Capabilities, DesiredCapabilities, WebDriver};
 use tokio::test;
 
 async fn testing(path: &str) {

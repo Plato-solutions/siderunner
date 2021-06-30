@@ -1,12 +1,7 @@
 use std::time::Duration;
 
 use super::Command;
-use crate::{
-    error::RunnerErrorKind,
-    parser::SelectLocator,
-    webdriver::{Element, Locator, Webdriver},
-    File, Runner,
-};
+use crate::{error::RunnerErrorKind, webdriver::Webdriver};
 
 pub struct Pause {
     timeout: Duration,
@@ -20,7 +15,7 @@ impl Pause {
 
 #[async_trait::async_trait]
 impl Command for Pause {
-    async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    async fn run<D, E>(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
         D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
         E: crate::webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send,

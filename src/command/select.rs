@@ -2,8 +2,7 @@ use super::Command;
 use crate::{
     error::RunnerErrorKind,
     parser::SelectLocator,
-    webdriver::{Element, Locator, Webdriver},
-    File, Runner,
+    webdriver::{Locator, Webdriver},
 };
 
 pub struct Select {

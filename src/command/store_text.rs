@@ -1,8 +1,7 @@
 use super::Command;
 use crate::{
     error::RunnerErrorKind,
-    webdriver::{Element, Locator, Webdriver},
-    File, Runner,
+    webdriver::{Locator, Webdriver},
 };
 use serde_json::Value;
 

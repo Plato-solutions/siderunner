@@ -1,9 +1,11 @@
 <h6 align="center">
     
 [![Build Status](https://img.shields.io/github/workflow/status/Plato-solutions/siderunner/Continuous%20integration?style=flat-square)](https://github.com/Plato-solutions/siderunner/actions)
-[![Crates.io](https://img.shields.io/crates/v/siderunner.svg?style=flat-square)](https://crates.io/crates/thirtyfour)
-[![docs.rs](https://img.shields.io/badge/docs.rs-siderunner-blue?style=flat-square)](https://docs.rs/thirtyfour)
+[![Crates.io](https://img.shields.io/crates/v/siderunner.svg?style=flat-square)](https://crates.io/crates/siderunner)
+[![docs.rs](https://img.shields.io/badge/docs.rs-siderunner-blue?style=flat-square)](https://docs.rs/siderunner)
+[![CodeCov](https://img.shields.io/codecov/c/github/Plato-solutions/siderunner/master?style=flat-square)](https://app.codecov.io/gh/Plato-solutions/siderunner)
 
+    
 </h6>
 
 

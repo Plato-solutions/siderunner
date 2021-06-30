@@ -1,9 +1,16 @@
+<h6 align="center">
+    
+[![Build Status](https://img.shields.io/github/workflow/status/Plato-solutions/siderunner/Continuous%20integration?style=flat-square)](https://github.com/Plato-solutions/siderunner/actions)
 [![Crates.io](https://img.shields.io/crates/v/siderunner.svg?style=flat-square)](https://crates.io/crates/thirtyfour)
 [![docs.rs](https://img.shields.io/badge/docs.rs-siderunner-blue?style=flat-square)](https://docs.rs/thirtyfour)
-[![Build Status](https://img.shields.io/github/workflow/status/Plato-solutions/siderunner/build-check/master?style=flat-square)](https://github.com/Plato-solutions/siderunner/actions)
 
-# Siderunner
+</h6>
 
+
+<h1 align="center">
+    Siderunner
+</h1
+    
 A library for parsing and running selenium files.
 
 # Get started

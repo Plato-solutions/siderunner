@@ -66,6 +66,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
         "answerOnNextPrompt" => Command::parse_answer_on_next_prompt,
         "assertAlert" => Command::parse_assert_alert,
         "assertChecked" => Command::parse_assert_checked,
+        "assertNotChecked" => Command::parse_assert_not_checked,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -201,6 +202,7 @@ pub enum Command {
     AnswerOnNextPrompt(String),
     AssertAlert(String),
     AssertChecked(Target),
+    AssertNotChecked(Target),
 }
 
 impl Command {
@@ -430,6 +432,12 @@ impl Command {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Command::AssertChecked(target))
+    }
+
+    fn parse_assert_not_checked(c: &format::Command) -> Result<Command, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Command::AssertNotChecked(target))
     }
 }
 

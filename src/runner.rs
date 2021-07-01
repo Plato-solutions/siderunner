@@ -12,7 +12,7 @@
 use crate::command::answer_on_next_prompt::AnswerOnNextPrompt;
 use crate::command::assert::Assert;
 use crate::command::assert_alert::AssertAlert;
-use crate::command::assert_checked::AssertChecked;
+use crate::command::assert_checked::{AssertChecked, AssertNotChecked};
 use crate::command::click::Click;
 use crate::command::close::Close;
 use crate::command::echo::Echo;
@@ -293,7 +293,12 @@ where
                 AnswerOnNextPrompt::new(message.clone()).run(self).await
             }
             Command::AssertAlert(expect) => AssertAlert::new(expect.clone()).run(self).await,
-            Command::AssertChecked(target) => AssertChecked::new(target.clone().into()).run(self).await,
+            Command::AssertChecked(target) => {
+                AssertChecked::new(target.clone().into()).run(self).await
+            }
+            Command::AssertNotChecked(target) => {
+                AssertNotChecked::new(target.clone().into()).run(self).await
+            }
             Command::While(..)
             | Command::Else
             | Command::If(..)

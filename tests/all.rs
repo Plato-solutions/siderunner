@@ -96,3 +96,7 @@ test_file!(
     "tests/resources/commands/assert checked/test.side.json",
     command_assert_checked
 );
+test_file!(
+    "tests/resources/commands/assert not checked/test.side.json",
+    command_assert_not_checked
+);

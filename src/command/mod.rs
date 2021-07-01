@@ -7,6 +7,7 @@ use crate::{
 pub mod answer_on_next_prompt;
 pub mod assert;
 pub mod assert_alert;
+pub mod assert_checked;
 pub mod click;
 pub mod close;
 pub mod echo;

@@ -92,3 +92,7 @@ test_file!(
     "tests/resources/commands/assert alert/test.side.json",
     command_assert_alert
 );
+test_file!(
+    "tests/resources/commands/assert checked/test.side.json",
+    command_assert_checked
+);

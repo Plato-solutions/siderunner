@@ -33,6 +33,8 @@ mod command;
 mod error;
 mod parser;
 mod runner;
+#[cfg(test)]
+mod runner_test;
 mod validation;
 mod webdriver;
 

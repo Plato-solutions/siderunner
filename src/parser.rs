@@ -13,20 +13,26 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
     let side: format::SideFile =
         serde_json::from_reader(side_file).map_err(ParseError::FormatError)?;
     let mut tests = Vec::new();
-    for test in &side.tests {
+    for test in side.tests {
         let mut commands = Vec::with_capacity(test.commands.len());
-        for command in &test.commands {
-            let cmd = parse_cmd(command)?;
-            commands.push(cmd);
+        for command in test.commands {
+            let cmd = parse_cmd(&command)?;
+            commands.push(Command {
+                comment: command.comment,
+                id: command.id,
+                cmd,
+            });
         }
 
         tests.push(Test {
-            name: test.name.clone(),
+            id: test.id,
+            name: test.name,
             commands,
         });
     }
 
     Ok(File {
+        id: side.id,
         name: side.name,
         url: side.url,
         version: side.version,
@@ -34,39 +40,39 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
     })
 }
 
-fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
+fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
     let parse_fn = match command.cmd.as_str() {
-        "open" => Command::parse_open,
-        "store" => Command::parse_store,
-        "storeText" => Command::parse_store_text,
-        "executeScript" => Command::parse_execute_script,
-        "executeScriptAsync" => Command::parse_execute_async_script,
-        "waitForElementVisible" => Command::parse_wait_for_visible,
-        "waitForElementEditable" => Command::parse_wait_for_editable,
-        "waitForElementNotPresent" => Command::parse_wait_for_not_present,
-        "waitForElementPresent" => Command::parse_wait_for_present,
-        "select" => Command::parse_select,
-        "addSelection" => Command::parse_add_selection,
-        "echo" => Command::parse_echo,
-        "pause" => Command::parse_pause,
-        "click" => Command::parse_click,
-        "while" => Command::parse_while,
-        "if" => Command::parse_if,
-        "elseIf" => Command::parse_else_if,
-        "else" => Command::parse_else,
-        "end" => Command::parse_end,
-        "setWindowSize" => Command::parse_set_window_size,
-        "do" => Command::parse_do,
-        "repeatIf" => Command::parse_repeat_if,
-        "forEach" => Command::parse_for_each,
-        "close" => Command::parse_close,
-        "storeXpathCount" => Command::parse_store_xpath_count,
-        "assert" => Command::parse_assert,
-        "runScript" => Command::parse_run_script,
-        "answerOnNextPrompt" => Command::parse_answer_on_next_prompt,
-        "assertAlert" => Command::parse_assert_alert,
-        "assertChecked" => Command::parse_assert_checked,
-        "assertNotChecked" => Command::parse_assert_not_checked,
+        "open" => Cmd::parse_open,
+        "store" => Cmd::parse_store,
+        "storeText" => Cmd::parse_store_text,
+        "executeScript" => Cmd::parse_execute_script,
+        "executeScriptAsync" => Cmd::parse_execute_async_script,
+        "waitForElementVisible" => Cmd::parse_wait_for_visible,
+        "waitForElementEditable" => Cmd::parse_wait_for_editable,
+        "waitForElementNotPresent" => Cmd::parse_wait_for_not_present,
+        "waitForElementPresent" => Cmd::parse_wait_for_present,
+        "select" => Cmd::parse_select,
+        "addSelection" => Cmd::parse_add_selection,
+        "echo" => Cmd::parse_echo,
+        "pause" => Cmd::parse_pause,
+        "click" => Cmd::parse_click,
+        "while" => Cmd::parse_while,
+        "if" => Cmd::parse_if,
+        "elseIf" => Cmd::parse_else_if,
+        "else" => Cmd::parse_else,
+        "end" => Cmd::parse_end,
+        "setWindowSize" => Cmd::parse_set_window_size,
+        "do" => Cmd::parse_do,
+        "repeatIf" => Cmd::parse_repeat_if,
+        "forEach" => Cmd::parse_for_each,
+        "close" => Cmd::parse_close,
+        "storeXpathCount" => Cmd::parse_store_xpath_count,
+        "assert" => Cmd::parse_assert,
+        "runScript" => Cmd::parse_run_script,
+        "answerOnNextPrompt" => Cmd::parse_answer_on_next_prompt,
+        "assertAlert" => Cmd::parse_assert_alert,
+        "assertChecked" => Cmd::parse_assert_checked,
+        "assertNotChecked" => Cmd::parse_assert_not_checked,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -76,7 +82,7 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
             // about the commented commands at least now.
             //
             // The overhead is removed on a stage of creationn of running list.
-            Command::parse_custom_cmd
+            Cmd::parse_custom_cmd
         }
         cmd => {
             return Err(ParseError::ValidationError(format!(
@@ -92,7 +98,11 @@ fn parse_cmd(command: &format::Command) -> Result<Command, ParseError> {
 /// File represent a [`Side` file] information
 ///
 /// [`Side` file]: https://github.com/SeleniumHQ/selenium-ide/issues/77
+#[derive(Debug)]
 pub struct File {
+    /// Id of a file.
+    /// It is generated by Selenium IDE automatically.
+    pub id: String,
     /// Version of a scheme
     pub version: String,
     /// Name of a project
@@ -106,8 +116,9 @@ pub struct File {
 }
 
 impl File {
-    pub fn new(name: String, url: String, version: String, tests: Vec<Test>) -> Self {
+    pub fn new(id: String, name: String, url: String, version: String, tests: Vec<Test>) -> Self {
         Self {
+            id,
             version,
             name,
             url,
@@ -117,16 +128,41 @@ impl File {
 }
 
 /// The structure represent a selenium test
+#[derive(Debug)]
 pub struct Test {
+    /// Id of a test.
+    /// Generated automatically by Selenium IDE.
+    pub id: String,
     /// Name of the test
     pub name: String,
     /// A list of commands
     pub commands: Vec<Command>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Command {
+    /// Id of a command.
+    /// It's generated automatically by Selenium IDE.
+    pub id: String,
+    /// A comment for a given command.
+    pub comment: String,
+    /// Particualar command for run.
+    pub cmd: Cmd,
+}
+
+impl Command {
+    pub fn new<Id: AsRef<str>, Comment: AsRef<str>>(id: Id, comment: Comment, cmd: Cmd) -> Self {
+        Self {
+            id: id.as_ref().to_owned(),
+            comment: comment.as_ref().to_owned(),
+            cmd,
+        }
+    }
+}
+
 /// Command corresponds a selenium command
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Command {
+pub enum Cmd {
     Open(String),
     Echo(String),
     Click(Target),
@@ -205,25 +241,25 @@ pub enum Command {
     AssertNotChecked(Target),
 }
 
-impl Command {
-    fn parse_open(c: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Open(c.target.clone()))
+impl Cmd {
+    fn parse_open(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Open(c.target.clone()))
     }
 
-    fn parse_store_text(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_store_text(c: &format::Command) -> Result<Self, ParseError> {
         let targets = parse_targets(&c.targets)?;
         let var = c.value.clone();
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
 
-        Ok(Command::StoreText {
+        Ok(Self::StoreText {
             var,
             target,
             targets,
         })
     }
 
-    fn parse_execute_script(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_execute_script(c: &format::Command) -> Result<Self, ParseError> {
         let var = if c.value.is_empty() {
             None
         } else {
@@ -231,10 +267,10 @@ impl Command {
         };
         let script = c.target.clone();
 
-        Ok(Command::Execute { script, var })
+        Ok(Self::Execute { script, var })
     }
 
-    fn parse_execute_async_script(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_execute_async_script(c: &format::Command) -> Result<Self, ParseError> {
         let var = if c.value.is_empty() {
             None
         } else {
@@ -242,100 +278,100 @@ impl Command {
         };
         let script = c.target.clone();
 
-        Ok(Command::ExecuteAsync { script, var })
+        Ok(Self::ExecuteAsync { script, var })
     }
 
-    fn parse_wait_for_visible(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_wait_for_visible(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         let timeout = cast_timeout(&c.value)?;
 
-        Ok(Command::WaitForElementVisible { target, timeout })
+        Ok(Self::WaitForElementVisible { target, timeout })
     }
 
-    fn parse_wait_for_editable(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_wait_for_editable(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         let timeout = cast_timeout(&c.value)?;
 
-        Ok(Command::WaitForElementEditable { target, timeout })
+        Ok(Self::WaitForElementEditable { target, timeout })
     }
 
-    fn parse_wait_for_not_present(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_wait_for_not_present(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         let timeout = cast_timeout(&c.value)?;
 
-        Ok(Command::WaitForElementNotPresent { target, timeout })
+        Ok(Self::WaitForElementNotPresent { target, timeout })
     }
 
-    fn parse_wait_for_present(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_wait_for_present(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         let timeout = cast_timeout(&c.value)?;
 
-        Ok(Command::WaitForElementPresent { target, timeout })
+        Ok(Self::WaitForElementPresent { target, timeout })
     }
 
-    fn parse_select(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_select(c: &format::Command) -> Result<Self, ParseError> {
         let locator = parse_select_locator(&c.value)?;
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
 
-        Ok(Command::Select { target, locator })
+        Ok(Self::Select { target, locator })
     }
 
-    fn parse_add_selection(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_add_selection(c: &format::Command) -> Result<Self, ParseError> {
         let locator = SelectLocator::Label(c.value.clone());
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
 
-        Ok(Command::Select { target, locator })
+        Ok(Self::Select { target, locator })
     }
 
-    fn parse_echo(c: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Echo(c.target.clone()))
+    fn parse_echo(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Echo(c.target.clone()))
     }
 
-    fn parse_while(c: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::While(c.target.clone()))
+    fn parse_while(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::While(c.target.clone()))
     }
 
-    fn parse_if(c: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::If(c.target.clone()))
+    fn parse_if(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::If(c.target.clone()))
     }
 
-    fn parse_else(_: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Else)
+    fn parse_else(_: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Else)
     }
 
-    fn parse_else_if(c: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::ElseIf(c.target.clone()))
+    fn parse_else_if(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::ElseIf(c.target.clone()))
     }
 
-    fn parse_end(_: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::End)
+    fn parse_end(_: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::End)
     }
 
-    fn parse_pause(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_pause(c: &format::Command) -> Result<Self, ParseError> {
         let timeout = cast_timeout(&c.target)?;
-        Ok(Command::Pause(timeout))
+        Ok(Self::Pause(timeout))
     }
 
-    fn parse_click(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_click(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
-        Ok(Command::Click(target))
+        Ok(Self::Click(target))
     }
 
-    fn parse_store(c: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Store {
+    fn parse_store(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Store {
             value: c.target.to_owned(),
             var: c.value.to_owned(),
         })
     }
 
-    fn parse_set_window_size(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_set_window_size(c: &format::Command) -> Result<Self, ParseError> {
         let settings = c.target.split('x').map(|n| n.parse()).collect::<Vec<_>>();
         if settings.len() != 2 {
             return Err(ParseError::TypeError(
@@ -351,29 +387,29 @@ impl Command {
             .clone()
             .map_err(|_| ParseError::TypeError("expected to get int".to_owned()))?;
 
-        Ok(Command::SetWindowSize(w, h))
+        Ok(Self::SetWindowSize(w, h))
     }
 
-    fn parse_do(_: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Do)
+    fn parse_do(_: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Do)
     }
 
-    fn parse_repeat_if(cmd: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::RepeatIf(cmd.target.clone()))
+    fn parse_repeat_if(cmd: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::RepeatIf(cmd.target.clone()))
     }
 
-    fn parse_for_each(cmd: &format::Command) -> Result<Command, ParseError> {
+    fn parse_for_each(cmd: &format::Command) -> Result<Self, ParseError> {
         let iterator = cmd.target.clone();
         let var = cmd.value.clone();
-        Ok(Command::ForEach { iterator, var })
+        Ok(Self::ForEach { iterator, var })
     }
 
-    fn parse_close(_: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Close)
+    fn parse_close(_: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Close)
     }
 
-    fn parse_custom_cmd(cmd: &format::Command) -> Result<Command, ParseError> {
-        Ok(Command::Custom {
+    fn parse_custom_cmd(cmd: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Custom {
             cmd: cmd.cmd.clone(),
             target: cmd.target.clone(),
             targets: cmd.targets.clone(),
@@ -382,7 +418,7 @@ impl Command {
     }
 
     pub fn empty_custom() -> Self {
-        Command::Custom {
+        Self::Custom {
             cmd: String::default(),
             target: String::default(),
             value: String::default(),
@@ -390,7 +426,7 @@ impl Command {
         }
     }
 
-    fn parse_store_xpath_count(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_store_xpath_count(c: &format::Command) -> Result<Self, ParseError> {
         let var = if c.value.is_empty() {
             None
         } else {
@@ -398,46 +434,46 @@ impl Command {
         };
         let location = parse_location(&c.target)?;
         match location {
-            Location::XPath(xpath) => Ok(Command::StoreXpathCount { var, xpath }),
+            Location::XPath(xpath) => Ok(Self::StoreXpathCount { var, xpath }),
             _ => Err(ParseError::LocatorFormatError(
                 "expected to get an xpath locator".to_owned(),
             )),
         }
     }
 
-    fn parse_assert(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_assert(c: &format::Command) -> Result<Self, ParseError> {
         let var = c.target.clone();
         let value = c.value.clone();
-        Ok(Command::Assert { value, var })
+        Ok(Self::Assert { value, var })
     }
 
-    fn parse_run_script(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_run_script(c: &format::Command) -> Result<Self, ParseError> {
         let script = c.target.clone();
 
-        Ok(Command::RunScript { script })
+        Ok(Self::RunScript { script })
     }
 
-    fn parse_answer_on_next_prompt(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_answer_on_next_prompt(c: &format::Command) -> Result<Self, ParseError> {
         let message = c.target.clone();
 
-        Ok(Command::AnswerOnNextPrompt(message))
+        Ok(Self::AnswerOnNextPrompt(message))
     }
 
-    fn parse_assert_alert(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_assert_alert(c: &format::Command) -> Result<Self, ParseError> {
         let expected = c.target.clone();
-        Ok(Command::AssertAlert(expected))
+        Ok(Self::AssertAlert(expected))
     }
 
-    fn parse_assert_checked(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_assert_checked(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
-        Ok(Command::AssertChecked(target))
+        Ok(Self::AssertChecked(target))
     }
 
-    fn parse_assert_not_checked(c: &format::Command) -> Result<Command, ParseError> {
+    fn parse_assert_not_checked(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
-        Ok(Command::AssertNotChecked(target))
+        Ok(Self::AssertNotChecked(target))
     }
 }
 
@@ -612,16 +648,16 @@ mod tests {
         assert_eq!(file.tests.len(), 1);
         assert_eq!(file.tests[0].commands.len(), 3);
         assert!(matches!(
-            file.tests[0].commands[0],
-            Command::Open(ref url) if url == "RELATIVE_URL/"
+            file.tests[0].commands[0].cmd,
+            Cmd::Open(ref url) if url == "RELATIVE_URL/"
         ));
         assert!(matches!(
-            file.tests[0].commands[1],
-            Command::Pause(ref timeout) if *timeout == Duration::from_secs(5)
+            file.tests[0].commands[1].cmd,
+            Cmd::Pause(ref timeout) if *timeout == Duration::from_secs(5)
         ));
         assert!(matches!(
-            file.tests[0].commands[2],
-            Command::Execute {ref script, ref var} if script == "return \"hello world\"" && var == &Some("variable_name".to_string())
+            file.tests[0].commands[2].cmd,
+            Cmd::Execute {ref script, ref var} if script == "return \"hello world\"" && var == &Some("variable_name".to_string())
         ));
     }
 
@@ -680,9 +716,9 @@ mod tests {
         let test = &file.tests[0];
         let commands = &test.commands;
         assert_eq!(commands.len(), 3);
-        assert!(matches!(commands[0], Command::Custom { .. }));
-        assert!(matches!(commands[1], Command::Custom { .. }));
-        assert!(matches!(commands[2], Command::Open(..)));
+        assert!(matches!(commands[0].cmd, Cmd::Custom { .. }));
+        assert!(matches!(commands[1].cmd, Cmd::Custom { .. }));
+        assert!(matches!(commands[2].cmd, Cmd::Open(..)));
     }
 
     fn side_file() -> Vec<u8> {

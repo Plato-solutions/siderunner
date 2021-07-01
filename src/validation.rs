@@ -4,15 +4,15 @@
 
 use crate::{
     error::{RunnerError, RunnerErrorKind},
-    parser::Command,
+    parser::{Cmd, Command},
 };
 
 /// Validate_conditions verifies a corrent state of command list.
 /// That there's enough `Ends`, `Cycles` and `If` statements.
 pub fn validate_conditions(commands: &[Command]) -> Result<(), RunnerError> {
     let mut state = Vec::new();
-    for (index, cmd) in commands.iter().enumerate() {
-        validate(cmd, &mut state).map_err(|e| RunnerError::new(e, index))?
+    for (index, command) in commands.iter().enumerate() {
+        validate(&command.cmd, &mut state).map_err(|e| RunnerError::new(e, index))?
     }
 
     if !state.is_empty() {
@@ -36,25 +36,25 @@ enum State {
     End,
 }
 
-fn validate(cmd: &Command, state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
+fn validate(cmd: &Cmd, state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
     match cmd {
-        Command::While(..) => {
+        Cmd::While(..) => {
             state.push(State::While);
             Ok(())
         }
-        Command::If(..) => {
+        Cmd::If(..) => {
             state.push(State::If);
             Ok(())
         }
-        Command::ElseIf(..) => validate_else_if(state),
-        Command::Else => validate_else(state),
-        Command::End => validate_end(state),
-        Command::Do => {
+        Cmd::ElseIf(..) => validate_else_if(state),
+        Cmd::Else => validate_else(state),
+        Cmd::End => validate_end(state),
+        Cmd::Do => {
             state.push(State::Do);
             Ok(())
         }
-        Command::RepeatIf(..) => validate_do(state),
-        Command::ForEach { .. } => {
+        Cmd::RepeatIf(..) => validate_do(state),
+        Cmd::ForEach { .. } => {
             state.push(State::ForEach);
             Ok(())
         }
@@ -126,106 +126,120 @@ mod tests {
 
     #[test]
     fn test_validation() {
-        let commands = vec![Command::While("...".to_owned()), Command::End];
-        assert!(validate_conditions(&commands).is_ok());
-        let commands = vec![Command::If("...".to_owned()), Command::End];
-        assert!(validate_conditions(&commands).is_ok());
-        let commands = vec![Command::If("...".to_owned()), Command::Else, Command::End];
-        assert!(validate_conditions(&commands).is_ok());
-        let commands = vec![
-            Command::If("...".to_owned()),
-            Command::ElseIf("...".to_owned()),
-            Command::Else,
-            Command::End,
-        ];
-        assert!(validate_conditions(&commands).is_ok());
-        let commands = vec![
-            Command::If("...".to_owned()),
-            Command::ElseIf("...".to_owned()),
-            Command::ElseIf("...".to_owned()),
-            Command::Else,
-            Command::End,
-        ];
-        assert!(validate_conditions(&commands).is_ok());
+        assert!(
+            validate_conditions(&commands(vec![Cmd::While("...".to_owned()), Cmd::End])).is_ok()
+        );
+        assert!(validate_conditions(&commands(vec![Cmd::If("...".to_owned()), Cmd::End])).is_ok());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::Else,
+            Cmd::End
+        ]))
+        .is_ok());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::ElseIf("...".to_owned()),
+            Cmd::Else,
+            Cmd::End,
+        ]))
+        .is_ok());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::ElseIf("...".to_owned()),
+            Cmd::ElseIf("...".to_owned()),
+            Cmd::Else,
+            Cmd::End,
+        ]))
+        .is_ok());
     }
 
     #[test]
     fn test_validation_missed_end() {
-        let commands = vec![Command::While("...".to_owned())];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![Command::If("...".to_owned())];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![Command::If("...".to_owned()), Command::Else];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![
-            Command::If("...".to_owned()),
-            Command::Else,
-            Command::ElseIf("...".to_owned()),
-        ];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![
-            Command::If("...".to_owned()),
-            Command::Else,
-            Command::ElseIf("...".to_owned()),
-            Command::ElseIf("...".to_owned()),
-        ];
-        assert!(validate_conditions(&commands).is_err());
+        assert!(validate_conditions(&commands(vec![Cmd::While("...".to_owned())])).is_err());
+        assert!(validate_conditions(&commands(vec![Cmd::If("...".to_owned())])).is_err());
+        assert!(
+            validate_conditions(&commands(vec![Cmd::If("...".to_owned()), Cmd::Else])).is_err()
+        );
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::Else,
+            Cmd::ElseIf("...".to_owned()),
+        ]))
+        .is_err());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::Else,
+            Cmd::ElseIf("...".to_owned()),
+            Cmd::ElseIf("...".to_owned()),
+        ]))
+        .is_err());
     }
 
     #[test]
     fn test_validation_wrong_end() {
-        let commands = vec![Command::End];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![Command::If("...".to_owned()), Command::End, Command::Else];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![
-            Command::If("...".to_owned()),
-            Command::End,
-            Command::Else,
-            Command::ElseIf("...".to_owned()),
-        ];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![
-            Command::If("...".to_owned()),
-            Command::Else,
-            Command::End,
-            Command::ElseIf("...".to_owned()),
-        ];
-        assert!(validate_conditions(&commands).is_err());
+        assert!(validate_conditions(&commands(vec![Cmd::End])).is_err());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::End,
+            Cmd::Else
+        ]))
+        .is_err());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::End,
+            Cmd::Else,
+            Cmd::ElseIf("...".to_owned()),
+        ]))
+        .is_err());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::If("...".to_owned()),
+            Cmd::Else,
+            Cmd::End,
+            Cmd::ElseIf("...".to_owned()),
+        ]))
+        .is_err());
     }
 
     #[test]
     fn test_validation_missed_repeat_if() {
-        let commands = vec![
-            Command::Open("".to_owned()),
-            Command::Do,
-            Command::Echo("".to_owned()),
-        ];
-        assert!(validate_conditions(&commands).is_err());
-        let commands = vec![
-            Command::Open("".to_owned()),
-            Command::Echo("".to_owned()),
-            Command::RepeatIf("".to_owned()),
-        ];
-        assert!(validate_conditions(&commands).is_err());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::Open("".to_owned()),
+            Cmd::Do,
+            Cmd::Echo("".to_owned())
+        ]))
+        .is_err());
+        assert!(validate_conditions(&commands(vec![
+            Cmd::Open("".to_owned()),
+            Cmd::Echo("".to_owned()),
+            Cmd::RepeatIf("".to_owned()),
+        ]))
+        .is_err());
     }
 
     #[test]
     fn test_validation_for_each() {
-        assert!(validate_conditions(&[
-            Command::ForEach {
+        assert!(validate_conditions(&commands(vec![
+            Cmd::ForEach {
                 iterator: String::new(),
                 var: String::new()
             },
-            Command::Echo(String::new()),
-            Command::End,
-        ])
+            Cmd::Echo(String::new()),
+            Cmd::End,
+        ]))
         .is_ok());
 
-        assert!(validate_conditions(&[Command::ForEach {
+        assert!(validate_conditions(&commands(vec![Cmd::ForEach {
             iterator: String::new(),
             var: String::new()
-        },])
+        }]))
         .is_err());
+    }
+
+    fn commands(cmds: Vec<Cmd>) -> Vec<Command> {
+        cmds.into_iter().map(blank_cmd).collect()
+    }
+
+    fn blank_cmd(cmd: Cmd) -> Command {
+        Command::new("".to_owned(), "".to_owned(), cmd)
     }
 }

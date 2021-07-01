@@ -9,34 +9,19 @@
 // TODO: refactoring and test While and If commits
 // TODO: hide hook after feature flag + add a sleep statistic hook
 
-use crate::command::answer_on_next_prompt::AnswerOnNextPrompt;
-use crate::command::assert::Assert;
-use crate::command::assert_alert::AssertAlert;
-use crate::command::assert_checked::{AssertChecked, AssertNotChecked};
-use crate::command::click::Click;
-use crate::command::close::Close;
-use crate::command::echo::Echo;
-use crate::command::execute::Execute;
-use crate::command::execute_async::ExecuteAsync;
-use crate::command::open::Open;
-use crate::command::pause::Pause;
-use crate::command::run_script::RunScript;
-use crate::command::select::Select;
-use crate::command::set_window_size::SetWindowSize;
-use crate::command::store::Store;
-use crate::command::store_text::StoreText;
-use crate::command::store_xpath_count::StoreXpathCount;
-use crate::command::wait_for_element_editable::WaitForElementEditable;
-use crate::command::wait_for_element_not_present::WaitForElementNotPresent;
-use crate::command::wait_for_element_present::WaitForElementPresent;
-use crate::command::wait_for_element_visible::WaitForElementVisible;
-use crate::command::Command as Cmd;
+use crate::command::Command as Cmd1;
+use crate::command::{
+    AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertNotChecked, Click, Close, Echo,
+    Execute, ExecuteAsync, Open, Pause, RunScript, Select, SetWindowSize, Store, StoreText,
+    StoreXpathCount, WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent,
+    WaitForElementVisible,
+};
 use crate::parser::Target;
 use crate::webdriver::{self, Locator, Webdriver};
 use crate::File;
 use crate::{
     error::{RunnerError, RunnerErrorKind},
-    parser::{Command, Location, Test},
+    parser::{Cmd, Command, Location, Test},
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -61,19 +46,15 @@ impl<D> Runner<D> {
         }
     }
 
-    pub fn get_webdriver(&mut self) -> &mut D {
-        &mut self.webdriver
-    }
-
-    pub fn save_value(&mut self, var: String, value: Value) {
+    pub(crate) fn save_value(&mut self, var: String, value: Value) {
         self.data.insert(var, value);
     }
 
-    pub fn get_value(&mut self, var: &str) -> Option<&Value> {
+    pub(crate) fn get_value(&mut self, var: &str) -> Option<&Value> {
         self.data.get(var)
     }
 
-    pub fn echo(&self, message: &str) {
+    pub(crate) fn echo(&self, message: &str) {
         self.echo_hook.as_ref()(message)
     }
 }
@@ -105,9 +86,7 @@ where
 
     fn build_nodes(test: &Test) -> Result<Vec<CommandNode>, RunnerError> {
         crate::validation::validate_conditions(&test.commands)?;
-        let mut nodes = create_nodes(&test.commands);
-        connect_nodes(&mut nodes);
-        Ok(nodes)
+        Ok(build_nodes(&test.commands))
     }
 
     /// Close underlying webdriver client.
@@ -127,6 +106,10 @@ where
         &self.data
     }
 
+    pub fn get_webdriver(&mut self) -> &mut D {
+        &mut self.webdriver
+    }
+
     async fn run_nodes(
         &mut self,
         file_url: &str,
@@ -141,24 +124,24 @@ where
             if i >= nodes.len() {
                 break;
             }
-            let run = &nodes[i];
-            match run.next {
-                Some(NodeTransition::Next(next)) if matches!(run.command, Command::End) => {
+            let node = &nodes[i];
+            match node.next {
+                NodeTransition::Next(next) if matches!(node.command, Cmd::End) => {
                     i = next;
                 }
-                Some(NodeTransition::Next(next)) => {
+                NodeTransition::Next(next) => {
                     i = next;
-                    let cmd = &run.command;
+                    let cmd = &node.command;
                     self.run_command(file_url, cmd)
                         .await
-                        .map_err(|e| RunnerError::new(e, run.index))?;
+                        .map_err(|e| RunnerError::new(e, node.index))?;
                 }
-                Some(NodeTransition::Conditional(next, or_else)) => {
-                    match &run.command {
-                        Command::While(condition)
-                        | Command::ElseIf(condition)
-                        | Command::If(condition)
-                        | Command::RepeatIf(condition) => {
+                NodeTransition::Conditional(next, or_else) => {
+                    match &node.command {
+                        Cmd::While(condition)
+                        | Cmd::ElseIf(condition)
+                        | Cmd::If(condition)
+                        | Cmd::RepeatIf(condition) => {
                             let cond = self
                                 .run_condition(condition)
                                 .await
@@ -169,7 +152,7 @@ where
                                 i = or_else;
                             }
                         }
-                        Command::ForEach { iterator, var } => {
+                        Cmd::ForEach { iterator, var } => {
                             let key = format!("ITERATOR_INDEX_{}_{}", iterator, var);
                             match self.data.get_mut(&key) {
                                 Some(Value::Array(array)) => {
@@ -213,7 +196,6 @@ where
                         _ => unreachable!("unexpected condition"),
                     };
                 }
-                None => unreachable!(),
             };
         }
 
@@ -231,83 +213,79 @@ where
         }
     }
 
-    async fn run_command(&mut self, file_url: &str, cmd: &Command) -> Result<(), RunnerErrorKind> {
+    async fn run_command(&mut self, file_url: &str, cmd: &Cmd) -> Result<(), RunnerErrorKind> {
         // TODO: emit variables in value field too
         println!("CMD {:?}", cmd);
         match cmd {
-            Command::Open(url) => Open::new(url.clone(), file_url.to_owned()).run(self).await,
-            Command::StoreText { var, target, .. } => {
+            Cmd::Open(url) => Open::new(url.clone(), file_url.to_owned()).run(self).await,
+            Cmd::StoreText { var, target, .. } => {
                 StoreText::new(target.clone().into(), var.to_owned())
                     .run(self)
                     .await
             }
-            Command::Store { var, value } => Store::new(var.clone(), value.clone()).run(self).await,
-            Command::Execute { script, var } => {
+            Cmd::Store { var, value } => Store::new(var.clone(), value.clone()).run(self).await,
+            Cmd::Execute { script, var } => {
                 Execute::new(script.clone(), var.clone()).run(self).await
             }
-            Command::ExecuteAsync { script, var } => {
+            Cmd::ExecuteAsync { script, var } => {
                 ExecuteAsync::new(script.clone(), var.clone())
                     .run(self)
                     .await
             }
-            Command::Echo(text) => Echo::new(text.clone()).run(self).await,
-            Command::WaitForElementVisible { timeout, target } => {
+            Cmd::Echo(text) => Echo::new(text.clone()).run(self).await,
+            Cmd::WaitForElementVisible { timeout, target } => {
                 WaitForElementVisible::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
-            Command::WaitForElementPresent { timeout, target } => {
+            Cmd::WaitForElementPresent { timeout, target } => {
                 WaitForElementPresent::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
-            Command::WaitForElementNotPresent { timeout, target } => {
+            Cmd::WaitForElementNotPresent { timeout, target } => {
                 WaitForElementNotPresent::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
-            Command::WaitForElementEditable { timeout, target } => {
+            Cmd::WaitForElementEditable { timeout, target } => {
                 WaitForElementEditable::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }
-            Command::Select { locator, target } => {
+            Cmd::Select { locator, target } => {
                 Select::new(target.clone().into(), locator.clone())
                     .run(self)
                     .await
             }
-            Command::Click(target) => Click::new(target.clone().into()).run(self).await,
-            Command::Pause(timeout) => Pause::new(*timeout).run(self).await,
-            Command::SetWindowSize(w, h) => SetWindowSize::new(*w, *h).run(self).await,
-            Command::StoreXpathCount { var, xpath } => {
+            Cmd::Click(target) => Click::new(target.clone().into()).run(self).await,
+            Cmd::Pause(timeout) => Pause::new(*timeout).run(self).await,
+            Cmd::SetWindowSize(w, h) => SetWindowSize::new(*w, *h).run(self).await,
+            Cmd::StoreXpathCount { var, xpath } => {
                 StoreXpathCount::new(xpath.clone(), var.clone())
                     .run(self)
                     .await
             }
-            Command::Close => Close.run(self).await,
-            Command::Assert { var, value } => {
-                Assert::new(var.clone(), value.clone()).run(self).await
-            }
-            Command::RunScript { script } => RunScript::new(script.clone()).run(self).await,
-            Command::AnswerOnNextPrompt(message) => {
+            Cmd::Close => Close.run(self).await,
+            Cmd::Assert { var, value } => Assert::new(var.clone(), value.clone()).run(self).await,
+            Cmd::RunScript { script } => RunScript::new(script.clone()).run(self).await,
+            Cmd::AnswerOnNextPrompt(message) => {
                 AnswerOnNextPrompt::new(message.clone()).run(self).await
             }
-            Command::AssertAlert(expect) => AssertAlert::new(expect.clone()).run(self).await,
-            Command::AssertChecked(target) => {
-                AssertChecked::new(target.clone().into()).run(self).await
-            }
-            Command::AssertNotChecked(target) => {
+            Cmd::AssertAlert(expect) => AssertAlert::new(expect.clone()).run(self).await,
+            Cmd::AssertChecked(target) => AssertChecked::new(target.clone().into()).run(self).await,
+            Cmd::AssertNotChecked(target) => {
                 AssertNotChecked::new(target.clone().into()).run(self).await
             }
-            Command::While(..)
-            | Command::Else
-            | Command::If(..)
-            | Command::ElseIf(..)
-            | Command::ForEach { .. }
-            | Command::RepeatIf(..)
-            | Command::Do
-            | Command::End
-            | Command::Custom { .. } => unreachable!("All flow commands are handled at this point"),
+            Cmd::While(..)
+            | Cmd::Else
+            | Cmd::If(..)
+            | Cmd::ElseIf(..)
+            | Cmd::ForEach { .. }
+            | Cmd::RepeatIf(..)
+            | Cmd::Do
+            | Cmd::End
+            | Cmd::Custom { .. } => unreachable!("All flow commands are handled at this point"),
         }
     }
 
@@ -402,15 +380,15 @@ fn print_plain_value(val: &Value) -> String {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct CommandNode {
-    command: Command,
+pub(crate) struct CommandNode {
+    command: Cmd,
     index: usize,
     level: usize,
-    next: Option<NodeTransition>,
+    next: NodeTransition,
 }
 
 impl CommandNode {
-    fn new(cmd: Command, index: usize, level: usize, transition: Option<NodeTransition>) -> Self {
+    pub(crate) fn new(cmd: Cmd, index: usize, level: usize, transition: NodeTransition) -> Self {
         Self {
             command: cmd,
             index,
@@ -421,9 +399,15 @@ impl CommandNode {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-enum NodeTransition {
+pub(crate) enum NodeTransition {
     Next(usize),
     Conditional(usize, usize),
+}
+
+pub(crate) fn build_nodes(commands: &[Command]) -> Vec<CommandNode> {
+    let mut nodes = create_nodes(commands);
+    connect_nodes(&mut nodes);
+    nodes
 }
 
 fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
@@ -433,9 +417,12 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
         .zip(levels)
         .enumerate()
         // remove commented commands to not influence runtime
-        .filter(|(_, (cmd, _))| !matches!(cmd, Command::Custom { .. }))
+        .filter(|(_, (cmd, _))| !matches!(cmd.cmd, Cmd::Custom { .. }))
         // enumarate after deliting so nodes[i] != nodes.index
-        .map(|(index, (cmd, lvl))| CommandNode::new(cmd.clone(), index, lvl, None))
+        .map(|(index, (cmd, lvl))| {
+            CommandNode::new(cmd.cmd.clone(), index, lvl, NodeTransition::Next(0))
+            //  NodeTransition::Next(0) will be recalculated later
+        })
         .collect::<Vec<_>>();
 
     nodes
@@ -453,104 +440,97 @@ fn connect_nodes(nodes: &mut [CommandNode]) {
 // make while's end on END+1 element
 // make while's beggining on the next element
 
-//     Command::If(..) => {
+//     Cmd::If(..) => {
 //         // find a coresponding END
 //         // find a else/else if structures
 //         // DON'T AFRAID TO MAKE SOMETHING INEFFICHIENT FROM SCRATCH. THAT'S FINE.
 
 // todo: refactoring index usage since its too complex
 fn connect_commands(
-    cmds: &mut [CommandNode],
+    nodes: &mut [CommandNode],
     current: usize,
     next: usize,
     state: &mut Vec<(&'static str, usize)>,
 ) {
-    match cmds[current].command {
-        Command::While(..) => {
+    match nodes[current].command {
+        Cmd::While(..) => {
             let index_of_whiles_end =
-                find_next_end_on_level(&cmds[next..], cmds[current].level).unwrap() + next;
-            let index_of_element_after_end = next_index(cmds, index_of_whiles_end);
+                find_next_end_on_level(&nodes[next..], nodes[current].level).unwrap() + next;
+            let index_of_element_after_end = next_index(nodes, index_of_whiles_end);
 
-            cmds[current].next = Some(NodeTransition::Conditional(
-                next,
-                index_of_element_after_end,
-            ));
+            nodes[current].next = NodeTransition::Conditional(next, index_of_element_after_end);
             state.push(("while", current));
         }
-        Command::ForEach { .. } => {
+        Cmd::ForEach { .. } => {
             let index_end =
-                find_next_end_on_level(&cmds[next..], cmds[current].level).unwrap() + next;
-            let index_after_end = next_index(cmds, index_end);
+                find_next_end_on_level(&nodes[next..], nodes[current].level).unwrap() + next;
+            let index_after_end = next_index(nodes, index_end);
 
-            cmds[current].next = Some(NodeTransition::Conditional(next, index_after_end));
+            nodes[current].next = NodeTransition::Conditional(next, index_after_end);
             state.push(("forEach", current));
         }
-        Command::Do => {
+        Cmd::Do => {
             state.push(("do", current));
-            cmds[current].next = Some(NodeTransition::Next(next));
+            nodes[current].next = NodeTransition::Next(next);
         }
-        Command::If(..) => {
-            let if_next_index = find_next_on_level(&cmds[next..], cmds[current].level).unwrap();
-            let if_next = &cmds[next + if_next_index];
+        Cmd::If(..) => {
+            let if_next_index = find_next_on_level(&nodes[next..], nodes[current].level).unwrap();
+            let if_next = &nodes[next + if_next_index];
             let cond_end_index =
-                find_next_end_on_level(&cmds[current..], cmds[current].level).unwrap() + current;
-            let cond_end = &cmds[cond_end_index];
+                find_next_end_on_level(&nodes[current..], nodes[current].level).unwrap() + current;
+            let cond_end = &nodes[cond_end_index];
 
             // todo: doesn't we need to increment this value?
             // now it points to the end value which will point to the next one we could just point it to the next one?
             // but what is the reason of end in this case?
             state.push(("if", cond_end.index));
 
-            let next_element = &cmds[next];
-            if next_element.level != cmds[current].level {
-                cmds[current].next = Some(NodeTransition::Conditional(next, if_next.index));
+            let next_element = &nodes[next];
+            if next_element.level != nodes[current].level {
+                nodes[current].next = NodeTransition::Conditional(next, if_next.index);
             } else {
-                cmds[current].next =
-                    Some(NodeTransition::Conditional(cond_end.index, if_next.index));
+                nodes[current].next = NodeTransition::Conditional(cond_end.index, if_next.index);
             }
         }
-        Command::ElseIf(..) => {
-            let elseif_end_i = find_next_on_level(&cmds[next..], cmds[current].level).unwrap();
-            let elseif_end = &cmds[elseif_end_i + next];
+        Cmd::ElseIf(..) => {
+            let elseif_end_i = find_next_on_level(&nodes[next..], nodes[current].level).unwrap();
+            let elseif_end = &nodes[elseif_end_i + next];
 
-            let next_element = &cmds[next];
-            if next_element.level != cmds[current].level {
-                cmds[current].next = Some(NodeTransition::Conditional(next, elseif_end.index));
+            let next_element = &nodes[next];
+            if next_element.level != nodes[current].level {
+                nodes[current].next = NodeTransition::Conditional(next, elseif_end.index);
             } else {
                 let (_if, end_index) = state.last().unwrap();
                 assert_eq!(*_if, "if");
 
-                cmds[current].next =
-                    Some(NodeTransition::Conditional(*end_index, elseif_end.index));
+                nodes[current].next = NodeTransition::Conditional(*end_index, elseif_end.index);
             }
         }
-        Command::Else => {
-            cmds[current].next = Some(NodeTransition::Next(next));
+        Cmd::Else => {
+            nodes[current].next = NodeTransition::Next(next);
         }
-        Command::RepeatIf(..) => {
+        Cmd::RepeatIf(..) => {
             let (_do, do_index) = state.pop().unwrap();
             assert_eq!(_do, "do");
-            cmds[current].next = Some(NodeTransition::Conditional(do_index, next));
+            nodes[current].next = NodeTransition::Conditional(do_index, next);
         }
-        Command::End => match state.last() {
+        Cmd::End => match state.last() {
             Some(("while", index)) | Some(("forEach", index)) => {
-                cmds[current].next = Some(NodeTransition::Next(*index));
+                nodes[current].next = NodeTransition::Next(*index);
                 state.pop();
             }
             Some(("if", _)) => {
                 state.pop();
-                cmds[current].next = Some(NodeTransition::Next(next));
+                nodes[current].next = NodeTransition::Next(next);
             }
             _ => unreachable!("the syntax is broken"),
         },
-        _ if next < cmds.len()
-            && matches!(cmds[next].command, Command::Else | Command::ElseIf(..)) =>
-        {
+        _ if next < nodes.len() && matches!(nodes[next].command, Cmd::Else | Cmd::ElseIf(..)) => {
             let (_, index) = state.last().unwrap();
-            cmds[current].next = Some(NodeTransition::Next(*index));
+            nodes[current].next = NodeTransition::Next(*index);
         }
         _ => {
-            cmds[current].next = Some(NodeTransition::Next(next));
+            nodes[current].next = NodeTransition::Next(next);
         }
     }
 }
@@ -563,16 +543,16 @@ fn connect_commands(
 /// Which indicates that the list is passed.
 ///
 /// An index sometimes is not just an incremental value, so sometimes
-/// `cmds[i].index + 1 !=  cmds[i+1].index`
+/// `nodes[i].index + 1 !=  nodes[i+1].index`
 /// It's caused by custom commands which are deleted before building a list.
 #[inline]
-fn next_index(cmds: &mut [CommandNode], current: usize) -> usize {
-    assert!(current < cmds.len());
+fn next_index(nodes: &mut [CommandNode], current: usize) -> usize {
+    assert!(current < nodes.len());
 
-    if current + 1 < cmds.len() {
-        cmds[current + 1].index
+    if current + 1 < nodes.len() {
+        nodes[current + 1].index
     } else {
-        cmds[current].index + 1
+        nodes[current].index + 1
     }
 }
 
@@ -589,13 +569,13 @@ fn find_next<Cmp: Fn(&CommandNode) -> bool>(
     None
 }
 
-fn find_next_on_level(commands: &[CommandNode], level: usize) -> Option<usize> {
-    find_next(commands, |cmd| cmd.level == level)
+fn find_next_on_level(nodes: &[CommandNode], level: usize) -> Option<usize> {
+    find_next(nodes, |node| node.level == level)
 }
 
 fn find_next_end_on_level(commands: &[CommandNode], level: usize) -> Option<usize> {
-    find_next(commands, |cmd| {
-        cmd.level == level && matches!(cmd.command, Command::End)
+    find_next(commands, |node| {
+        node.level == level && matches!(node.command, Cmd::End)
     })
 }
 
@@ -603,25 +583,25 @@ fn compute_levels(commands: &[Command]) -> Vec<usize> {
     let mut level = 0;
     let mut levels = Vec::with_capacity(commands.len());
     for cmd in commands {
-        match cmd {
-            Command::While(..) | Command::If(..) | Command::ForEach { .. } => {
+        match cmd.cmd {
+            Cmd::While(..) | Cmd::If(..) | Cmd::ForEach { .. } => {
                 levels.push(level);
                 level += 1;
             }
-            Command::End => {
+            Cmd::End => {
                 level -= 1;
                 levels.push(level);
             }
-            Command::Else | Command::ElseIf(..) => {
+            Cmd::Else | Cmd::ElseIf(..) => {
                 level -= 1;
                 levels.push(level);
                 level += 1;
             }
-            Command::Do => {
+            Cmd::Do => {
                 levels.push(level);
                 level += 1;
             }
-            Command::RepeatIf(..) => {
+            Cmd::RepeatIf(..) => {
                 level -= 1;
                 levels.push(level);
             }
@@ -718,1185 +698,5 @@ mod tests {
 
         vars.insert("test".to_string(), json!(["h4", 4]));
         assert_eq!("h4,4", emit_variables("${test}", &vars));
-    }
-
-    #[test]
-    fn test_creating_run_list_basic() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::Echo("echo".to_owned()),
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Next(2))
-                )
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_with_commeted_commands() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::empty_custom(),
-            Command::empty_custom(),
-            Command::Echo("echo".to_owned()),
-            Command::empty_custom(),
-            Command::Echo("echo".to_owned()),
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    3,
-                    0,
-                    Some(NodeTransition::Next(2))
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    5,
-                    0,
-                    Some(NodeTransition::Next(3))
-                )
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_with_commeted_command_and_while() {
-        let commands = vec![
-            Command::While("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::End,
-            Command::empty_custom(),
-            Command::Echo("echo".to_owned()),
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::While("...".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Conditional(1, 4)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    1,
-                    1,
-                    Some(NodeTransition::Next(2)),
-                ),
-                CommandNode::new(Command::End, 2, 0, Some(NodeTransition::Next(0))),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    4,
-                    0,
-                    Some(NodeTransition::Next(4))
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_while_loop() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::While("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::While("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(2, 4)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Next(3)),
-                ),
-                CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(1))),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_if() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::If("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::End,
-            Command::Echo("echo".to_owned()),
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::If("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(2, 3)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Next(3)),
-                ),
-                CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(4))),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    4,
-                    0,
-                    Some(NodeTransition::Next(5))
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_if_complex_empty_conditions() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::If("...".to_owned()),
-            Command::ElseIf("...".to_owned()),
-            Command::Else,
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::If("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(4, 2)),
-                ),
-                CommandNode::new(
-                    Command::ElseIf("...".to_owned()),
-                    2,
-                    0,
-                    Some(NodeTransition::Conditional(4, 3)),
-                ),
-                CommandNode::new(Command::Else, 3, 0, Some(NodeTransition::Next(4)),),
-                CommandNode::new(Command::End, 4, 0, Some(NodeTransition::Next(5))),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_if_complex() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::If("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::ElseIf("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::Else,
-            Command::Echo("echo".to_owned()),
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::If("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(2, 3)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Next(8)),
-                ),
-                CommandNode::new(
-                    Command::ElseIf("...".to_owned()),
-                    3,
-                    0,
-                    Some(NodeTransition::Conditional(4, 6)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    4,
-                    1,
-                    Some(NodeTransition::Next(5)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    5,
-                    1,
-                    Some(NodeTransition::Next(8)),
-                ),
-                CommandNode::new(Command::Else, 6, 0, Some(NodeTransition::Next(7))),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    7,
-                    1,
-                    Some(NodeTransition::Next(8))
-                ),
-                CommandNode::new(Command::End, 8, 0, Some(NodeTransition::Next(9))),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_if_complex_without_else() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::If("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::ElseIf("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::If("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(2, 3)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Next(5)),
-                ),
-                CommandNode::new(
-                    Command::ElseIf("...".to_owned()),
-                    3,
-                    0,
-                    Some(NodeTransition::Conditional(4, 5)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    4,
-                    1,
-                    Some(NodeTransition::Next(5))
-                ),
-                CommandNode::new(Command::End, 5, 0, Some(NodeTransition::Next(6))),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_multi_while() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::While("...".to_owned()),
-            Command::While("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::End,
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::While("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(2, 6)),
-                ),
-                CommandNode::new(
-                    Command::While("...".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Conditional(3, 5)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    3,
-                    2,
-                    Some(NodeTransition::Next(4)),
-                ),
-                CommandNode::new(Command::End, 4, 1, Some(NodeTransition::Next(2))),
-                CommandNode::new(Command::End, 5, 0, Some(NodeTransition::Next(1))),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_multi_while_with_if() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::While("...".to_owned()),
-            Command::While("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::If("...".to_owned()),
-            Command::Else,
-            Command::End,
-            Command::End,
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::While("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(2, 9)),
-                ),
-                CommandNode::new(
-                    Command::While("...".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Conditional(3, 8)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    3,
-                    2,
-                    Some(NodeTransition::Next(4)),
-                ),
-                CommandNode::new(
-                    Command::If("...".to_owned()),
-                    4,
-                    2,
-                    Some(NodeTransition::Conditional(6, 5)),
-                ),
-                CommandNode::new(Command::Else, 5, 2, Some(NodeTransition::Next(6)),),
-                CommandNode::new(Command::End, 6, 2, Some(NodeTransition::Next(7))),
-                CommandNode::new(Command::End, 7, 1, Some(NodeTransition::Next(2))),
-                CommandNode::new(Command::End, 8, 0, Some(NodeTransition::Next(1))),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_while_with_if() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::While("...".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::If("...".to_owned()),
-            Command::Else,
-            Command::End,
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(
-                    Command::While("...".to_owned()),
-                    1,
-                    0,
-                    Some(NodeTransition::Conditional(2, 7)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Next(3)),
-                ),
-                CommandNode::new(
-                    Command::If("...".to_owned()),
-                    3,
-                    1,
-                    Some(NodeTransition::Conditional(5, 4)),
-                ),
-                CommandNode::new(Command::Else, 4, 1, Some(NodeTransition::Next(5)),),
-                CommandNode::new(Command::End, 5, 1, Some(NodeTransition::Next(6))),
-                CommandNode::new(Command::End, 6, 0, Some(NodeTransition::Next(1))),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_repeat_if() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::Do,
-            Command::Echo("echo".to_owned()),
-            Command::RepeatIf("...".to_owned()),
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(Command::Do, 1, 0, Some(NodeTransition::Next(2)),),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Next(3)),
-                ),
-                CommandNode::new(
-                    Command::RepeatIf("...".to_owned()),
-                    3,
-                    0,
-                    Some(NodeTransition::Conditional(1, 4)),
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_repeat_if_with_if() {
-        let commands = vec![
-            Command::Open("open".to_owned()),
-            Command::Do,
-            Command::If("".to_owned()),
-            Command::ElseIf("".to_owned()),
-            Command::Echo("echo".to_owned()),
-            Command::Else,
-            Command::End,
-            Command::RepeatIf("...".to_owned()),
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("open".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(Command::Do, 1, 0, Some(NodeTransition::Next(2))),
-                CommandNode::new(
-                    Command::If("".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Conditional(6, 3)),
-                ),
-                CommandNode::new(
-                    Command::ElseIf("".to_owned()),
-                    3,
-                    1,
-                    Some(NodeTransition::Conditional(4, 5)),
-                ),
-                CommandNode::new(
-                    Command::Echo("echo".to_owned()),
-                    4,
-                    2,
-                    Some(NodeTransition::Next(6)),
-                ),
-                CommandNode::new(Command::Else, 5, 1, Some(NodeTransition::Next(6)),),
-                CommandNode::new(Command::End, 6, 1, Some(NodeTransition::Next(7)),),
-                CommandNode::new(
-                    Command::RepeatIf("...".to_owned()),
-                    7,
-                    0,
-                    Some(NodeTransition::Conditional(1, 8)),
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_repeat_if_and_while_and_if() {
-        let commands = vec![
-            Command::Open("".to_owned()),
-            Command::Do,
-            Command::While("".to_owned()),
-            Command::If("".to_owned()),
-            Command::ElseIf("".to_owned()),
-            Command::Echo("".to_owned()),
-            Command::Else,
-            Command::End,
-            Command::End,
-            Command::RepeatIf("".to_owned()),
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::Open("".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Next(1)),
-                ),
-                CommandNode::new(Command::Do, 1, 0, Some(NodeTransition::Next(2))),
-                CommandNode::new(
-                    Command::While("".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Conditional(3, 9)),
-                ),
-                CommandNode::new(
-                    Command::If("".to_owned()),
-                    3,
-                    2,
-                    Some(NodeTransition::Conditional(7, 4)),
-                ),
-                CommandNode::new(
-                    Command::ElseIf("".to_owned()),
-                    4,
-                    2,
-                    Some(NodeTransition::Conditional(5, 6)),
-                ),
-                CommandNode::new(
-                    Command::Echo("".to_owned()),
-                    5,
-                    3,
-                    Some(NodeTransition::Next(7)),
-                ),
-                CommandNode::new(Command::Else, 6, 2, Some(NodeTransition::Next(7)),),
-                CommandNode::new(Command::End, 7, 2, Some(NodeTransition::Next(8)),),
-                CommandNode::new(Command::End, 8, 1, Some(NodeTransition::Next(2)),),
-                CommandNode::new(
-                    Command::RepeatIf("".to_owned()),
-                    9,
-                    0,
-                    Some(NodeTransition::Conditional(1, 10)),
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_with_while_and_repeat_if() {
-        let commands = vec![
-            Command::While("..".to_owned()),
-            Command::Do,
-            Command::RepeatIf("...".to_owned()),
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::While("..".to_owned()),
-                    0,
-                    0,
-                    Some(NodeTransition::Conditional(1, 4)),
-                ),
-                CommandNode::new(Command::Do, 1, 1, Some(NodeTransition::Next(2))),
-                CommandNode::new(
-                    Command::RepeatIf("...".to_owned()),
-                    2,
-                    1,
-                    Some(NodeTransition::Conditional(1, 3)),
-                ),
-                CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(0)),),
-            ]
-        )
-    }
-
-    #[test]
-    fn test_creating_run_list_with_2_whiles_and_2_ifs() {
-        let commands = vec![
-            Command::While(String::new()),
-            Command::If(String::new()),
-            Command::End,
-            Command::End,
-            Command::While(String::new()),
-            Command::End,
-            Command::While(String::new()),
-            Command::If(String::new()),
-            Command::Else,
-            Command::End,
-            Command::End,
-        ];
-        let node = create_nodes(&commands);
-        assert_eq!(
-            node,
-            vec![
-                CommandNode::new(
-                    Command::While(String::new()),
-                    0,
-                    0,
-                    Some(NodeTransition::Conditional(1, 4)),
-                ),
-                CommandNode::new(
-                    Command::If(String::new()),
-                    1,
-                    1,
-                    Some(NodeTransition::Conditional(2, 2)),
-                ),
-                CommandNode::new(Command::End, 2, 1, Some(NodeTransition::Next(3))),
-                CommandNode::new(Command::End, 3, 0, Some(NodeTransition::Next(0))),
-                CommandNode::new(
-                    Command::While(String::new()),
-                    4,
-                    0,
-                    Some(NodeTransition::Conditional(5, 6)),
-                ),
-                CommandNode::new(Command::End, 5, 0, Some(NodeTransition::Next(4))),
-                CommandNode::new(
-                    Command::While(String::new()),
-                    6,
-                    0,
-                    Some(NodeTransition::Conditional(7, 11)),
-                ),
-                CommandNode::new(
-                    Command::If(String::new()),
-                    7,
-                    1,
-                    Some(NodeTransition::Conditional(9, 8)),
-                ),
-                CommandNode::new(Command::Else, 8, 1, Some(NodeTransition::Next(9))),
-                CommandNode::new(Command::End, 9, 1, Some(NodeTransition::Next(10))),
-                CommandNode::new(Command::End, 10, 0, Some(NodeTransition::Next(6))),
-            ]
-        )
-    }
-
-    fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
-        let mut nodes = super::create_nodes(&commands);
-        super::connect_nodes(&mut nodes);
-        nodes
-    }
-}
-
-#[cfg(test)]
-mod flow {
-    use super::*;
-    use crate::parser::Target;
-    use mock::{Call, Client};
-    use std::sync::{Arc, Mutex};
-
-    #[tokio::test]
-    async fn test_run() {
-        let file = create_file_with_test(Test {
-            name: String::new(),
-            commands: vec![
-                Command::Open("http://example.com".to_owned()),
-                Command::Click(Target::new(Location::Css("".to_owned()))),
-            ],
-        });
-        let client = Client::new();
-        let mut runner = Runner::_new(client.clone());
-
-        let res = runner.run(&file).await;
-        assert!(res.is_ok());
-        let calls = client.calls();
-        assert_eq!(calls[Call::Goto], 1);
-        assert_eq!(calls[Call::Click], 1);
-    }
-
-    #[tokio::test]
-    async fn test_run_with_custom_command() {
-        let file = create_file_with_test(Test {
-            name: String::new(),
-            commands: vec![
-                Command::empty_custom(),
-                Command::Open("http://example.com".to_owned()),
-                Command::Click(Target::new(Location::Css("".to_owned()))),
-            ],
-        });
-        let client = Client::new();
-        let mut runner = Runner::_new(client.clone());
-
-        let res = runner.run(&file).await;
-        assert!(res.is_ok());
-        let calls = client.calls();
-        assert_eq!(calls[Call::Goto], 1);
-        assert_eq!(calls[Call::Click], 1);
-    }
-
-    #[tokio::test]
-    async fn test_for_each() {
-        let file = create_file_with_test(Test {
-            name: String::new(),
-            commands: vec![
-                Command::Open("http://example.com".to_owned()),
-                Command::ForEach {
-                    var: "element".to_string(),
-                    iterator: "array".to_string(),
-                },
-                Command::Echo("${element}".to_string()),
-                Command::End,
-            ],
-        });
-        let client = Client::new();
-        let mut runner = Runner::_new(client.clone());
-        runner
-            .data
-            .insert("array".to_string(), serde_json::json!(["E1", "E2", "E3"]));
-
-        let echo_vector: Arc<Mutex<Vec<String>>> = Arc::default();
-        let echo_vector1 = echo_vector.clone();
-        runner.set_echo(move |e| echo_vector1.lock().unwrap().push(e.to_string()));
-
-        let res = runner.run(&file).await;
-        assert!(res.is_ok());
-
-        assert_eq!(echo_vector.lock().unwrap().len(), 3);
-        assert_eq!(echo_vector.lock().unwrap()[0], "E1");
-        assert_eq!(echo_vector.lock().unwrap()[1], "E2");
-        assert_eq!(echo_vector.lock().unwrap()[2], "E3");
-    }
-
-    #[tokio::test]
-    async fn test_open_relative_url() {
-        let file = File::new(
-            "".into(),
-            "http://example.com".into(),
-            "".into(),
-            vec![Test {
-                name: String::new(),
-                commands: vec![Command::Open("/index.html".to_owned())],
-            }],
-        );
-
-        let client = Client::with_functions(
-            None,
-            None,
-            None,
-            None,
-            None,
-            Some(|url| {
-                assert_eq!(url, "http://example.com/index.html");
-                Ok(())
-            }),
-            None,
-            None,
-            None,
-            None,
-        );
-        let mut runner = Runner::_new(client.clone());
-
-        runner.run(&file).await.unwrap();
-
-        assert_eq!(client.calls()[Call::Goto], 1);
-    }
-
-    fn create_file_with_test(test: Test) -> File {
-        File {
-            name: String::new(),
-            url: String::new(),
-            version: String::new(),
-            tests: vec![test],
-        }
-    }
-
-    mod mock {
-        use super::*;
-        use crate::webdriver::{Element as WebElement, Locator, Webdriver};
-        use serde_json::Value as Json;
-        use std::ops::{Index, IndexMut};
-        use std::sync::{Arc, Mutex};
-        use std::time::Duration;
-
-        #[derive(Default)]
-        pub struct Client {
-            pub calls: Mutex<CallCount>,
-            pub res_find: Option<fn() -> Result<Element, RunnerErrorKind>>,
-            pub res_curr_url: Option<fn() -> Result<url::Url, RunnerErrorKind>>,
-            pub res_exec: Option<fn() -> Result<Json, RunnerErrorKind>>,
-            pub res_set_w_size: Option<fn() -> Result<(), RunnerErrorKind>>,
-            pub res_close: Option<fn() -> Result<(), RunnerErrorKind>>,
-            #[allow(clippy::type_complexity)]
-            pub res_goto: Option<fn(&str) -> Result<(), RunnerErrorKind>>,
-            pub res_w8_visib: Option<fn() -> Result<(), RunnerErrorKind>>,
-            pub res_w8_pres: Option<fn() -> Result<(), RunnerErrorKind>>,
-            pub res_w8_npres: Option<fn() -> Result<(), RunnerErrorKind>>,
-            pub res_w8_edit: Option<fn() -> Result<(), RunnerErrorKind>>,
-        }
-
-        impl Client {
-            pub fn new() -> Arc<Self> {
-                Arc::new(Self::default())
-            }
-
-            #[allow(clippy::type_complexity)]
-            #[allow(clippy::too_many_arguments)]
-            #[allow(clippy::field_reassign_with_default)]
-            pub fn with_functions(
-                res_find: Option<fn() -> Result<Element, RunnerErrorKind>>,
-                res_curr_url: Option<fn() -> Result<url::Url, RunnerErrorKind>>,
-                res_exec: Option<fn() -> Result<Json, RunnerErrorKind>>,
-                res_set_w_size: Option<fn() -> Result<(), RunnerErrorKind>>,
-                res_close: Option<fn() -> Result<(), RunnerErrorKind>>,
-                res_goto: Option<fn(&str) -> Result<(), RunnerErrorKind>>,
-                res_w8_visib: Option<fn() -> Result<(), RunnerErrorKind>>,
-                res_w8_pres: Option<fn() -> Result<(), RunnerErrorKind>>,
-                res_w8_npres: Option<fn() -> Result<(), RunnerErrorKind>>,
-                res_w8_edit: Option<fn() -> Result<(), RunnerErrorKind>>,
-            ) -> Arc<Self> {
-                let mut client = Self::default();
-                client.res_find = res_find;
-                client.res_curr_url = res_curr_url;
-                client.res_exec = res_exec;
-                client.res_set_w_size = res_set_w_size;
-                client.res_close = res_close;
-                client.res_goto = res_goto;
-                client.res_w8_visib = res_w8_visib;
-                client.res_w8_pres = res_w8_pres;
-                client.res_w8_npres = res_w8_npres;
-                client.res_w8_edit = res_w8_edit;
-
-                Arc::new(client)
-            }
-
-            pub fn calls(&self) -> CallCount {
-                self.calls.lock().unwrap().clone()
-            }
-
-            pub fn inc(&self, c: Call) {
-                let mut calls = self.calls.lock().unwrap();
-                calls[c] += 1;
-            }
-        }
-
-        #[async_trait::async_trait]
-        impl<'a> Webdriver for Arc<Client> {
-            type Element = Element;
-            type Error = crate::error::RunnerErrorKind;
-
-            async fn goto(&mut self, url: &str) -> Result<(), Self::Error> {
-                self.res_goto.as_ref().map(|f| (f)(url));
-                self.inc(Call::Goto);
-                Ok(())
-            }
-
-            async fn find(&mut self, _: Locator) -> Result<Self::Element, Self::Error> {
-                self.inc(Call::Find);
-                Ok(Element(Arc::clone(self)))
-            }
-
-            async fn find_all(&mut self, _: Locator) -> Result<Vec<Self::Element>, Self::Error> {
-                self.inc(Call::FindAll);
-                Ok(vec![Element(Arc::clone(self))])
-            }
-
-            async fn wait_for_visible(
-                &mut self,
-                _: Locator,
-                _: Duration,
-            ) -> Result<(), Self::Error> {
-                self.inc(Call::W8Visib);
-                Ok(())
-            }
-
-            async fn wait_for_not_present(
-                &mut self,
-                _: Locator,
-                _: Duration,
-            ) -> Result<(), Self::Error> {
-                self.inc(Call::W8NPres);
-                Ok(())
-            }
-
-            async fn wait_for_present(
-                &mut self,
-                _: Locator,
-                _: Duration,
-            ) -> Result<(), Self::Error> {
-                self.inc(Call::W8Pres);
-                Ok(())
-            }
-
-            async fn wait_for_editable(
-                &mut self,
-                _: Locator,
-                _: Duration,
-            ) -> Result<(), Self::Error> {
-                self.inc(Call::W8Edit);
-                Ok(())
-            }
-
-            async fn current_url(&mut self) -> Result<url::Url, Self::Error> {
-                self.inc(Call::CurrentUrl);
-                Ok(url::Url::parse("http://example.com").unwrap())
-            }
-
-            async fn set_window_size(&mut self, _: u32, _: u32) -> Result<(), Self::Error> {
-                self.inc(Call::SetWSize);
-                Ok(())
-            }
-
-            async fn execute(&mut self, _: &str, _: Vec<Json>) -> Result<Json, Self::Error> {
-                self.inc(Call::Exec);
-                Ok(Json::Null)
-            }
-
-            async fn execute_async(&mut self, _: &str, _: Vec<Json>) -> Result<Json, Self::Error> {
-                self.inc(Call::ExecAsync);
-                Ok(Json::Null)
-            }
-
-            async fn close(&mut self) -> Result<(), Self::Error> {
-                self.inc(Call::Close);
-                Ok(())
-            }
-
-            async fn alert_text(&mut self) -> Result<String, Self::Error> {
-                self.inc(Call::AlertText);
-                Ok("".to_string())
-            }
-
-            async fn alert_accept(&mut self) -> Result<(), Self::Error> {
-                self.inc(Call::AlertAccept);
-                Ok(())
-            }
-
-            async fn alert_dissmis(&mut self) -> Result<(), Self::Error> {
-                self.inc(Call::AlertDissmis);
-                Ok(())
-            }
-        }
-
-        pub struct Element(Arc<Client>);
-
-        impl Element {
-            pub fn inc(&self, call: Call) {
-                self.0.inc(call);
-            }
-        }
-
-        #[async_trait::async_trait]
-        impl WebElement for Element {
-            type Driver = Arc<Client>;
-            type Error = crate::error::RunnerErrorKind;
-
-            async fn attr(&mut self, _: &str) -> Result<Option<String>, Self::Error> {
-                self.inc(Call::Attr);
-                Ok(None)
-            }
-
-            async fn prop(&mut self, _: &str) -> Result<Option<String>, Self::Error> {
-                self.inc(Call::Prop);
-                Ok(None)
-            }
-
-            async fn text(&mut self) -> Result<String, Self::Error> {
-                self.inc(Call::Text);
-                Ok("".to_string())
-            }
-
-            async fn html(&mut self, _: bool) -> Result<String, Self::Error> {
-                self.inc(Call::Html);
-                Ok("".to_string())
-            }
-
-            async fn find(&mut self, _: Locator) -> Result<Self, Self::Error>
-            where
-                Self: Sized,
-            {
-                self.inc(Call::Find);
-                Ok(Element(self.0.clone()))
-            }
-
-            async fn click(mut self) -> Result<Self::Driver, Self::Error> {
-                self.inc(Call::Click);
-                Ok(self.0)
-            }
-
-            async fn select_by_index(mut self, _: usize) -> Result<Self::Driver, Self::Error> {
-                self.inc(Call::SelectByIndex);
-                Ok(self.0)
-            }
-
-            async fn select_by_value(mut self, _: &str) -> Result<Self::Driver, Self::Error> {
-                self.inc(Call::SelectByValue);
-                Ok(self.0)
-            }
-        }
-
-        #[derive(Clone, Default)]
-        pub struct CallCount {
-            open: usize,
-            click: usize,
-            find: usize,
-            findall: usize,
-            goto: usize,
-            exec: usize,
-            exec_async: usize,
-            close: usize,
-            current_url: usize,
-            set_w_size: usize,
-            w_8_visib: usize,
-            w_8_pres: usize,
-            w_8_npres: usize,
-            w_8_edit: usize,
-            attr: usize,
-            prop: usize,
-            text: usize,
-            html: usize,
-            select_by_index: usize,
-            select_by_value: usize,
-            alert_text: usize,
-            alert_accept: usize,
-            alert_dissmis: usize,
-        }
-
-        #[derive(Hash, PartialEq, Eq)]
-        pub enum Call {
-            Open,
-            Click,
-            Find,
-            FindAll,
-            Goto,
-            Exec,
-            ExecAsync,
-            Close,
-            CurrentUrl,
-            SetWSize,
-            W8Visib,
-            W8Pres,
-            W8NPres,
-            W8Edit,
-            Attr,
-            Prop,
-            Text,
-            Html,
-            SelectByIndex,
-            SelectByValue,
-            AlertText,
-            AlertAccept,
-            AlertDissmis,
-        }
-
-        impl Index<Call> for CallCount {
-            type Output = usize;
-
-            fn index(&self, count: Call) -> &Self::Output {
-                match count {
-                    Call::Open => &self.open,
-                    Call::Click => &self.click,
-                    Call::Find => &self.find,
-                    Call::FindAll => &self.findall,
-                    Call::Goto => &self.goto,
-                    Call::Exec => &self.exec,
-                    Call::ExecAsync => &self.exec_async,
-                    Call::Close => &self.close,
-                    Call::CurrentUrl => &self.current_url,
-                    Call::SetWSize => &self.set_w_size,
-                    Call::W8Visib => &self.w_8_visib,
-                    Call::W8Pres => &self.w_8_pres,
-                    Call::W8NPres => &self.w_8_npres,
-                    Call::W8Edit => &self.w_8_edit,
-                    Call::Attr => &self.attr,
-                    Call::Prop => &self.prop,
-                    Call::Text => &self.text,
-                    Call::Html => &self.html,
-                    Call::SelectByIndex => &self.select_by_index,
-                    Call::SelectByValue => &self.select_by_value,
-                    Call::AlertText => &self.alert_text,
-                    Call::AlertAccept => &self.alert_accept,
-                    Call::AlertDissmis => &self.alert_dissmis,
-                }
-            }
-        }
-
-        impl IndexMut<Call> for CallCount {
-            fn index_mut(&mut self, count: Call) -> &mut Self::Output {
-                match count {
-                    Call::Open => &mut self.open,
-                    Call::Click => &mut self.click,
-                    Call::Find => &mut self.find,
-                    Call::FindAll => &mut self.findall,
-                    Call::Goto => &mut self.goto,
-                    Call::Exec => &mut self.exec,
-                    Call::ExecAsync => &mut self.exec_async,
-                    Call::Close => &mut self.close,
-                    Call::CurrentUrl => &mut self.current_url,
-                    Call::SetWSize => &mut self.set_w_size,
-                    Call::W8Visib => &mut self.w_8_visib,
-                    Call::W8Pres => &mut self.w_8_pres,
-                    Call::W8NPres => &mut self.w_8_npres,
-                    Call::W8Edit => &mut self.w_8_edit,
-                    Call::Attr => &mut self.attr,
-                    Call::Prop => &mut self.prop,
-                    Call::Text => &mut self.text,
-                    Call::Html => &mut self.html,
-                    Call::SelectByIndex => &mut self.select_by_index,
-                    Call::SelectByValue => &mut self.select_by_value,
-                    Call::AlertText => &mut self.alert_text,
-                    Call::AlertAccept => &mut self.alert_accept,
-                    Call::AlertDissmis => &mut self.alert_dissmis,
-                }
-            }
-        }
     }
 }

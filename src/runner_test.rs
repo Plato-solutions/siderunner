@@ -657,7 +657,7 @@ mod flow {
     }
 
     fn blank_file(commands: Vec<Cmd>) -> File {
-        let commands = commands.into_iter().map(|cmd| blank_cmd(cmd)).collect();
+        let commands = commands.into_iter().map(blank_cmd).collect();
 
         File {
             id: String::new(),

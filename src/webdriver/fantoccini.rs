@@ -6,10 +6,10 @@
 
 use super::{Element as WebElement, Locator, Webdriver};
 use crate::error::RunnerErrorKind;
+use crate::error::RunnerErrorKind;
 use fantoccini as fan;
 use serde_json::Value as Json;
 use std::time::Duration;
-use crate::error::RunnerErrorKind;
 
 /// Fantoccini Webdriver interface
 pub struct Client(pub fan::Client);
@@ -145,7 +145,11 @@ impl Webdriver for Client {
         Ok(json)
     }
 
-    async fn execute_async(&mut self, script: &str, args: Vec<Json>) -> Result<Json, RunnerErrorKind> {
+    async fn execute_async(
+        &mut self,
+        script: &str,
+        args: Vec<Json>,
+    ) -> Result<Json, RunnerErrorKind> {
         let json = self.0.execute_async(script, args).await?;
         Ok(json)
     }

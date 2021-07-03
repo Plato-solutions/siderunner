@@ -1,6 +1,6 @@
 use crate::{
     parser::{Cmd, Command},
-    playground::{build_nodes, CommandNode, Transition},
+    playground::{build_nodes, Node, Transition},
     runner::Runner,
 };
 
@@ -14,8 +14,8 @@ fn test_creating_run_list_basic() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(Cmd::Echo("".to_owned()), 1, 0, Transition::Next)
+            Node::new(Cmd::Open("".to_owned()), 0, 0, Transition::Next),
+            Node::new(Cmd::Echo("".to_owned()), 1, 0, Transition::Next)
         ]
     )
 }
@@ -34,9 +34,9 @@ fn test_creating_run_list_with_commeted_commands() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 3, 0, Transition::Next),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 5, 0, Transition::Next),
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 3, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 5, 0, Transition::Next),
         ]
     )
 }
@@ -54,15 +54,15 @@ fn test_creating_run_list_with_commeted_command_and_while() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(
+            Node::new(
                 Cmd::While("...".to_owned()),
                 0,
                 0,
                 Transition::Conditional { next: 1, end: 4 }
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 1, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 2, 0, Transition::Move(0)),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 4, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 1, 1, Transition::Next),
+            Node::new(Cmd::End, 2, 0, Transition::Move(0)),
+            Node::new(Cmd::Echo("echo".to_owned()), 4, 0, Transition::Next),
         ]
     )
 }
@@ -79,15 +79,15 @@ fn test_creating_run_list_while_loop() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::While("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 2, end: 4 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 3, 0, Transition::Move(1)),
+            Node::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
+            Node::new(Cmd::End, 3, 0, Transition::Move(1)),
         ]
     )
 }
@@ -105,16 +105,16 @@ fn test_creating_run_list_if() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::If("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 2, end: 3 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 3, 0, Transition::Next),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 4, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
+            Node::new(Cmd::End, 3, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 4, 0, Transition::Next),
         ]
     )
 }
@@ -132,21 +132,21 @@ fn test_creating_run_list_if_complex_empty_conditions() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::If("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 4, end: 2 },
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::ElseIf("...".to_owned()),
                 2,
                 0,
                 Transition::Conditional { next: 4, end: 3 },
             ),
-            CommandNode::new(Cmd::Else, 3, 0, Transition::Next),
-            CommandNode::new(Cmd::End, 4, 0, Transition::Next),
+            Node::new(Cmd::Else, 3, 0, Transition::Next),
+            Node::new(Cmd::End, 4, 0, Transition::Next),
         ]
     )
 }
@@ -168,25 +168,25 @@ fn test_creating_run_list_if_complex() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::If("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 2, end: 3 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Move(8)),
-            CommandNode::new(
+            Node::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Move(8)),
+            Node::new(
                 Cmd::ElseIf("...".to_owned()),
                 3,
                 0,
                 Transition::Conditional { next: 4, end: 6 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 4, 1, Transition::Next),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 5, 1, Transition::Move(8)),
-            CommandNode::new(Cmd::Else, 6, 0, Transition::Next),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 7, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 8, 0, Transition::Next)
+            Node::new(Cmd::Echo("echo".to_owned()), 4, 1, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 5, 1, Transition::Move(8)),
+            Node::new(Cmd::Else, 6, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 7, 1, Transition::Next),
+            Node::new(Cmd::End, 8, 0, Transition::Next)
         ]
     )
 }
@@ -206,22 +206,22 @@ fn test_creating_run_list_if_complex_without_else() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::If("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 2, end: 3 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Move(5)),
-            CommandNode::new(
+            Node::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Move(5)),
+            Node::new(
                 Cmd::ElseIf("...".to_owned()),
                 3,
                 0,
                 Transition::Conditional { next: 4, end: 5 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 4, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 5, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 4, 1, Transition::Next),
+            Node::new(Cmd::End, 5, 0, Transition::Next),
         ]
     )
 }
@@ -240,22 +240,22 @@ fn test_creating_run_list_multi_while() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::While("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 2, end: 6 },
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::While("...".to_owned()),
                 2,
                 1,
                 Transition::Conditional { next: 3, end: 5 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 3, 2, Transition::Next),
-            CommandNode::new(Cmd::End, 4, 1, Transition::Move(2)),
-            CommandNode::new(Cmd::End, 5, 0, Transition::Move(1)),
+            Node::new(Cmd::Echo("echo".to_owned()), 3, 2, Transition::Next),
+            Node::new(Cmd::End, 4, 1, Transition::Move(2)),
+            Node::new(Cmd::End, 5, 0, Transition::Move(1)),
         ]
     )
 }
@@ -277,30 +277,30 @@ fn test_creating_run_list_multi_while_with_if() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::While("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 2, end: 9 },
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::While("...".to_owned()),
                 2,
                 1,
                 Transition::Conditional { next: 3, end: 8 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 3, 2, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Echo("echo".to_owned()), 3, 2, Transition::Next),
+            Node::new(
                 Cmd::If("...".to_owned()),
                 4,
                 2,
                 Transition::Conditional { next: 6, end: 5 },
             ),
-            CommandNode::new(Cmd::Else, 5, 2, Transition::Next),
-            CommandNode::new(Cmd::End, 6, 2, Transition::Next),
-            CommandNode::new(Cmd::End, 7, 1, Transition::Move(2)),
-            CommandNode::new(Cmd::End, 8, 0, Transition::Move(1)),
+            Node::new(Cmd::Else, 5, 2, Transition::Next),
+            Node::new(Cmd::End, 6, 2, Transition::Next),
+            Node::new(Cmd::End, 7, 1, Transition::Move(2)),
+            Node::new(Cmd::End, 8, 0, Transition::Move(1)),
         ]
     )
 }
@@ -320,23 +320,23 @@ fn test_creating_run_list_while_with_if() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(
                 Cmd::While("...".to_owned()),
                 1,
                 0,
                 Transition::Conditional { next: 2, end: 7 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
+            Node::new(
                 Cmd::If("...".to_owned()),
                 3,
                 1,
                 Transition::Conditional { next: 5, end: 4 },
             ),
-            CommandNode::new(Cmd::Else, 4, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 5, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 6, 0, Transition::Move(1)),
+            Node::new(Cmd::Else, 4, 1, Transition::Next),
+            Node::new(Cmd::End, 5, 1, Transition::Next),
+            Node::new(Cmd::End, 6, 0, Transition::Move(1)),
         ]
     )
 }
@@ -353,10 +353,10 @@ fn test_creating_run_list_repeat_if() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(Cmd::Do, 1, 0, Transition::Next),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(Cmd::Do, 1, 0, Transition::Next),
+            Node::new(Cmd::Echo("echo".to_owned()), 2, 1, Transition::Next),
+            Node::new(
                 Cmd::RepeatIf("...".to_owned()),
                 3,
                 0,
@@ -382,24 +382,24 @@ fn test_creating_run_list_repeat_if_with_if() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(Cmd::Do, 1, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("open".to_owned()), 0, 0, Transition::Next),
+            Node::new(Cmd::Do, 1, 0, Transition::Next),
+            Node::new(
                 Cmd::If("".to_owned()),
                 2,
                 1,
                 Transition::Conditional { next: 6, end: 3 }
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::ElseIf("".to_owned()),
                 3,
                 1,
                 Transition::Conditional { next: 4, end: 5 },
             ),
-            CommandNode::new(Cmd::Echo("echo".to_owned()), 4, 2, Transition::Move(6)),
-            CommandNode::new(Cmd::Else, 5, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 6, 1, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Echo("echo".to_owned()), 4, 2, Transition::Move(6)),
+            Node::new(Cmd::Else, 5, 1, Transition::Next),
+            Node::new(Cmd::End, 6, 1, Transition::Next),
+            Node::new(
                 Cmd::RepeatIf("...".to_owned()),
                 7,
                 0,
@@ -427,31 +427,31 @@ fn test_creating_run_list_repeat_if_and_while_and_if() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(Cmd::Open("".to_owned()), 0, 0, Transition::Next),
-            CommandNode::new(Cmd::Do, 1, 0, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Open("".to_owned()), 0, 0, Transition::Next),
+            Node::new(Cmd::Do, 1, 0, Transition::Next),
+            Node::new(
                 Cmd::While("".to_owned()),
                 2,
                 1,
                 Transition::Conditional { next: 3, end: 9 },
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::If("".to_owned()),
                 3,
                 2,
                 Transition::Conditional { next: 7, end: 4 },
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::ElseIf("".to_owned()),
                 4,
                 2,
                 Transition::Conditional { next: 5, end: 6 },
             ),
-            CommandNode::new(Cmd::Echo("".to_owned()), 5, 3, Transition::Move(7)),
-            CommandNode::new(Cmd::Else, 6, 2, Transition::Next),
-            CommandNode::new(Cmd::End, 7, 2, Transition::Next),
-            CommandNode::new(Cmd::End, 8, 1, Transition::Move(2)),
-            CommandNode::new(
+            Node::new(Cmd::Echo("".to_owned()), 5, 3, Transition::Move(7)),
+            Node::new(Cmd::Else, 6, 2, Transition::Next),
+            Node::new(Cmd::End, 7, 2, Transition::Next),
+            Node::new(Cmd::End, 8, 1, Transition::Move(2)),
+            Node::new(
                 Cmd::RepeatIf("".to_owned()),
                 9,
                 0,
@@ -473,20 +473,20 @@ fn test_creating_run_list_with_while_and_repeat_if() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(
+            Node::new(
                 Cmd::While("..".to_owned()),
                 0,
                 0,
                 Transition::Conditional { next: 1, end: 4 },
             ),
-            CommandNode::new(Cmd::Do, 1, 1, Transition::Next),
-            CommandNode::new(
+            Node::new(Cmd::Do, 1, 1, Transition::Next),
+            Node::new(
                 Cmd::RepeatIf("...".to_owned()),
                 2,
                 1,
                 Transition::Conditional { next: 1, end: 3 },
             ),
-            CommandNode::new(Cmd::End, 3, 0, Transition::Move(0)),
+            Node::new(Cmd::End, 3, 0, Transition::Move(0)),
         ]
     )
 }
@@ -510,42 +510,42 @@ fn test_creating_run_list_with_2_whiles_and_2_ifs() {
     assert_eq!(
         node,
         vec![
-            CommandNode::new(
+            Node::new(
                 Cmd::While(String::new()),
                 0,
                 0,
                 Transition::Conditional { next: 1, end: 4 },
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::If(String::new()),
                 1,
                 1,
                 Transition::Conditional { next: 2, end: 2 }
             ),
-            CommandNode::new(Cmd::End, 2, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 3, 0, Transition::Move(0)),
-            CommandNode::new(
+            Node::new(Cmd::End, 2, 1, Transition::Next),
+            Node::new(Cmd::End, 3, 0, Transition::Move(0)),
+            Node::new(
                 Cmd::While(String::new()),
                 4,
                 0,
                 Transition::Conditional { next: 5, end: 6 }
             ),
-            CommandNode::new(Cmd::End, 5, 0, Transition::Move(4)),
-            CommandNode::new(
+            Node::new(Cmd::End, 5, 0, Transition::Move(4)),
+            Node::new(
                 Cmd::While(String::new()),
                 6,
                 0,
                 Transition::Conditional { next: 7, end: 11 }
             ),
-            CommandNode::new(
+            Node::new(
                 Cmd::If(String::new()),
                 7,
                 1,
                 Transition::Conditional { next: 9, end: 8 }
             ),
-            CommandNode::new(Cmd::Else, 8, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 9, 1, Transition::Next),
-            CommandNode::new(Cmd::End, 10, 0, Transition::Move(6)),
+            Node::new(Cmd::Else, 8, 1, Transition::Next),
+            Node::new(Cmd::End, 9, 1, Transition::Next),
+            Node::new(Cmd::End, 10, 0, Transition::Move(6)),
         ]
     )
 }

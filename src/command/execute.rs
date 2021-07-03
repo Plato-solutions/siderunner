@@ -16,11 +16,8 @@ impl Execute {
 }
 
 #[async_trait::async_trait]
-impl Command for Execute {
-    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
-    where
-        D: Webdriver,
-    {
+impl<D: Webdriver> Command<D> for Execute {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         let res = runner.exec(&self.script).await?;
         if let Some(var) = self.variable.as_ref() {
             runner.save_value(var.clone(), res);

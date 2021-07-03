@@ -12,11 +12,8 @@ impl AssertAlert {
 }
 
 #[async_trait::async_trait]
-impl Command for AssertAlert {
-    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
-    where
-        D: Webdriver,
-    {
+impl<D: Webdriver> Command<D> for AssertAlert {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         let alert = runner.get_webdriver().alert_text().await?;
 
         if alert == self.text {

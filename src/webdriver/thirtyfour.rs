@@ -4,8 +4,8 @@
 
 #![cfg(feature = "thirtyfour_backend")]
 
-use crate::error::RunnerErrorKind;
 use super::{Element, Locator, Webdriver};
+use crate::error::RunnerErrorKind;
 use serde_json::Value as Json;
 use std::time::Duration;
 use thirtyfour::{

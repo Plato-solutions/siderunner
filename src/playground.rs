@@ -24,7 +24,7 @@ impl Playground {
     }
 }
 
-pub(crate) fn build_nodes(commands: &[Command]) -> Vec<CommandNode> {
+pub(crate) fn build_nodes(commands: &[Command]) -> Vec<Node> {
     let mut nodes = create_nodes(commands);
     connect_nodes(&mut nodes);
     nodes
@@ -32,7 +32,7 @@ pub(crate) fn build_nodes(commands: &[Command]) -> Vec<CommandNode> {
 
 async fn run_nodes<D: webdriver::Webdriver>(
     runner: &mut Runner<D>,
-    nodes: Vec<CommandNode>,
+    nodes: Vec<Node>,
     file_url: &str,
 ) -> Result<(), RunnerError> {
     if nodes.is_empty() {
@@ -141,14 +141,14 @@ async fn run_condition<D: webdriver::Webdriver>(
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) struct CommandNode {
+pub(crate) struct Node {
     command: Cmd,
     index: usize,
     level: usize,
     next: Transition,
 }
 
-impl CommandNode {
+impl Node {
     pub(crate) fn new(cmd: Cmd, index: usize, level: usize, transition: Transition) -> Self {
         Self {
             command: cmd,
@@ -166,7 +166,7 @@ pub(crate) enum Transition {
     Conditional { next: usize, end: usize },
 }
 
-fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
+fn create_nodes(commands: &[Command]) -> Vec<Node> {
     let levels = compute_levels(commands);
     let nodes = commands
         .iter()
@@ -176,7 +176,7 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
         .filter(|(_, (cmd, _))| !matches!(cmd.cmd, Cmd::Custom { .. }))
         // enumarate after deliting so nodes[i] != nodes.index
         .map(|(index, (cmd, lvl))| {
-            CommandNode::new(cmd.cmd.clone(), index, lvl, Transition::Next)
+            Node::new(cmd.cmd.clone(), index, lvl, Transition::Next)
             //  Transition::Next(0) will be recalculated later
         })
         .collect::<Vec<_>>();
@@ -184,7 +184,7 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
     nodes
 }
 
-fn connect_nodes(nodes: &mut [CommandNode]) {
+fn connect_nodes(nodes: &mut [Node]) {
     let mut state = Vec::new();
     (0..nodes.len()).for_each(|i| {
         connect_commands(nodes, i, i + 1, &mut state);
@@ -203,7 +203,7 @@ fn connect_nodes(nodes: &mut [CommandNode]) {
 
 // todo: refactoring index usage since its too complex
 fn connect_commands(
-    nodes: &mut [CommandNode],
+    nodes: &mut [Node],
     current: usize,
     next: usize,
     state: &mut Vec<(&'static str, usize)>,
@@ -312,7 +312,7 @@ fn connect_commands(
     }
 }
 
-// TODO: wrap [CommandNode] list by a structure?
+// TODO: wrap [Node] list by a structure?
 // and make it its methods.
 /// next_index produces an next element's index in the list
 ///
@@ -323,7 +323,7 @@ fn connect_commands(
 /// `nodes[i].index + 1 !=  nodes[i+1].index`
 /// It's caused by custom commands which are deleted before building a list.
 #[inline]
-fn next_index(nodes: &mut [CommandNode], current: usize) -> usize {
+fn next_index(nodes: &mut [Node], current: usize) -> usize {
     assert!(current < nodes.len());
 
     if current + 1 < nodes.len() {
@@ -333,8 +333,8 @@ fn next_index(nodes: &mut [CommandNode], current: usize) -> usize {
     }
 }
 
-fn find_next<Cmp: Fn(&CommandNode) -> bool>(
-    commands: &[CommandNode],
+fn find_next<Cmp: Fn(&Node) -> bool>(
+    commands: &[Node],
     comparator: Cmp,
 ) -> Option<usize> {
     for (i, cmd) in commands.iter().enumerate() {
@@ -346,11 +346,11 @@ fn find_next<Cmp: Fn(&CommandNode) -> bool>(
     None
 }
 
-fn find_next_on_level(nodes: &[CommandNode], level: usize) -> Option<usize> {
+fn find_next_on_level(nodes: &[Node], level: usize) -> Option<usize> {
     find_next(nodes, |node| node.level == level)
 }
 
-fn find_next_end_on_level(commands: &[CommandNode], level: usize) -> Option<usize> {
+fn find_next_end_on_level(commands: &[Node], level: usize) -> Option<usize> {
     find_next(commands, |node| {
         node.level == level && matches!(node.command, Cmd::End)
     })

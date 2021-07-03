@@ -12,11 +12,8 @@ impl AnswerOnNextPrompt {
 }
 
 #[async_trait::async_trait]
-impl Command for AnswerOnNextPrompt {
-    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
-    where
-        D: Webdriver,
-    {
+impl<D: Webdriver> Command<D> for AnswerOnNextPrompt {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         let override_confirm_alert = concat!(
             "var canUseLocalStorage = false; ",
             "try { canUseLocalStorage = !!window.localStorage; } catch(ex) { /* probe failed */ }",

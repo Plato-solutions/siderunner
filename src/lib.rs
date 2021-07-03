@@ -32,12 +32,12 @@
 mod command;
 mod error;
 mod parser;
-mod runner;
+mod playground;
 #[cfg(test)]
 mod playground_test;
+mod runner;
 mod validation;
 mod webdriver;
-mod playground;
 
 pub use error::{ParseError, RunnerError};
 pub use parser::{parse, Command, File, Test};

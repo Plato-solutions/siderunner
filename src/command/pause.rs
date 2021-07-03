@@ -14,11 +14,8 @@ impl Pause {
 }
 
 #[async_trait::async_trait]
-impl Command for Pause {
-    async fn run<D>(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
-    where
-        D: Webdriver,
-    {
+impl<D: Webdriver> Command<D> for Pause {
+    async fn run(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         tokio::time::sleep(self.timeout).await;
         Ok(())
     }

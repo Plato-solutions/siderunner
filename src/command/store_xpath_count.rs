@@ -16,11 +16,8 @@ impl StoreXpathCount {
 }
 
 #[async_trait::async_trait]
-impl Command for StoreXpathCount {
-    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
-    where
-        D: Webdriver,
-    {
+impl<D: Webdriver> Command<D> for StoreXpathCount {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         let locator = Locator::XPath(self.xpath.clone());
         let elements = runner.get_webdriver().find_all(locator).await?;
         if let Some(var) = &self.variable {

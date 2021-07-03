@@ -1,5 +1,8 @@
 use super::Command;
-use crate::{error::RunnerErrorKind, webdriver::{Element, Locator, Webdriver}};
+use crate::{
+    error::RunnerErrorKind,
+    webdriver::{Element, Locator, Webdriver},
+};
 
 pub struct Click {
     target: Locator,
@@ -12,11 +15,8 @@ impl Click {
 }
 
 #[async_trait::async_trait]
-impl Command for Click {
-    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
-    where
-        D: Webdriver,
-    {
+impl<D: Webdriver> Command<D> for Click {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         runner
             .get_webdriver()
             .find(self.target.clone())

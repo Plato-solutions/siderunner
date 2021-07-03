@@ -13,11 +13,8 @@ impl Store {
 }
 
 #[async_trait::async_trait]
-impl Command for Store {
-    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
-    where
-        D: Webdriver,
-    {
+impl<D: Webdriver> Command<D> for Store {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         runner.save_value(self.variable.clone(), self.value.clone().into());
         Ok(())
     }

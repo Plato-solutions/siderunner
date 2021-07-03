@@ -1,8 +1,5 @@
 use super::Command;
-use crate::{
-    error::RunnerErrorKind,
-    webdriver::{Locator, Webdriver},
-};
+use crate::{error::RunnerErrorKind, webdriver::{Element, Locator, Webdriver}};
 
 pub struct AssertChecked {
     target: Locator,
@@ -16,10 +13,9 @@ impl AssertChecked {
 
 #[async_trait::async_trait]
 impl Command for AssertChecked {
-    async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E> + Send,
-        E: crate::webdriver::Element<Driver = D> + Send,
+        D: Webdriver,
     {
         let mut element = runner.get_webdriver().find(self.target.clone()).await?;
         let checked = element.prop("checked").await?;
@@ -45,10 +41,9 @@ impl AssertNotChecked {
 
 #[async_trait::async_trait]
 impl Command for AssertNotChecked {
-    async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E> + Send,
-        E: crate::webdriver::Element<Driver = D> + Send,
+        D: Webdriver,
     {
         let mut element = runner.get_webdriver().find(self.target.clone()).await?;
         let checked = element.prop("checked").await?;

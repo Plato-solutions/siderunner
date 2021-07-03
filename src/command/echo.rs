@@ -13,10 +13,9 @@ impl Echo {
 
 #[async_trait::async_trait]
 impl Command for Echo {
-    async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E> + Send,
-        E: crate::webdriver::Element<Driver = D> + Send,
+        D: Webdriver,
     {
         let message = runner.emit(&self.message);
         runner.echo(&message);

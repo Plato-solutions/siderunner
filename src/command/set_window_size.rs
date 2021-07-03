@@ -14,10 +14,9 @@ impl SetWindowSize {
 
 #[async_trait::async_trait]
 impl Command for SetWindowSize {
-    async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E> + Send,
-        E: crate::webdriver::Element<Driver = D> + Send,
+        D: Webdriver,
     {
         runner
             .get_webdriver()

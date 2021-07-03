@@ -34,9 +34,10 @@ mod error;
 mod parser;
 mod runner;
 #[cfg(test)]
-mod runner_test;
+mod playground_test;
 mod validation;
 mod webdriver;
+mod playground;
 
 pub use error::{ParseError, RunnerError};
 pub use parser::{parse, Command, File, Test};

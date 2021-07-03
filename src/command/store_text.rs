@@ -1,7 +1,7 @@
 use super::Command;
 use crate::{
     error::RunnerErrorKind,
-    webdriver::{Locator, Webdriver},
+    webdriver::{Element, Locator, Webdriver},
 };
 use serde_json::Value;
 
@@ -18,10 +18,9 @@ impl StoreText {
 
 #[async_trait::async_trait]
 impl Command for StoreText {
-    async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E> + Send,
-        E: crate::webdriver::Element<Driver = D> + Send,
+        D: Webdriver,
     {
         let value = runner
             .get_webdriver()

@@ -14,8 +14,8 @@ pub(crate) mod thirtyfour;
 ///
 /// Mainly created for test purpouses and to be able to support 2 backends.
 #[async_trait::async_trait]
-pub trait Webdriver {
-    type Element;
+pub trait Webdriver: Send {
+    type Element: Element<Driver = Self>;
 
     async fn goto(&mut self, url: &str) -> Result<(), RunnerErrorKind>;
     async fn find(&mut self, locator: Locator) -> Result<Self::Element, RunnerErrorKind>;
@@ -42,7 +42,8 @@ pub trait Webdriver {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind>;
     async fn set_window_size(&mut self, width: u32, height: u32) -> Result<(), RunnerErrorKind>;
-    async fn execute(&mut self, script: &str, mut args: Vec<Json>) -> Result<Json, RunnerErrorKind>;
+    async fn execute(&mut self, script: &str, mut args: Vec<Json>)
+        -> Result<Json, RunnerErrorKind>;
     async fn execute_async(
         &mut self,
         script: &str,
@@ -56,7 +57,7 @@ pub trait Webdriver {
 
 /// Element represents functionality which may be taken agains a WebElement by means of Webdriver.
 #[async_trait::async_trait]
-pub trait Element {
+pub trait Element: Send {
     type Driver;
 
     async fn attr(&mut self, attribute: &str) -> Result<Option<String>, RunnerErrorKind>;

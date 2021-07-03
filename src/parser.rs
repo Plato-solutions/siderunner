@@ -74,6 +74,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertChecked" => Cmd::parse_assert_checked,
         "assertNotChecked" => Cmd::parse_assert_not_checked,
         "assertPrompt" => Cmd::parse_assert_prompt,
+        "assertSelectedValue" => Cmd::parse_assert_selected_value,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -241,6 +242,7 @@ pub enum Cmd {
     AssertPrompt(String),
     AssertChecked(Target),
     AssertNotChecked(Target),
+    AssertSelectedValue(Target, String),
 }
 
 impl Cmd {
@@ -481,6 +483,12 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::AssertNotChecked(target))
+    }
+
+    fn parse_assert_selected_value(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::AssertSelectedValue(target, c.value.clone()))
     }
 }
 

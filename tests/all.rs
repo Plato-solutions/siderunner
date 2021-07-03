@@ -104,3 +104,7 @@ test_file!(
     "tests/resources/commands/assert prompt/test.side.json",
     command_assert_prompt
 );
+test_file!(
+    "tests/resources/commands/assert selected value/test.side.json",
+    command_assert_selected_value
+);

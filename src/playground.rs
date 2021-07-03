@@ -46,18 +46,22 @@ async fn run_nodes<D: webdriver::Webdriver>(
         }
         let node = &nodes[i];
         match node.next {
-            NodeTransition::Next(next) if matches!(node.command, Cmd::End) => {
-                i = next;
+            Transition::Move(position) => {
+                if !matches!(node.command, Cmd::End) {
+                    panic!("Unexpected command and transition combination")
+                }
+
+                i = position;
             }
-            NodeTransition::Next(next) => {
-                i = next;
+            Transition::Next => {
+                i += 1;
                 let cmd = &node.command;
                 runner
                     .run_command(file_url, cmd)
                     .await
                     .map_err(|e| RunnerError::new(e, node.index))?;
             }
-            NodeTransition::Conditional(next, or_else) => {
+            Transition::Conditional { next, end: or_else } => {
                 match &node.command {
                     Cmd::While(condition)
                     | Cmd::ElseIf(condition)
@@ -141,11 +145,11 @@ pub(crate) struct CommandNode {
     command: Cmd,
     index: usize,
     level: usize,
-    next: NodeTransition,
+    next: Transition,
 }
 
 impl CommandNode {
-    pub(crate) fn new(cmd: Cmd, index: usize, level: usize, transition: NodeTransition) -> Self {
+    pub(crate) fn new(cmd: Cmd, index: usize, level: usize, transition: Transition) -> Self {
         Self {
             command: cmd,
             index,
@@ -156,9 +160,10 @@ impl CommandNode {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) enum NodeTransition {
-    Next(usize),
-    Conditional(usize, usize),
+pub(crate) enum Transition {
+    Next,
+    Move(usize),
+    Conditional { next: usize, end: usize },
 }
 
 fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
@@ -171,8 +176,8 @@ fn create_nodes(commands: &[Command]) -> Vec<CommandNode> {
         .filter(|(_, (cmd, _))| !matches!(cmd.cmd, Cmd::Custom { .. }))
         // enumarate after deliting so nodes[i] != nodes.index
         .map(|(index, (cmd, lvl))| {
-            CommandNode::new(cmd.cmd.clone(), index, lvl, NodeTransition::Next(0))
-            //  NodeTransition::Next(0) will be recalculated later
+            CommandNode::new(cmd.cmd.clone(), index, lvl, Transition::Next)
+            //  Transition::Next(0) will be recalculated later
         })
         .collect::<Vec<_>>();
 
@@ -209,7 +214,10 @@ fn connect_commands(
                 find_next_end_on_level(&nodes[next..], nodes[current].level).unwrap() + next;
             let index_of_element_after_end = next_index(nodes, index_of_whiles_end);
 
-            nodes[current].next = NodeTransition::Conditional(next, index_of_element_after_end);
+            nodes[current].next = Transition::Conditional {
+                next,
+                end: index_of_element_after_end,
+            };
             state.push(("while", current));
         }
         Cmd::ForEach { .. } => {
@@ -217,12 +225,15 @@ fn connect_commands(
                 find_next_end_on_level(&nodes[next..], nodes[current].level).unwrap() + next;
             let index_after_end = next_index(nodes, index_end);
 
-            nodes[current].next = NodeTransition::Conditional(next, index_after_end);
+            nodes[current].next = Transition::Conditional {
+                next,
+                end: index_after_end,
+            };
             state.push(("forEach", current));
         }
         Cmd::Do => {
             state.push(("do", current));
-            nodes[current].next = NodeTransition::Next(next);
+            nodes[current].next = Transition::Next;
         }
         Cmd::If(..) => {
             let if_next_index = find_next_on_level(&nodes[next..], nodes[current].level).unwrap();
@@ -238,9 +249,15 @@ fn connect_commands(
 
             let next_element = &nodes[next];
             if next_element.level != nodes[current].level {
-                nodes[current].next = NodeTransition::Conditional(next, if_next.index);
+                nodes[current].next = Transition::Conditional {
+                    next,
+                    end: if_next.index,
+                };
             } else {
-                nodes[current].next = NodeTransition::Conditional(cond_end.index, if_next.index);
+                nodes[current].next = Transition::Conditional {
+                    next: cond_end.index,
+                    end: if_next.index,
+                };
             }
         }
         Cmd::ElseIf(..) => {
@@ -249,39 +266,48 @@ fn connect_commands(
 
             let next_element = &nodes[next];
             if next_element.level != nodes[current].level {
-                nodes[current].next = NodeTransition::Conditional(next, elseif_end.index);
+                nodes[current].next = Transition::Conditional {
+                    next,
+                    end: elseif_end.index,
+                };
             } else {
                 let (_if, end_index) = state.last().unwrap();
                 assert_eq!(*_if, "if");
 
-                nodes[current].next = NodeTransition::Conditional(*end_index, elseif_end.index);
+                nodes[current].next = Transition::Conditional {
+                    next: *end_index,
+                    end: elseif_end.index,
+                };
             }
         }
         Cmd::Else => {
-            nodes[current].next = NodeTransition::Next(next);
+            nodes[current].next = Transition::Next;
         }
         Cmd::RepeatIf(..) => {
             let (_do, do_index) = state.pop().unwrap();
             assert_eq!(_do, "do");
-            nodes[current].next = NodeTransition::Conditional(do_index, next);
+            nodes[current].next = Transition::Conditional {
+                next: do_index,
+                end: next,
+            };
         }
         Cmd::End => match state.last() {
             Some(("while", index)) | Some(("forEach", index)) => {
-                nodes[current].next = NodeTransition::Next(*index);
+                nodes[current].next = Transition::Move(*index);
                 state.pop();
             }
             Some(("if", _)) => {
                 state.pop();
-                nodes[current].next = NodeTransition::Next(next);
+                nodes[current].next = Transition::Next;
             }
             _ => unreachable!("the syntax is broken"),
         },
         _ if next < nodes.len() && matches!(nodes[next].command, Cmd::Else | Cmd::ElseIf(..)) => {
             let (_, index) = state.last().unwrap();
-            nodes[current].next = NodeTransition::Next(*index);
+            nodes[current].next = Transition::Move(*index);
         }
         _ => {
-            nodes[current].next = NodeTransition::Next(next);
+            nodes[current].next = Transition::Next;
         }
     }
 }

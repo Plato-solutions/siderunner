@@ -23,8 +23,8 @@ impl Select {
 impl Command for Select {
     async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
-        E: crate::webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send,
+        D: Webdriver<Element = E> + Send,
+        E: crate::webdriver::Element<Driver = D> + Send,
     {
         let mut select = runner.get_webdriver().find(self.target.clone()).await?;
         match &self.select_target {

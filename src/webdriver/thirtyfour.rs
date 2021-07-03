@@ -4,6 +4,7 @@
 
 #![cfg(feature = "thirtyfour_backend")]
 
+use crate::error::RunnerErrorKind;
 use super::{Element, Locator, Webdriver};
 use serde_json::Value as Json;
 use std::time::Duration;
@@ -19,19 +20,18 @@ pub struct Client<'a>(pub &'a thirtyfour::WebDriver);
 #[async_trait::async_trait]
 impl<'a> Webdriver for Client<'a> {
     type Element = WebElement<'a>;
-    type Error = crate::error::RunnerErrorKind;
 
-    async fn goto(&mut self, url: &str) -> Result<(), Self::Error> {
+    async fn goto(&mut self, url: &str) -> Result<(), RunnerErrorKind> {
         self.0.get(url).await?;
         Ok(())
     }
 
-    async fn find(&mut self, locator: Locator) -> Result<Self::Element, Self::Error> {
+    async fn find(&mut self, locator: Locator) -> Result<Self::Element, RunnerErrorKind> {
         let e = self.0.find_element((&locator).into()).await?;
         Ok(WebElement(e, &self.0))
     }
 
-    async fn find_all(&mut self, locator: Locator) -> Result<Vec<Self::Element>, Self::Error> {
+    async fn find_all(&mut self, locator: Locator) -> Result<Vec<Self::Element>, RunnerErrorKind> {
         let elements = self
             .0
             .find_elements((&locator).into())
@@ -46,7 +46,7 @@ impl<'a> Webdriver for Client<'a> {
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
         let (e, _) = elapsed_fn(
             self.0
@@ -65,7 +65,7 @@ impl<'a> Webdriver for Client<'a> {
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
         let (e, _) = elapsed_fn(
             self.0
@@ -83,7 +83,7 @@ impl<'a> Webdriver for Client<'a> {
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
         let (e, _) = elapsed_fn(self.0.query(locator).wait(timeout, timeout / 3).exists()).await;
         e?;
@@ -95,7 +95,7 @@ impl<'a> Webdriver for Client<'a> {
         &mut self,
         locator: Locator,
         timeout: Duration,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
         let (e, _) = elapsed_fn(
             self.0
@@ -111,19 +111,19 @@ impl<'a> Webdriver for Client<'a> {
         Ok(())
     }
 
-    async fn current_url(&mut self) -> Result<Url, Self::Error> {
+    async fn current_url(&mut self) -> Result<Url, RunnerErrorKind> {
         let url = self.0.current_url().await?;
         Ok(Url::parse(&url).unwrap())
     }
 
-    async fn set_window_size(&mut self, width: u32, height: u32) -> Result<(), Self::Error> {
+    async fn set_window_size(&mut self, width: u32, height: u32) -> Result<(), RunnerErrorKind> {
         self.0
             .set_window_rect(OptionRect::new().with_size(width as i32, height as i32))
             .await?;
         Ok(())
     }
 
-    async fn execute(&mut self, script: &str, a: Vec<Json>) -> Result<Json, Self::Error> {
+    async fn execute(&mut self, script: &str, a: Vec<Json>) -> Result<Json, RunnerErrorKind> {
         let mut args = ScriptArgs::new();
         for v in a {
             args.push_value(v);
@@ -135,7 +135,7 @@ impl<'a> Webdriver for Client<'a> {
         Ok(json)
     }
 
-    async fn execute_async(&mut self, script: &str, a: Vec<Json>) -> Result<Json, Self::Error> {
+    async fn execute_async(&mut self, script: &str, a: Vec<Json>) -> Result<Json, RunnerErrorKind> {
         let mut args = ScriptArgs::new();
         for v in a {
             args.push_value(v);
@@ -147,22 +147,22 @@ impl<'a> Webdriver for Client<'a> {
         Ok(json)
     }
 
-    async fn close(&mut self) -> Result<(), Self::Error> {
+    async fn close(&mut self) -> Result<(), RunnerErrorKind> {
         self.0.close().await?;
         Ok(())
     }
 
-    async fn alert_text(&mut self) -> Result<String, Self::Error> {
+    async fn alert_text(&mut self) -> Result<String, RunnerErrorKind> {
         let text = self.0.switch_to().alert().text().await?;
         Ok(text)
     }
 
-    async fn alert_accept(&mut self) -> Result<(), Self::Error> {
+    async fn alert_accept(&mut self) -> Result<(), RunnerErrorKind> {
         self.0.switch_to().alert().accept().await?;
         Ok(())
     }
 
-    async fn alert_dissmis(&mut self) -> Result<(), Self::Error> {
+    async fn alert_dissmis(&mut self) -> Result<(), RunnerErrorKind> {
         self.0.switch_to().alert().dismiss().await?;
         Ok(())
     }
@@ -173,24 +173,23 @@ pub struct WebElement<'a>(thirtyfour::WebElement<'a>, &'a thirtyfour::WebDriver)
 #[async_trait::async_trait]
 impl<'a> Element for WebElement<'a> {
     type Driver = Client<'a>;
-    type Error = crate::error::RunnerErrorKind;
 
-    async fn attr(&mut self, attribute: &str) -> Result<Option<String>, Self::Error> {
+    async fn attr(&mut self, attribute: &str) -> Result<Option<String>, RunnerErrorKind> {
         let attr = self.0.get_attribute(attribute).await?;
         Ok(attr)
     }
 
-    async fn prop(&mut self, prop: &str) -> Result<Option<String>, Self::Error> {
+    async fn prop(&mut self, prop: &str) -> Result<Option<String>, RunnerErrorKind> {
         let prop = self.0.get_property(prop).await?;
         Ok(prop)
     }
 
-    async fn text(&mut self) -> Result<String, Self::Error> {
+    async fn text(&mut self) -> Result<String, RunnerErrorKind> {
         let text = self.0.text().await?;
         Ok(text)
     }
 
-    async fn html(&mut self, inner: bool) -> Result<String, Self::Error> {
+    async fn html(&mut self, inner: bool) -> Result<String, RunnerErrorKind> {
         let html = if inner {
             self.0.inner_html().await?
         } else {
@@ -200,7 +199,7 @@ impl<'a> Element for WebElement<'a> {
         Ok(html)
     }
 
-    async fn find(&mut self, search: Locator) -> Result<Self, Self::Error>
+    async fn find(&mut self, search: Locator) -> Result<Self, RunnerErrorKind>
     where
         Self: Sized,
     {
@@ -210,12 +209,12 @@ impl<'a> Element for WebElement<'a> {
         Ok(Self(e, self.1))
     }
 
-    async fn click(mut self) -> Result<Self::Driver, Self::Error> {
+    async fn click(mut self) -> Result<Self::Driver, RunnerErrorKind> {
         self.0.click().await?;
         Ok(Client(self.1))
     }
 
-    async fn select_by_index(mut self, index: usize) -> Result<Self::Driver, Self::Error> {
+    async fn select_by_index(mut self, index: usize) -> Result<Self::Driver, RunnerErrorKind> {
         SelectElement::new(&self.0)
             .await?
             .select_by_index(index as u32)
@@ -224,7 +223,7 @@ impl<'a> Element for WebElement<'a> {
         Ok(Client(self.1))
     }
 
-    async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, Self::Error> {
+    async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
         SelectElement::new(&self.0)
             .await?
             .select_by_value(value)

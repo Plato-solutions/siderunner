@@ -744,20 +744,22 @@ mod flow {
         #[async_trait::async_trait]
         impl<'a> Webdriver for Arc<Client> {
             type Element = Element;
-            type Error = crate::error::RunnerErrorKind;
 
-            async fn goto(&mut self, url: &str) -> Result<(), Self::Error> {
+            async fn goto(&mut self, url: &str) -> Result<(), RunnerErrorKind> {
                 self.res_goto.as_ref().map(|f| (f)(url));
                 self.inc(Call::Goto);
                 Ok(())
             }
 
-            async fn find(&mut self, _: Locator) -> Result<Self::Element, Self::Error> {
+            async fn find(&mut self, _: Locator) -> Result<Self::Element, RunnerErrorKind> {
                 self.inc(Call::Find);
                 Ok(Element(Arc::clone(self)))
             }
 
-            async fn find_all(&mut self, _: Locator) -> Result<Vec<Self::Element>, Self::Error> {
+            async fn find_all(
+                &mut self,
+                _: Locator,
+            ) -> Result<Vec<Self::Element>, RunnerErrorKind> {
                 self.inc(Call::FindAll);
                 Ok(vec![Element(Arc::clone(self))])
             }
@@ -766,7 +768,7 @@ mod flow {
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<(), Self::Error> {
+            ) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::W8Visib);
                 Ok(())
             }
@@ -775,7 +777,7 @@ mod flow {
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<(), Self::Error> {
+            ) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::W8NPres);
                 Ok(())
             }
@@ -784,7 +786,7 @@ mod flow {
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<(), Self::Error> {
+            ) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::W8Pres);
                 Ok(())
             }
@@ -793,47 +795,51 @@ mod flow {
                 &mut self,
                 _: Locator,
                 _: Duration,
-            ) -> Result<(), Self::Error> {
+            ) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::W8Edit);
                 Ok(())
             }
 
-            async fn current_url(&mut self) -> Result<url::Url, Self::Error> {
+            async fn current_url(&mut self) -> Result<url::Url, RunnerErrorKind> {
                 self.inc(Call::CurrentUrl);
                 Ok(url::Url::parse("http://example.com").unwrap())
             }
 
-            async fn set_window_size(&mut self, _: u32, _: u32) -> Result<(), Self::Error> {
+            async fn set_window_size(&mut self, _: u32, _: u32) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::SetWSize);
                 Ok(())
             }
 
-            async fn execute(&mut self, _: &str, _: Vec<Json>) -> Result<Json, Self::Error> {
+            async fn execute(&mut self, _: &str, _: Vec<Json>) -> Result<Json, RunnerErrorKind> {
                 self.inc(Call::Exec);
                 Ok(Json::Null)
             }
 
-            async fn execute_async(&mut self, _: &str, _: Vec<Json>) -> Result<Json, Self::Error> {
+            async fn execute_async(
+                &mut self,
+                _: &str,
+                _: Vec<Json>,
+            ) -> Result<Json, RunnerErrorKind> {
                 self.inc(Call::ExecAsync);
                 Ok(Json::Null)
             }
 
-            async fn close(&mut self) -> Result<(), Self::Error> {
+            async fn close(&mut self) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::Close);
                 Ok(())
             }
 
-            async fn alert_text(&mut self) -> Result<String, Self::Error> {
+            async fn alert_text(&mut self) -> Result<String, RunnerErrorKind> {
                 self.inc(Call::AlertText);
                 Ok("".to_string())
             }
 
-            async fn alert_accept(&mut self) -> Result<(), Self::Error> {
+            async fn alert_accept(&mut self) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::AlertAccept);
                 Ok(())
             }
 
-            async fn alert_dissmis(&mut self) -> Result<(), Self::Error> {
+            async fn alert_dissmis(&mut self) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::AlertDissmis);
                 Ok(())
             }
@@ -850,29 +856,28 @@ mod flow {
         #[async_trait::async_trait]
         impl WebElement for Element {
             type Driver = Arc<Client>;
-            type Error = crate::error::RunnerErrorKind;
 
-            async fn attr(&mut self, _: &str) -> Result<Option<String>, Self::Error> {
+            async fn attr(&mut self, _: &str) -> Result<Option<String>, RunnerErrorKind> {
                 self.inc(Call::Attr);
                 Ok(None)
             }
 
-            async fn prop(&mut self, _: &str) -> Result<Option<String>, Self::Error> {
+            async fn prop(&mut self, _: &str) -> Result<Option<String>, RunnerErrorKind> {
                 self.inc(Call::Prop);
                 Ok(None)
             }
 
-            async fn text(&mut self) -> Result<String, Self::Error> {
+            async fn text(&mut self) -> Result<String, RunnerErrorKind> {
                 self.inc(Call::Text);
                 Ok("".to_string())
             }
 
-            async fn html(&mut self, _: bool) -> Result<String, Self::Error> {
+            async fn html(&mut self, _: bool) -> Result<String, RunnerErrorKind> {
                 self.inc(Call::Html);
                 Ok("".to_string())
             }
 
-            async fn find(&mut self, _: Locator) -> Result<Self, Self::Error>
+            async fn find(&mut self, _: Locator) -> Result<Self, RunnerErrorKind>
             where
                 Self: Sized,
             {
@@ -880,17 +885,17 @@ mod flow {
                 Ok(Element(self.0.clone()))
             }
 
-            async fn click(mut self) -> Result<Self::Driver, Self::Error> {
+            async fn click(mut self) -> Result<Self::Driver, RunnerErrorKind> {
                 self.inc(Call::Click);
                 Ok(self.0)
             }
 
-            async fn select_by_index(mut self, _: usize) -> Result<Self::Driver, Self::Error> {
+            async fn select_by_index(mut self, _: usize) -> Result<Self::Driver, RunnerErrorKind> {
                 self.inc(Call::SelectByIndex);
                 Ok(self.0)
             }
 
-            async fn select_by_value(mut self, _: &str) -> Result<Self::Driver, Self::Error> {
+            async fn select_by_value(mut self, _: &str) -> Result<Self::Driver, RunnerErrorKind> {
                 self.inc(Call::SelectByValue);
                 Ok(self.0)
             }

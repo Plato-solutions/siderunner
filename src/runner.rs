@@ -61,8 +61,8 @@ impl<D> Runner<D> {
 
 impl<D, E> Runner<D>
 where
-    D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
-    E: webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send,
+    D: Webdriver<Element = E> + Send,
+    E: webdriver::Element<Driver = D> + Send,
 {
     /// Run all tests in a side file
     pub async fn run(&mut self, file: &File) -> Result<(), RunnerError> {

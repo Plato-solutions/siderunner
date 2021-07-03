@@ -40,6 +40,6 @@ pub use {
 pub trait Command {
     async fn run<D, E>(&self, runner: &mut Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
-        E: webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send;
+        D: Webdriver<Element = E> + Send,
+        E: webdriver::Element<Driver = D> + Send;
 }

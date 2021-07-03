@@ -23,8 +23,8 @@ impl WaitForElementVisible {
 impl Command for WaitForElementVisible {
     async fn run<D, E>(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
-        E: crate::webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send,
+        D: Webdriver<Element = E> + Send,
+        E: crate::webdriver::Element<Driver = D> + Send,
     {
         tokio::time::sleep(self.timeout).await;
         Ok(())

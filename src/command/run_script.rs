@@ -15,8 +15,8 @@ impl RunScript {
 impl Command for RunScript {
     async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
-        E: crate::webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send,
+        D: Webdriver<Element = E> + Send,
+        E: crate::webdriver::Element<Driver = D> + Send,
     {
         // Acording to Selenium specification we would have to instrument a script block in HTML,
         // but from what I see in there code base they don't follow there own spec?

@@ -22,8 +22,8 @@ impl WaitForElementNotPresent {
 impl Command for WaitForElementNotPresent {
     async fn run<D, E>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
     where
-        D: Webdriver<Element = E, Error = RunnerErrorKind> + Send,
-        E: crate::webdriver::Element<Driver = D, Error = RunnerErrorKind> + Send,
+        D: Webdriver<Element = E> + Send,
+        E: crate::webdriver::Element<Driver = D> + Send,
     {
         runner
             .get_webdriver()

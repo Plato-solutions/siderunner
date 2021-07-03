@@ -7,6 +7,7 @@ use crate::{
 mod answer_on_next_prompt;
 mod assert;
 mod assert_alert;
+mod assert_prompt;
 mod assert_checked;
 mod click;
 mod close;
@@ -32,6 +33,7 @@ pub use {
     set_window_size::*, store::*, store_text::*, store_xpath_count::*,
     wait_for_element_editable::*, wait_for_element_not_present::*, wait_for_element_present::*,
     wait_for_element_visible::*,
+    assert_prompt::*,
 };
 
 #[async_trait::async_trait]

@@ -73,6 +73,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertAlert" => Cmd::parse_assert_alert,
         "assertChecked" => Cmd::parse_assert_checked,
         "assertNotChecked" => Cmd::parse_assert_not_checked,
+        "assertPrompt" => Cmd::parse_assert_prompt,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -237,6 +238,7 @@ pub enum Cmd {
     },
     AnswerOnNextPrompt(String),
     AssertAlert(String),
+    AssertPrompt(String),
     AssertChecked(Target),
     AssertNotChecked(Target),
 }
@@ -462,6 +464,11 @@ impl Cmd {
     fn parse_assert_alert(c: &format::Command) -> Result<Self, ParseError> {
         let expected = c.target.clone();
         Ok(Self::AssertAlert(expected))
+    }
+
+    fn parse_assert_prompt(c: &format::Command) -> Result<Self, ParseError> {
+        let expected = c.target.clone();
+        Ok(Self::AssertPrompt(expected))
     }
 
     fn parse_assert_checked(c: &format::Command) -> Result<Self, ParseError> {

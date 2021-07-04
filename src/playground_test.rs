@@ -850,6 +850,16 @@ mod flow {
                 self.inc(Call::DoubleClick);
                 Ok(())
             }
+
+            async fn mouse_down(&mut self, _: Locator) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::MouseDown);
+                Ok(())
+            }
+
+            async fn mouse_up(&mut self, _: Locator) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::MouseUp);
+                Ok(())
+            }
         }
 
         pub struct Element(Arc<Client>);
@@ -940,6 +950,8 @@ mod flow {
             alert_dissmis: usize,
             double_click: usize,
             send_keys: usize,
+            mouse_up: usize,
+            mouse_down: usize,
         }
 
         #[derive(Hash, PartialEq, Eq)]
@@ -969,6 +981,8 @@ mod flow {
             AlertDissmis,
             DoubleClick,
             SendKeys,
+            MouseDown,
+            MouseUp,
         }
 
         impl Index<Call> for CallCount {
@@ -1001,6 +1015,8 @@ mod flow {
                     Call::AlertDissmis => &self.alert_dissmis,
                     Call::DoubleClick => &self.double_click,
                     Call::SendKeys => &self.send_keys,
+                    Call::MouseDown => &self.mouse_down,
+                    Call::MouseUp => &self.mouse_up,
                 }
             }
         }
@@ -1033,6 +1049,8 @@ mod flow {
                     Call::AlertDissmis => &mut self.alert_dissmis,
                     Call::DoubleClick => &mut self.double_click,
                     Call::SendKeys => &mut self.send_keys,
+                    Call::MouseDown => &mut self.mouse_down,
+                    Call::MouseUp => &mut self.mouse_up,
                 }
             }
         }

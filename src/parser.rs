@@ -82,6 +82,8 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "sendKeys" => Cmd::parse_send_keys,
         "type" => Cmd::parse_type,
         "check" => Cmd::parse_check,
+        "mouseUp" => Cmd::parse_mouse_up,
+        "mouseDown" => Cmd::parse_mouse_down,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -257,6 +259,8 @@ pub enum Cmd {
     SendKeys(Target, String),
     Type(Target, String),
     Check(Target),
+    MouseUp(Target),
+    MouseDown(Target),
 }
 
 impl Cmd {
@@ -546,6 +550,18 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::Check(target))
+    }
+
+    fn parse_mouse_down(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::MouseDown(target))
+    }
+
+    fn parse_mouse_up(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::MouseUp(target))
     }
 }
 

@@ -137,3 +137,8 @@ test_file!(
     "tests/resources/commands/check/test.side.json",
     command_check
 );
+#[cfg(not(feature = "fantoccini_backend"))]
+test_file!(
+    "tests/resources/commands/mouse down-up/test.side.json",
+    command_mouse_down_up
+);

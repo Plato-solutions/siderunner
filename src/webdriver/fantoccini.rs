@@ -173,6 +173,14 @@ impl Webdriver for Client {
     async fn double_click(&mut self, locator: Locator) -> Result<(), RunnerErrorKind> {
         todo!()
     }
+
+    async fn mouse_down(&mut self, locator: Locator) -> Result<(), RunnerErrorKind> {
+        todo!()
+    }
+
+    async fn mouse_up(&mut self, locator: Locator) -> Result<(), RunnerErrorKind> {
+        todo!()
+    }
 }
 
 pub struct Element(fan::elements::Element);

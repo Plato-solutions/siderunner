@@ -179,6 +179,32 @@ impl<'a> Webdriver for Client<'a> {
 
         Ok(())
     }
+
+    async fn mouse_down(&mut self, locator: Locator) -> Result<(), RunnerErrorKind> {
+        let by: By = (&locator).into();
+        let el = self.0.find_element(by).await?;
+        self.0
+            .action_chain()
+            .move_to_element_center(&el)
+            .click_and_hold()
+            .perform()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn mouse_up(&mut self, locator: Locator) -> Result<(), RunnerErrorKind> {
+        let by: By = (&locator).into();
+        let el = self.0.find_element(by).await?;
+        self.0
+            .action_chain()
+            .move_to_element_center(&el)
+            .release()
+            .perform()
+            .await?;
+
+        Ok(())
+    }
 }
 
 pub struct WebElement<'a>(thirtyfour::WebElement<'a>, &'a thirtyfour::WebDriver);

@@ -132,3 +132,7 @@ test_file!(
     "tests/resources/commands/type/test.side.json",
     command_type
 );
+test_file!(
+    "tests/resources/commands/check/test.side.json",
+    command_check
+);

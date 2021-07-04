@@ -11,7 +11,7 @@
 
 use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertNotChecked, AssertNotText,
-    AssertSelectedValue, AssertText, Click, Close, DoubleClick, Echo, EditContent, Execute,
+    AssertSelectedValue, AssertText, Check, Click, Close, DoubleClick, Echo, EditContent, Execute,
     ExecuteAsync, Open, Pause, RunScript, Select, SendKeys, SetWindowSize, Store, StoreText,
     StoreXpathCount, Type, WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent,
     WaitForElementVisible,
@@ -205,6 +205,7 @@ where
                     .run(self)
                     .await
             }
+            Cmd::Check(target) => Check::new(target.clone().into()).run(self).await,
             Cmd::While(..)
             | Cmd::Else
             | Cmd::If(..)

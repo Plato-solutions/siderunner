@@ -1,0 +1,124 @@
+{
+    "id": "e55b5d28-ec31-4401-8d2a-5b7829f36d82",
+    "version": "2.0",
+    "name": "Check Test",
+    "url": "http://localhost/",
+    "tests": [
+        {
+            "id": "834b529f-c7fc-4d43-bbdf-0cfabe285c75",
+            "name": "checkbox",
+            "commands": [
+                {
+                    "id": "839bb8c7-14da-49dd-9554-e593be46fd3e",
+                    "comment": "",
+                    "command": "open",
+                    "target": "http://localhost:8000/tests/resources/commands/check/index.xhtml",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "assertNotChecked",
+                    "target": "id=checkbox2",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "check",
+                    "target": "css=#checkbox2",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "assertChecked",
+                    "target": "id=checkbox2",
+                    "targets": [],
+                    "value": ""
+                }
+            ]
+        },
+        {
+            "id": "834b529f-c7fc-4d43-bbdf-0cfabe285c75",
+            "name": "radio",
+            "commands": [
+                {
+                    "id": "839bb8c7-14da-49dd-9554-e593be46fd3e",
+                    "comment": "",
+                    "command": "open",
+                    "target": "http://localhost:8000/tests/resources/commands/check/index.xhtml",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "assertNotChecked",
+                    "target": "id=radio2",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "check",
+                    "target": "css=#radio2",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "assertChecked",
+                    "target": "id=radio2",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "check",
+                    "target": "css=#radio3",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "assertNotChecked",
+                    "target": "id=radio2",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "392e5b60-ed91-445b-9827-001d5695fece",
+                    "comment": "",
+                    "command": "assertChecked",
+                    "target": "id=radio3",
+                    "targets": [],
+                    "value": ""
+                }
+            ]
+        }
+    ],
+    "suites": [
+        {
+            "id": "e7b7100f-dcc5-4d14-a6cc-7987a9d6f804",
+            "name": "Default Suite",
+            "persistSession": false,
+            "parallel": false,
+            "timeout": 300,
+            "tests": [
+                "834b529f-c7fc-4d43-bbdf-0cfabe285c75"
+            ]
+        }
+    ],
+    "urls": [
+        "http://localhost/"
+    ],
+    "plugins": []
+}

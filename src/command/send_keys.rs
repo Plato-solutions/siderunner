@@ -18,7 +18,7 @@ impl SendKeys {
 #[async_trait::async_trait]
 impl<D: Webdriver> Command<D> for SendKeys {
     async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
-        let mut element = runner.get_webdriver().find(self.target.clone()).await?;
+        let element = runner.get_webdriver().find(self.target.clone()).await?;
         element.send_keys(&self.text).await?;
         Ok(())
     }

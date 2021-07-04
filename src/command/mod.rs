@@ -18,6 +18,7 @@ mod open;
 mod pause;
 mod run_script;
 mod select;
+mod send_keys;
 mod set_window_size;
 mod store;
 mod store_text;
@@ -31,7 +32,7 @@ pub use {
     answer_on_next_prompt::*, assert::*, assert_alert::*, assert_checked::*, assert_prompt::*,
     assert_selected_value::*, assert_text::*, click::*, close::*, double_click::*, echo::*,
     edit_content::*, execute::*, execute_async::*, open::*, pause::*, run_script::*, select::*,
-    set_window_size::*, store::*, store_text::*, store_xpath_count::*,
+    send_keys::*, set_window_size::*, store::*, store_text::*, store_xpath_count::*,
     wait_for_element_editable::*, wait_for_element_not_present::*, wait_for_element_present::*,
     wait_for_element_visible::*,
 };

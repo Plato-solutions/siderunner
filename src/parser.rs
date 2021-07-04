@@ -79,6 +79,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertNotText" => Cmd::parse_assert_not_text,
         "doubleClick" => Cmd::parse_double_click,
         "editContent" => Cmd::parse_edit_content,
+        "sendKeys" => Cmd::parse_send_keys,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -251,6 +252,7 @@ pub enum Cmd {
     AssertNotText(Target, String),
     DoubleClick(Target),
     EditContent(Target, String),
+    SendKeys(Target, String),
 }
 
 impl Cmd {
@@ -522,6 +524,12 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::EditContent(target, c.value.clone()))
+    }
+
+    fn parse_send_keys(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::SendKeys(target, c.value.clone()))
     }
 }
 

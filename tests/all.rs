@@ -120,3 +120,7 @@ test_file!(
     "tests/resources/commands/double click/test.side.json",
     command_double_click
 );
+test_file!(
+    "tests/resources/commands/edit content/test.side.json",
+    command_edit_content
+);

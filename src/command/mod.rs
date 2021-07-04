@@ -11,6 +11,7 @@ mod click;
 mod close;
 mod double_click;
 mod echo;
+mod edit_content;
 mod execute;
 mod execute_async;
 mod open;
@@ -29,9 +30,10 @@ mod wait_for_element_visible;
 pub use {
     answer_on_next_prompt::*, assert::*, assert_alert::*, assert_checked::*, assert_prompt::*,
     assert_selected_value::*, assert_text::*, click::*, close::*, double_click::*, echo::*,
-    execute::*, execute_async::*, open::*, pause::*, run_script::*, select::*, set_window_size::*,
-    store::*, store_text::*, store_xpath_count::*, wait_for_element_editable::*,
-    wait_for_element_not_present::*, wait_for_element_present::*, wait_for_element_visible::*,
+    edit_content::*, execute::*, execute_async::*, open::*, pause::*, run_script::*, select::*,
+    set_window_size::*, store::*, store_text::*, store_xpath_count::*,
+    wait_for_element_editable::*, wait_for_element_not_present::*, wait_for_element_present::*,
+    wait_for_element_visible::*,
 };
 
 #[async_trait::async_trait]

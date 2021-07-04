@@ -244,6 +244,11 @@ impl<'a> Element for WebElement<'a> {
 
         Ok(Client(self.1))
     }
+
+    async fn send_keys(mut self, value: &str) -> Result<(), RunnerErrorKind> {
+        self.0.send_keys(value).await?;
+        Ok(())
+    }
 }
 
 async fn elapsed_fn<F, R>(func: F) -> (R, Duration)

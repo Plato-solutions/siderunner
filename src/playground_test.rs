@@ -906,6 +906,11 @@ mod flow {
                 self.inc(Call::SelectByValue);
                 Ok(self.0)
             }
+
+            async fn send_keys(mut self, _: &str) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::SendKeys);
+                Ok(())
+            }
         }
 
         #[derive(Clone, Default)]
@@ -934,6 +939,7 @@ mod flow {
             alert_accept: usize,
             alert_dissmis: usize,
             double_click: usize,
+            send_keys: usize,
         }
 
         #[derive(Hash, PartialEq, Eq)]
@@ -962,6 +968,7 @@ mod flow {
             AlertAccept,
             AlertDissmis,
             DoubleClick,
+            SendKeys,
         }
 
         impl Index<Call> for CallCount {
@@ -993,6 +1000,7 @@ mod flow {
                     Call::AlertAccept => &self.alert_accept,
                     Call::AlertDissmis => &self.alert_dissmis,
                     Call::DoubleClick => &self.double_click,
+                    Call::SendKeys => &self.send_keys,
                 }
             }
         }
@@ -1024,6 +1032,7 @@ mod flow {
                     Call::AlertAccept => &mut self.alert_accept,
                     Call::AlertDissmis => &mut self.alert_dissmis,
                     Call::DoubleClick => &mut self.double_click,
+                    Call::SendKeys => &mut self.send_keys,
                 }
             }
         }

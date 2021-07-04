@@ -48,8 +48,7 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        self
-            .0
+        self.0
             .query(locator)
             .and_displayed()
             .wait(timeout, timeout / 3)
@@ -65,8 +64,7 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        self
-            .0
+        self.0
             .query(locator)
             .wait(timeout, timeout / 3)
             .not_exists()
@@ -81,8 +79,7 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        self
-            .0
+        self.0
             .query(locator)
             .wait(timeout, timeout / 3)
             .exists()
@@ -97,8 +94,7 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        self
-            .0
+        self.0
             .query(locator)
             .wait(timeout, timeout / 3)
             .and_clickable()

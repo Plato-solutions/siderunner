@@ -108,3 +108,11 @@ test_file!(
     "tests/resources/commands/assert selected value/test.side.json",
     command_assert_selected_value
 );
+test_file!(
+    "tests/resources/commands/assert text/test.side.json",
+    command_assert_text
+);
+test_file!(
+    "tests/resources/commands/assert not text/test.side.json",
+    command_assert_not_text
+);

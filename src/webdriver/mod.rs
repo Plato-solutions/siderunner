@@ -53,6 +53,7 @@ pub trait Webdriver: Send {
     async fn alert_text(&mut self) -> Result<String, RunnerErrorKind>;
     async fn alert_accept(&mut self) -> Result<(), RunnerErrorKind>;
     async fn alert_dissmis(&mut self) -> Result<(), RunnerErrorKind>;
+    async fn double_click(&mut self, locator: Locator) -> Result<(), RunnerErrorKind>;
 }
 
 /// Element represents functionality which may be taken agains a WebElement by means of Webdriver.

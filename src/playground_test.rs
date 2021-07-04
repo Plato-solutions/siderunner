@@ -845,6 +845,11 @@ mod flow {
                 self.inc(Call::AlertDissmis);
                 Ok(())
             }
+
+            async fn double_click(&mut self, _: Locator) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::DoubleClick);
+                Ok(())
+            }
         }
 
         pub struct Element(Arc<Client>);
@@ -928,6 +933,7 @@ mod flow {
             alert_text: usize,
             alert_accept: usize,
             alert_dissmis: usize,
+            double_click: usize,
         }
 
         #[derive(Hash, PartialEq, Eq)]
@@ -955,6 +961,7 @@ mod flow {
             AlertText,
             AlertAccept,
             AlertDissmis,
+            DoubleClick,
         }
 
         impl Index<Call> for CallCount {
@@ -985,6 +992,7 @@ mod flow {
                     Call::AlertText => &self.alert_text,
                     Call::AlertAccept => &self.alert_accept,
                     Call::AlertDissmis => &self.alert_dissmis,
+                    Call::DoubleClick => &self.double_click,
                 }
             }
         }
@@ -1015,6 +1023,7 @@ mod flow {
                     Call::AlertText => &mut self.alert_text,
                     Call::AlertAccept => &mut self.alert_accept,
                     Call::AlertDissmis => &mut self.alert_dissmis,
+                    Call::DoubleClick => &mut self.double_click,
                 }
             }
         }

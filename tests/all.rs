@@ -116,3 +116,7 @@ test_file!(
     "tests/resources/commands/assert not text/test.side.json",
     command_assert_not_text
 );
+test_file!(
+    "tests/resources/commands/double click/test.side.json",
+    command_double_click
+);

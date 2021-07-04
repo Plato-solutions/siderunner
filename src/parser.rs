@@ -77,6 +77,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertSelectedValue" => Cmd::parse_assert_selected_value,
         "assertText" => Cmd::parse_assert_text,
         "assertNotText" => Cmd::parse_assert_not_text,
+        "doubleClick" => Cmd::parse_double_click,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -247,6 +248,7 @@ pub enum Cmd {
     AssertSelectedValue(Target, String),
     AssertText(Target, String),
     AssertNotText(Target, String),
+    DoubleClick(Target),
 }
 
 impl Cmd {
@@ -506,6 +508,12 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::AssertNotText(target, c.value.clone()))
+    }
+
+    fn parse_double_click(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::DoubleClick(target))
     }
 }
 

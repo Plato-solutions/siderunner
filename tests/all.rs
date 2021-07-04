@@ -128,3 +128,7 @@ test_file!(
     "tests/resources/commands/send keys/test.side.json",
     command_send_keys
 );
+test_file!(
+    "tests/resources/commands/type/test.side.json",
+    command_type
+);

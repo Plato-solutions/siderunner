@@ -13,7 +13,7 @@ use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertNotChecked, AssertNotText,
     AssertSelectedValue, AssertText, Click, Close, DoubleClick, Echo, EditContent, Execute,
     ExecuteAsync, Open, Pause, RunScript, Select, SendKeys, SetWindowSize, Store, StoreText,
-    StoreXpathCount, WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent,
+    StoreXpathCount, Type, WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent,
     WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
@@ -197,6 +197,11 @@ where
             }
             Cmd::SendKeys(target, value) => {
                 SendKeys::new(target.clone().into(), value.clone())
+                    .run(self)
+                    .await
+            }
+            Cmd::Type(target, value) => {
+                Type::new(target.clone().into(), value.clone())
                     .run(self)
                     .await
             }

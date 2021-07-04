@@ -4,21 +4,20 @@ use crate::{
     webdriver::{Element, Locator, Webdriver},
 };
 
-pub struct SendKeys {
+pub struct Type {
     target: Locator,
     text: String,
 }
 
-impl SendKeys {
+impl Type {
     pub fn new(target: Locator, text: String) -> Self {
         Self { target, text }
     }
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for SendKeys {
+impl<D: Webdriver> Command<D> for Type {
     async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
-        // todo: add support for a KEY_STROKES like KEY_ENTER
         let element = runner.get_webdriver().find(self.target.clone()).await?;
         element.send_keys(&self.text).await?;
         Ok(())

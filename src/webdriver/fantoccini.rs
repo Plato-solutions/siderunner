@@ -173,10 +173,6 @@ impl Webdriver for Client {
     async fn double_click(&mut self, locator: Locator) -> Result<(), RunnerErrorKind> {
         todo!()
     }
-
-    async fn send_keys(mut self, value: &str) -> Result<(), RunnerErrorKind> {
-        todo!()
-    }
 }
 
 pub struct Element(fan::elements::Element);
@@ -226,6 +222,10 @@ impl WebElement for Element {
     async fn select_by_value(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
         let c = self.0.select_by_value(value).await?;
         Ok(Client(c))
+    }
+
+    async fn send_keys(mut self, value: &str) -> Result<(), RunnerErrorKind> {
+        todo!()
     }
 }
 

@@ -20,7 +20,7 @@ impl Pause {
 #[async_trait::async_trait]
 impl<D: Webdriver> Command<D> for Pause {
     async fn run(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
-        tokio::time::sleep(self.timeout).await;
+        futures_timer::Delay::new(self.timeout).await;
         Ok(())
     }
 }

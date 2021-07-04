@@ -48,15 +48,13 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        let (e, _) = elapsed_fn(
-            self.0
-                .query(locator)
-                .and_displayed()
-                .wait(timeout, timeout / 3)
-                .first(),
-        )
-        .await;
-        e?;
+        self
+            .0
+            .query(locator)
+            .and_displayed()
+            .wait(timeout, timeout / 3)
+            .first()
+            .await?;
 
         Ok(())
     }
@@ -67,14 +65,12 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        let (e, _) = elapsed_fn(
-            self.0
-                .query(locator)
-                .wait(timeout, timeout / 3)
-                .not_exists(),
-        )
-        .await;
-        e?;
+        self
+            .0
+            .query(locator)
+            .wait(timeout, timeout / 3)
+            .not_exists()
+            .await?;
 
         Ok(())
     }
@@ -85,8 +81,12 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        let (e, _) = elapsed_fn(self.0.query(locator).wait(timeout, timeout / 3).exists()).await;
-        e?;
+        self
+            .0
+            .query(locator)
+            .wait(timeout, timeout / 3)
+            .exists()
+            .await?;
 
         Ok(())
     }
@@ -97,16 +97,14 @@ impl<'a> Webdriver for Client<'a> {
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind> {
         let locator: By = (&locator).into();
-        let (e, _) = elapsed_fn(
-            self.0
-                .query(locator)
-                .wait(timeout, timeout / 3)
-                .and_clickable()
-                .and_enabled()
-                .first(),
-        )
-        .await;
-        e?;
+        self
+            .0
+            .query(locator)
+            .wait(timeout, timeout / 3)
+            .and_clickable()
+            .and_enabled()
+            .first()
+            .await?;
 
         Ok(())
     }
@@ -275,17 +273,6 @@ impl<'a> Element for WebElement<'a> {
         self.0.send_keys(value).await?;
         Ok(())
     }
-}
-
-async fn elapsed_fn<F, R>(func: F) -> (R, Duration)
-where
-    F: std::future::Future<Output = R>,
-{
-    let now = tokio::time::Instant::now();
-    let result = func.await;
-    let elapsed = now.elapsed();
-
-    (result, elapsed)
 }
 
 impl<'a> From<&'a Locator> for By<'a> {

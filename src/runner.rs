@@ -98,6 +98,12 @@ where
         Ok(())
     }
 
+    /// Run a particular test in a file.
+    /// Test represented by an index of it.
+    pub async fn run_test(&mut self, file: &File, test: usize) -> Result<(), RunnerError> {
+        Playground::run_test(self, file, test).await
+    }
+
     pub(crate) async fn run_command(
         &mut self,
         file_url: &str,

@@ -333,10 +333,7 @@ fn next_index(nodes: &mut [Node], current: usize) -> usize {
     }
 }
 
-fn find_next<Cmp: Fn(&Node) -> bool>(
-    commands: &[Node],
-    comparator: Cmp,
-) -> Option<usize> {
+fn find_next<Cmp: Fn(&Node) -> bool>(commands: &[Node], comparator: Cmp) -> Option<usize> {
     for (i, cmd) in commands.iter().enumerate() {
         if comparator(cmd) {
             return Some(i);

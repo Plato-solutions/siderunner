@@ -6,7 +6,6 @@
 
 use super::{Element as WebElement, Locator, Webdriver};
 use crate::error::RunnerErrorKind;
-use crate::error::RunnerErrorKind;
 use fantoccini as fan;
 use serde_json::Value as Json;
 use std::time::Duration;

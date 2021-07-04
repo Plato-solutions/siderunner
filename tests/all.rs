@@ -116,22 +116,23 @@ test_file!(
     "tests/resources/commands/assert not text/test.side.json",
     command_assert_not_text
 );
+#[cfg(not(feature = "fantoccini_backend"))]
 test_file!(
     "tests/resources/commands/double click/test.side.json",
     command_double_click
 );
+#[cfg(not(feature = "fantoccini_backend"))]
 test_file!(
     "tests/resources/commands/edit content/test.side.json",
     command_edit_content
 );
+#[cfg(not(feature = "fantoccini_backend"))]
 test_file!(
     "tests/resources/commands/send keys/test.side.json",
     command_send_keys
 );
-test_file!(
-    "tests/resources/commands/type/test.side.json",
-    command_type
-);
+#[cfg(not(feature = "fantoccini_backend"))]
+test_file!("tests/resources/commands/type/test.side.json", command_type);
 test_file!(
     "tests/resources/commands/check/test.side.json",
     command_check

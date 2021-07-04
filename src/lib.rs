@@ -2,7 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-//! A crate provides interface for parsing `side` files and running them.
+//! The library provides interface for parsing and running `.side` files
+//! which are produced in comparable way as [`Selenium IDE`] does.
 //!
 //! # Example
 //! ```
@@ -28,6 +29,8 @@
 //!     runner.close().await.expect("Error occured while closing webdriver");
 //! }
 //! ```
+//!
+//! [`Selenium IDE`]: https://www.selenium.dev/selenium-ide/
 
 mod command;
 mod error;

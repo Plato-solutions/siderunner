@@ -2,13 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// TODO: Mock webdriver
-// TODO: interface for fantocini and possibly choose webdriver provider by feature
-// TODO: provide more direct error location test + command + location(can be determined just by section (target/value etc.)) + cause
-// TODO: Runner may contains basic information to handle relative url
-// TODO: refactoring and test While and If commits
-// TODO: hide hook after feature flag + add a sleep statistic hook
-
 use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertNotChecked, AssertNotText,
     AssertSelectedValue, AssertText, Check, Click, Close, DoubleClick, Echo, EditContent, Execute,
@@ -40,7 +33,7 @@ pub struct Runner<D> {
 
 impl<D> Runner<D> {
     /// Create a new Runner which uses a client as a Backend
-    pub fn _new(client: D) -> Runner<D> {
+    pub(crate) fn _new(client: D) -> Runner<D> {
         Self {
             webdriver: client,
             data: HashMap::new(),
@@ -48,20 +41,16 @@ impl<D> Runner<D> {
         }
     }
 
-    pub(crate) fn save_value(&mut self, var: String, value: Value) {
+    /// Save a value in storage.
+    ///
+    /// All tests which will be run afterwards will able to work with the saved variable.
+    pub fn save_value(&mut self, var: String, value: Value) {
         self.data.insert(var, value);
     }
 
-    pub(crate) fn get_value(&mut self, var: &str) -> Option<&Value> {
+    /// Get a value from a data storage.
+    pub fn get_value(&mut self, var: &str) -> Option<&Value> {
         self.data.get(var)
-    }
-
-    pub(crate) fn get_value_mut(&mut self, var: &str) -> Option<&mut Value> {
-        self.data.get_mut(var)
-    }
-
-    pub(crate) fn echo(&self, message: &str) {
-        self.echo_hook.as_ref()(message)
     }
 
     /// Sets a callback which will be run on each Echo command.
@@ -74,8 +63,17 @@ impl<D> Runner<D> {
         &self.data
     }
 
+    /// Gets a used webdriver backend
     pub fn get_webdriver(&mut self) -> &mut D {
         &mut self.webdriver
+    }
+
+    pub(crate) fn get_value_mut(&mut self, var: &str) -> Option<&mut Value> {
+        self.data.get_mut(var)
+    }
+
+    pub(crate) fn echo(&self, message: &str) {
+        self.echo_hook.as_ref()(message)
     }
 }
 
@@ -90,7 +88,7 @@ where
         self.webdriver.close().await
     }
 
-    /// Run all tests in a side file
+    /// Run all tests in a side file starting from first test.
     pub async fn run(&mut self, file: &File) -> Result<(), RunnerError> {
         for test in 0..file.tests.len() {
             self.run_test(file, test).await?;

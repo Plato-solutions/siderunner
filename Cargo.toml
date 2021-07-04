@@ -9,7 +9,7 @@ homepage = "https://github.com/Plato-solutions/siderunner"
 documentation = "https://docs.rs/siderunner"
 license = "MPL-2.0"
 readme = "README.md"
-keywords = ["selenium", "webdriver", "automation", "automation-test", "automation-selenium", ".side", "testing", "test"]
+keywords = ["selenium", "webdriver", "automation", "automation-test", "automation-selenium", "side", "testing", "test"]
 categories = ["development-tools::testing"]
 
 [features]

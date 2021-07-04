@@ -92,7 +92,7 @@ where
     /// Run all tests in a side file
     pub async fn run(&mut self, file: &File) -> Result<(), RunnerError> {
         for test in 0..file.tests.len() {
-            Playground::run_test(self, file, test).await?;
+            self.run_test(file, test).await?;
         }
 
         Ok(())

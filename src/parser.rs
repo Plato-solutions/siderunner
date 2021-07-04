@@ -227,7 +227,7 @@ pub enum Cmd {
     Custom {
         cmd: String,
         target: String,
-        targets: Vec<Vec<String>>,
+        targets: Vec<Target>,
         value: String,
     },
     Assert {
@@ -413,11 +413,12 @@ impl Cmd {
     }
 
     fn parse_custom_cmd(cmd: &format::Command) -> Result<Self, ParseError> {
+        let targets = parse_targets(&cmd.targets)?;
         Ok(Self::Custom {
             cmd: cmd.cmd.clone(),
             target: cmd.target.clone(),
-            targets: cmd.targets.clone(),
             value: cmd.value.clone(),
+            targets,
         })
     }
 
@@ -578,17 +579,11 @@ fn parse_select_locator(text: &str) -> Result<SelectLocator, ParseError> {
     }
 }
 
-fn parse_targets(targets: &[Vec<String>]) -> Result<Vec<Target>, ParseError> {
+fn parse_targets(targets: &[(String, String)]) -> Result<Vec<Target>, ParseError> {
     let mut out = Vec::new();
     for target in targets {
-        if target.len() != 2 {
-            return Err(ParseError::LocatorFormatError(
-                "targets wrong format".to_owned(),
-            ));
-        }
-
-        let location = parse_location(&target[0])?;
-        let tag = parse_target_tag(&target[1])?.to_owned();
+        let location = parse_location(&target.0)?;
+        let tag = parse_target_tag(&target.1)?.to_owned();
 
         let target = Target {
             location,
@@ -601,9 +596,7 @@ fn parse_targets(targets: &[Vec<String>]) -> Result<Vec<Target>, ParseError> {
 }
 
 fn parse_target_tag(tag: &str) -> Result<&'_ str, ParseError> {
-    tag.splitn(2, ':')
-        .nth(1)
-        .ok_or_else(|| ParseError::LocatorFormatError("type of selector is unknown".to_owned()))
+    Ok(tag.splitn(2, ':').nth(1).unwrap_or(tag))
 }
 
 fn cast_timeout(s: &str) -> Result<Duration, ParseError> {
@@ -644,7 +637,7 @@ mod format {
         #[serde(rename = "command")]
         pub cmd: String,
         pub target: String,
-        pub targets: Vec<Vec<String>>,
+        pub targets: Vec<(String, String)>,
         pub value: String,
     }
 }
@@ -698,7 +691,12 @@ mod tests {
                 "comment": "",
                 "command": "//open",
                 "target": "http://google.com",
-                "targets": [],
+                "targets": [
+                    ["id=content", "id"],
+                    ["css=#content", "css:finder"],
+                    ["xpath=//div[@id='content']", "xpath:attributes"],
+                    ["xpath=//div[4]/div[2]", "xpath:position"]
+                ],
                 "value": ""
               }, {
                 "id": "3c00633c-4237-4c1b-b1e5-b8c2fc05e57d",
@@ -724,9 +722,7 @@ mod tests {
         .to_vec();
 
         let reader = file.as_slice();
-        let file = parse(reader);
-        assert!(file.is_ok());
-        let file = file.unwrap();
+        let file = parse(reader).unwrap();
         assert_eq!(file.tests.len(), 1);
         let test = &file.tests[0];
         let commands = &test.commands;
@@ -734,6 +730,38 @@ mod tests {
         assert!(matches!(commands[0].cmd, Cmd::Custom { .. }));
         assert!(matches!(commands[1].cmd, Cmd::Custom { .. }));
         assert!(matches!(commands[2].cmd, Cmd::Open(..)));
+
+        if let Cmd::Custom { targets, .. } = &commands[1].cmd {
+            assert_eq!(targets.len(), 4);
+            assert_eq!(
+                targets[0],
+                Target {
+                    location: Location::Id("content".to_string()),
+                    tag: Some("id".to_string())
+                }
+            );
+            assert_eq!(
+                targets[1],
+                Target {
+                    location: Location::Css("#content".to_string()),
+                    tag: Some("finder".to_string())
+                }
+            );
+            assert_eq!(
+                targets[2],
+                Target {
+                    location: Location::XPath("//div[@id='content']".to_string()),
+                    tag: Some("attributes".to_string())
+                }
+            );
+            assert_eq!(
+                targets[3],
+                Target {
+                    location: Location::XPath("//div[4]/div[2]".to_string()),
+                    tag: Some("position".to_string())
+                }
+            );
+        }
     }
 
     fn side_file() -> Vec<u8> {

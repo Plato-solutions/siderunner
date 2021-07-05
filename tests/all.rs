@@ -141,3 +141,11 @@ test_file!(
     "tests/resources/commands/mouse down-up/test.side.json",
     command_mouse_down_up
 );
+test_file!(
+    "tests/resources/commands/choose cancel on next confirmation/test.side.json",
+    command_choose_cancel_on_next_confirmation
+);
+test_file!(
+    "tests/resources/commands/choose ok on next confirmation/test.side.json",
+    command_choose_ok_on_next_confirmation
+);

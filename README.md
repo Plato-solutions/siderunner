@@ -77,9 +77,9 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [ ] assert title
 - [ ] assert value
 - [x] check
-- [ ] choose cancel on next confirmation
+- [x] choose cancel on next confirmation
 - [ ] choose cancel on next prompt
-- [ ] choose ok on next confirmation
+- [x] choose ok on next confirmation
 - [x] click
 - [ ] click at
 - [x] close

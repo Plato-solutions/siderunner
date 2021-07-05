@@ -84,6 +84,8 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "check" => Cmd::parse_check,
         "mouseUp" => Cmd::parse_mouse_up,
         "mouseDown" => Cmd::parse_mouse_down,
+        "chooseCancelOnNextConfirmation" => Cmd::parse_choose_cancel_on_next_confirmation,
+        "chooseOkOnNextConfirmation" => Cmd::parse_choose_ok_on_next_confirmation,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -261,6 +263,8 @@ pub enum Cmd {
     Check(Target),
     MouseUp(Target),
     MouseDown(Target),
+    ChooseCancelOnNextConfirmation,
+    ChooseOkOnNextConfirmation,
 }
 
 impl Cmd {
@@ -562,6 +566,14 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::MouseUp(target))
+    }
+
+    fn parse_choose_cancel_on_next_confirmation(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::ChooseCancelOnNextConfirmation)
+    }
+
+    fn parse_choose_ok_on_next_confirmation(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::ChooseOkOnNextConfirmation)
     }
 }
 

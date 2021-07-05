@@ -1,0 +1,54 @@
+{
+    "id": "e55b5d28-ec31-4401-8d2a-5b7829f36d82",
+    "version": "2.0",
+    "name": "Choose cancel on next confirmation",
+    "url": "http://localhost/",
+    "tests": [
+        {
+            "id": "834b529f-c7fc-4d43-bbdf-0cfabe285c75",
+            "name": "issue324",
+            "commands": [
+                {
+                    "id": "442be203-c4ac-4c3c-97aa-c640cd2789ba",
+                    "comment": "",
+                    "command": "chooseCancelOnNextConfirmation",
+                    "target": "",
+                    "targets": [],
+                    "value": ""
+                },
+                {
+                    "id": "44b6ccce-aa23-4506-977a-a86de9bb36ad",
+                    "comment": "",
+                    "command": "executeScript",
+                    "target": "return confirm('Hello My Friend')",
+                    "targets": [],
+                    "value": "confirmed"
+                },
+                {
+                    "id": "4eba7ac7-0e6d-4b19-bf2a-989f039e74a9",
+                    "comment": "",
+                    "command": "assert",
+                    "target": "confirmed",
+                    "targets": [],
+                    "value": "false"
+                }
+            ]
+        }
+    ],
+    "suites": [
+        {
+            "id": "e7b7100f-dcc5-4d14-a6cc-7987a9d6f804",
+            "name": "Default Suite",
+            "persistSession": false,
+            "parallel": false,
+            "timeout": 300,
+            "tests": [
+                "834b529f-c7fc-4d43-bbdf-0cfabe285c75"
+            ]
+        }
+    ],
+    "urls": [
+        "http://localhost/"
+    ],
+    "plugins": []
+}

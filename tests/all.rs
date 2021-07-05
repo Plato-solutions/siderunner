@@ -82,11 +82,10 @@ test_file!(
     "tests/resources/commands/add selection/test.side.json",
     command_add_selection
 );
-// currently fails ...
-// test_file!(
-//     "tests/resources/commands/answer on next prompt/test.side.json",
-//     command_answer_on_next_prompt
-// );
+test_file!(
+    "tests/resources/commands/answer on next prompt/test.side.json",
+    command_answer_on_next_prompt
+);
 #[cfg(not(feature = "fantoccini_backend"))]
 test_file!(
     "tests/resources/commands/assert alert/test.side.json",

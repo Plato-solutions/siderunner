@@ -34,6 +34,7 @@
 
 mod command;
 mod error;
+mod js_lib;
 mod parser;
 mod playground;
 #[cfg(test)]

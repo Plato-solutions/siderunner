@@ -58,7 +58,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 [`Selenium IDE`] supports the following [commands](https://www.selenium.dev/selenium-ide/docs/en/api/commands).
 
 - [ ] add selection
-- [ ] answer on next prompt
+- [x] answer on next prompt
 - [x] assert
 - [x] assert alert
 - [x] assert checked

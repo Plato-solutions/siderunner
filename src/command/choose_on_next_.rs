@@ -3,10 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::Command;
-use crate::{
-    error::RunnerErrorKind,
-    webdriver::{Locator, Webdriver},
-};
+use crate::{error::RunnerErrorKind, webdriver::Webdriver};
 
 pub struct ChooseCancelOnNextConfirmation;
 

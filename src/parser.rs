@@ -570,15 +570,15 @@ impl Cmd {
         Ok(Self::MouseUp(target))
     }
 
-    fn parse_choose_cancel_on_next_confirmation(c: &format::Command) -> Result<Self, ParseError> {
+    fn parse_choose_cancel_on_next_confirmation(_: &format::Command) -> Result<Self, ParseError> {
         Ok(Self::ChooseCancelOnNextConfirmation)
     }
 
-    fn parse_choose_ok_on_next_confirmation(c: &format::Command) -> Result<Self, ParseError> {
+    fn parse_choose_ok_on_next_confirmation(_: &format::Command) -> Result<Self, ParseError> {
         Ok(Self::ChooseOkOnNextConfirmation)
     }
 
-    fn parse_choose_cancel_on_next_prompt(c: &format::Command) -> Result<Self, ParseError> {
+    fn parse_choose_cancel_on_next_prompt(_: &format::Command) -> Result<Self, ParseError> {
         Ok(Self::ChooseCancelOnNextPrompt)
     }
 }

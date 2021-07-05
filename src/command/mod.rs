@@ -12,7 +12,7 @@ mod assert_prompt;
 mod assert_selected_value;
 mod assert_text;
 mod check;
-mod choose_on_next_confirmation;
+mod choose_on_next_;
 mod click;
 mod close;
 mod double_click;
@@ -38,7 +38,7 @@ mod wait_for_element_visible;
 
 pub use {
     answer_on_next_prompt::*, assert::*, assert_alert::*, assert_checked::*, assert_prompt::*,
-    assert_selected_value::*, assert_text::*, check::*, choose_on_next_confirmation::*, click::*,
+    assert_selected_value::*, assert_text::*, check::*, choose_on_next_::*, click::*,
     close::*, double_click::*, echo::*, edit_content::*, execute::*, execute_async::*, mouse::*,
     open::*, pause::*, run_script::*, select::*, send_keys::*, set_window_size::*, store::*,
     store_text::*, store_xpath_count::*, type_::*, wait_for_element_editable::*,

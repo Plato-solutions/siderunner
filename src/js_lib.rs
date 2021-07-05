@@ -33,6 +33,19 @@ where
     Ok(())
 }
 
+pub async fn choose_cancel_on_next_prompt<D>(runner: &mut Runner<D>) -> Result<(), RunnerErrorKind>
+where
+    D: Webdriver,
+{
+    let code = format!(
+        "{}{} replaceAlertMethod(null); answerOnNextPrompt(null);",
+        REPLACE_ALERT_METHOD, ANSWER_ON_NEXT_PROMPT
+    );
+
+    runner.exec(&code).await?;
+    Ok(())
+}
+
 pub async fn choose_cancel_on_next_confirmation<D>(
     runner: &mut Runner<D>,
 ) -> Result<(), RunnerErrorKind>

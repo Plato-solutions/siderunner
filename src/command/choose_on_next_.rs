@@ -17,12 +17,20 @@ impl<D: Webdriver> Command<D> for ChooseCancelOnNextConfirmation {
     }
 }
 
-
 pub struct ChooseOkOnNextConfirmation;
 
 #[async_trait::async_trait]
 impl<D: Webdriver> Command<D> for ChooseOkOnNextConfirmation {
     async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
         crate::js_lib::choose_ok_on_next_confirmation(runner).await
+    }
+}
+
+pub struct ChooseCancelOnNextPrompt;
+
+#[async_trait::async_trait]
+impl<D: Webdriver> Command<D> for ChooseCancelOnNextPrompt {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        crate::js_lib::choose_cancel_on_next_prompt(runner).await
     }
 }

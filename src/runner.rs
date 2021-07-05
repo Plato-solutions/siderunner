@@ -5,10 +5,10 @@
 use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertNotChecked, AssertNotText,
     AssertSelectedValue, AssertText, Check, ChooseCancelOnNextConfirmation,
-    ChooseOkOnNextConfirmation, Click, Close, DoubleClick, Echo, EditContent, Execute,
-    ExecuteAsync, MouseDown, MouseUp, Open, Pause, RunScript, Select, SendKeys, SetWindowSize,
-    Store, StoreText, StoreXpathCount, Type, WaitForElementEditable, WaitForElementNotPresent,
-    WaitForElementPresent, WaitForElementVisible,
+    ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation, Click, Close, DoubleClick, Echo,
+    EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause, RunScript, Select,
+    SendKeys, SetWindowSize, Store, StoreText, StoreXpathCount, Type, WaitForElementEditable,
+    WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::Target;
@@ -209,6 +209,7 @@ where
             Cmd::MouseUp(target) => MouseUp::new(target.clone().into()).run(self).await,
             Cmd::ChooseCancelOnNextConfirmation => ChooseCancelOnNextConfirmation.run(self).await,
             Cmd::ChooseOkOnNextConfirmation => ChooseOkOnNextConfirmation.run(self).await,
+            Cmd::ChooseCancelOnNextPrompt => ChooseCancelOnNextPrompt.run(self).await,
             Cmd::While(..)
             | Cmd::Else
             | Cmd::If(..)

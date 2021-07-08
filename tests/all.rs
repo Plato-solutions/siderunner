@@ -153,3 +153,11 @@ test_file!(
     "tests/resources/commands/choose cancel on next prompt/test.side.json",
     command_choose_cancel_on_next_prompt
 );
+test_file!(
+    "tests/resources/commands/store title/test.side.json",
+    command_store_title
+);
+test_file!(
+    "tests/resources/commands/assert title/test.side.json",
+    command_assert_title
+);

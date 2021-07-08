@@ -181,6 +181,10 @@ impl Webdriver for Client {
     async fn mouse_up(&mut self, locator: Locator) -> Result<(), RunnerErrorKind> {
         todo!()
     }
+
+    async fn title(&mut self) -> Result<String, RunnerErrorKind> {
+        todo!()
+    }
 }
 
 pub struct Element(fan::elements::Element);

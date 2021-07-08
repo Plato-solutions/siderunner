@@ -57,7 +57,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 
 [`Selenium IDE`] supports the following [commands](https://www.selenium.dev/selenium-ide/docs/en/api/commands).
 
-- [ ] add selection
+- [x] add selection
 - [x] answer on next prompt
 - [x] assert
 - [x] assert alert
@@ -74,7 +74,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [x] assert selected value
 - [ ] assert selected label
 - [x] assert text
-- [ ] assert title
+- [x] assert title
 - [ ] assert value
 - [x] check
 - [x] choose cancel on next confirmation
@@ -120,7 +120,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [ ] store attribute
 - [ ] store json
 - [x] store text
-- [ ] store title
+- [x] store title
 - [ ] store value
 - [ ] store window handle
 - [x] store xpath count

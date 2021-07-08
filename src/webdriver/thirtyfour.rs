@@ -199,6 +199,11 @@ impl<'a> Webdriver for Client<'a> {
 
         Ok(())
     }
+
+    async fn title(&mut self) -> Result<String, RunnerErrorKind> {
+        let title = self.0.title().await?;
+        Ok(title)
+    }
 }
 
 pub struct WebElement<'a>(thirtyfour::WebElement<'a>, &'a thirtyfour::WebDriver);

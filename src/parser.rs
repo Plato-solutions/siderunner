@@ -87,6 +87,8 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "chooseCancelOnNextConfirmation" => Cmd::parse_choose_cancel_on_next_confirmation,
         "chooseOkOnNextConfirmation" => Cmd::parse_choose_ok_on_next_confirmation,
         "chooseCancelOnNextPrompt" => Cmd::parse_choose_cancel_on_next_prompt,
+        "assertTitle" => Cmd::parse_assert_title,
+        "storeTitle" => Cmd::parse_store_title,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -267,6 +269,8 @@ pub enum Cmd {
     ChooseCancelOnNextConfirmation,
     ChooseOkOnNextConfirmation,
     ChooseCancelOnNextPrompt,
+    AssertTitle(String),
+    StoreTitle(String),
 }
 
 impl Cmd {
@@ -580,6 +584,14 @@ impl Cmd {
 
     fn parse_choose_cancel_on_next_prompt(_: &format::Command) -> Result<Self, ParseError> {
         Ok(Self::ChooseCancelOnNextPrompt)
+    }
+
+    fn parse_assert_title(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::AssertTitle(c.target.clone()))
+    }
+
+    fn parse_store_title(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::StoreTitle(c.value.clone()))
     }
 }
 

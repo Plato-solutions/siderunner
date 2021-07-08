@@ -864,6 +864,11 @@ mod flow {
                 self.inc(Call::MouseUp);
                 Ok(())
             }
+
+            async fn title(&mut self) -> Result<String, RunnerErrorKind> {
+                self.inc(Call::Title);
+                Ok(String::new())
+            }
         }
 
         pub struct Element(Arc<Client>);
@@ -956,6 +961,7 @@ mod flow {
             send_keys: usize,
             mouse_up: usize,
             mouse_down: usize,
+            title: usize,
         }
 
         #[derive(Hash, PartialEq, Eq)]
@@ -987,6 +993,7 @@ mod flow {
             SendKeys,
             MouseDown,
             MouseUp,
+            Title,
         }
 
         impl Index<Call> for CallCount {
@@ -1021,6 +1028,7 @@ mod flow {
                     Call::SendKeys => &self.send_keys,
                     Call::MouseDown => &self.mouse_down,
                     Call::MouseUp => &self.mouse_up,
+                    Call::Title => &self.title,
                 }
             }
         }
@@ -1055,6 +1063,7 @@ mod flow {
                     Call::SendKeys => &mut self.send_keys,
                     Call::MouseDown => &mut self.mouse_down,
                     Call::MouseUp => &mut self.mouse_up,
+                    Call::Title => &mut self.title,
                 }
             }
         }

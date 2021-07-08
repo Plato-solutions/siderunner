@@ -30,12 +30,12 @@ mod send_keys;
 mod set_window_size;
 mod store;
 mod store_text;
+mod store_title;
 mod store_xpath_count;
 mod type_;
 mod wait_for_element_editable;
 mod wait_for_element_not_present;
 mod wait_for_element_present;
-mod store_title;
 mod wait_for_element_visible;
 
 pub use {
@@ -43,8 +43,9 @@ pub use {
     assert_selected_value::*, assert_text::*, assert_title::*, check::*, choose_on_next_::*,
     click::*, close::*, double_click::*, echo::*, edit_content::*, execute::*, execute_async::*,
     mouse::*, open::*, pause::*, run_script::*, select::*, send_keys::*, set_window_size::*,
-    store::*, store_text::*, store_xpath_count::*, type_::*, wait_for_element_editable::*, store_title::*,
-    wait_for_element_not_present::*, wait_for_element_present::*, wait_for_element_visible::*,
+    store::*, store_text::*, store_title::*, store_xpath_count::*, type_::*,
+    wait_for_element_editable::*, wait_for_element_not_present::*, wait_for_element_present::*,
+    wait_for_element_visible::*,
 };
 
 #[async_trait::async_trait]

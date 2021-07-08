@@ -4,11 +4,12 @@
 
 use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertNotChecked, AssertNotText,
-    AssertSelectedValue, AssertText, AssertTitle, Check, ChooseCancelOnNextConfirmation,
-    ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation, Click, Close, DoubleClick, Echo,
-    EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause, RunScript, Select,
-    SendKeys, SetWindowSize, Store, StoreText, StoreTitle, StoreXpathCount, Type,
-    WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
+    AssertSelectedValue, AssertText, AssertTitle, AssertValue, Check,
+    ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation, Click,
+    Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause,
+    RunScript, Select, SendKeys, SetWindowSize, Store, StoreText, StoreTitle, StoreXpathCount,
+    Type, WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent,
+    WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::Target;
@@ -212,6 +213,11 @@ where
             Cmd::ChooseCancelOnNextPrompt => ChooseCancelOnNextPrompt.run(self).await,
             Cmd::AssertTitle(t) => AssertTitle::new(t.clone()).run(self).await,
             Cmd::StoreTitle(t) => StoreTitle::new(t.clone()).run(self).await,
+            Cmd::AssertValue(target, value) => {
+                AssertValue::new(target.clone().into(), value.clone())
+                    .run(self)
+                    .await
+            }
             Cmd::While(..)
             | Cmd::Else
             | Cmd::If(..)

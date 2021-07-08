@@ -12,6 +12,7 @@ mod assert_prompt;
 mod assert_selected_value;
 mod assert_text;
 mod assert_title;
+mod assert_value;
 mod check;
 mod choose_on_next_;
 mod click;
@@ -40,10 +41,10 @@ mod wait_for_element_visible;
 
 pub use {
     answer_on_next_prompt::*, assert::*, assert_alert::*, assert_checked::*, assert_prompt::*,
-    assert_selected_value::*, assert_text::*, assert_title::*, check::*, choose_on_next_::*,
-    click::*, close::*, double_click::*, echo::*, edit_content::*, execute::*, execute_async::*,
-    mouse::*, open::*, pause::*, run_script::*, select::*, send_keys::*, set_window_size::*,
-    store::*, store_text::*, store_title::*, store_xpath_count::*, type_::*,
+    assert_selected_value::*, assert_text::*, assert_title::*, assert_value::*, check::*,
+    choose_on_next_::*, click::*, close::*, double_click::*, echo::*, edit_content::*, execute::*,
+    execute_async::*, mouse::*, open::*, pause::*, run_script::*, select::*, send_keys::*,
+    set_window_size::*, store::*, store_text::*, store_title::*, store_xpath_count::*, type_::*,
     wait_for_element_editable::*, wait_for_element_not_present::*, wait_for_element_present::*,
     wait_for_element_visible::*,
 };

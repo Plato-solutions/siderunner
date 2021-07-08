@@ -161,3 +161,7 @@ test_file!(
     "tests/resources/commands/assert title/test.side.json",
     command_assert_title
 );
+test_file!(
+    "tests/resources/commands/assert value/test.side.json",
+    command_assert_value
+);

@@ -19,7 +19,7 @@
 //!         .await
 //!         .expect("can't connect to webdriver");
 //!     let mut runner = Runner::new(&client);
-//!     runner.run_test(&file, 0).await.expect("Fail in running first test");
+//!     runner.run(&file).await.expect("Fail in running first test");
 //!
 //!     assert_eq!(
 //!         runner.get_data().get("slogan"),

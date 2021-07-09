@@ -375,7 +375,7 @@ fn look_up_test<S: AsRef<str>>(file: &File, test: S) -> Result<usize, RunnerErro
     file.tests
         .iter()
         .position(|t| t.name == test.as_ref())
-        .ok_or(RunnerErrorKind::TestNotFound(test.as_ref().to_string()))
+        .ok_or_else(|| RunnerErrorKind::TestNotFound(test.as_ref().to_string()))
 }
 
 #[cfg(test)]

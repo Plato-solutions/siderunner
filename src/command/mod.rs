@@ -32,8 +32,11 @@ mod select;
 mod send_keys;
 mod set_window_size;
 mod store;
+mod store_attribute;
+mod store_json;
 mod store_text;
 mod store_title;
+mod store_value;
 mod store_xpath_count;
 mod type_;
 mod wait_for_element_editable;
@@ -47,8 +50,9 @@ pub use {
     assert_text::*, assert_title::*, assert_value::*, check::*, choose_on_next_::*, click::*,
     close::*, double_click::*, echo::*, edit_content::*, execute::*, execute_async::*, mouse::*,
     open::*, pause::*, run_script::*, select::*, send_keys::*, set_window_size::*, store::*,
-    store_text::*, store_title::*, store_xpath_count::*, type_::*, wait_for_element_editable::*,
-    wait_for_element_not_present::*, wait_for_element_present::*, wait_for_element_visible::*,
+    store_attribute::*, store_json::*, store_text::*, store_title::*, store_value::*,
+    store_xpath_count::*, type_::*, wait_for_element_editable::*, wait_for_element_not_present::*,
+    wait_for_element_present::*, wait_for_element_visible::*,
 };
 
 #[async_trait::async_trait]

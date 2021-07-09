@@ -96,6 +96,9 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertSelectedLabel" => Cmd::parse_assert_selected_label,
         "times" => Cmd::parse_times,
         "run" => Cmd::parse_run,
+        "storeValue" => Cmd::parse_store_value,
+        "storeAttribute" => Cmd::parse_store_attribute,
+        "storeJson" => Cmd::parse_store_json,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -285,6 +288,9 @@ pub enum Cmd {
     AssertSelectedLabel(Target, String),
     Times(String),
     RunTest(String),
+    StoreJson(String, String),
+    StoreValue(Target, String),
+    StoreAttribute(Target, String, String),
 }
 
 impl Cmd {
@@ -643,6 +649,30 @@ impl Cmd {
 
     fn parse_run(c: &format::Command) -> Result<Self, ParseError> {
         Ok(Self::RunTest(c.target.clone()))
+    }
+
+    fn parse_store_value(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::StoreValue(target, c.value.clone()))
+    }
+
+    fn parse_store_json(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::StoreJson(c.target.clone(), c.value.clone()))
+    }
+
+    fn parse_store_attribute(c: &format::Command) -> Result<Self, ParseError> {
+        let (target, attribute) = c.target.split_once('@').ok_or_else(|| {
+            ParseError::LocatorFormatError("a attribute splitter '@' wasn't found".to_string())
+        })?;
+
+        let location = parse_location(target)?;
+        let target = Target::new(location);
+        Ok(Self::StoreAttribute(
+            target,
+            attribute.to_string(),
+            c.value.clone(),
+        ))
     }
 }
 

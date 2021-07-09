@@ -8,8 +8,9 @@ use crate::command::{
     AssertTitle, AssertValue, Check, ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt,
     ChooseOkOnNextConfirmation, Click, Close, DoubleClick, Echo, EditContent, Execute,
     ExecuteAsync, MouseDown, MouseUp, Open, Pause, RunScript, Select, SendKeys, SetWindowSize,
-    Store, StoreText, StoreTitle, StoreXpathCount, Type, UnCheck, WaitForElementEditable,
-    WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
+    Store, StoreAttribute, StoreJson, StoreText, StoreTitle, StoreValue, StoreXpathCount, Type,
+    UnCheck, WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent,
+    WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::Target;
@@ -244,6 +245,21 @@ where
             }
             Cmd::AssertSelectedLabel(target, value) => {
                 AssertSelectedLabel::new(target.clone().into(), value.clone())
+                    .run(self)
+                    .await
+            }
+            Cmd::StoreValue(target, value) => {
+                StoreValue::new(target.clone().into(), value.clone())
+                    .run(self)
+                    .await
+            }
+            Cmd::StoreJson(json, value) => {
+                StoreJson::new(json.clone().into(), value.clone())
+                    .run(self)
+                    .await
+            }
+            Cmd::StoreAttribute(target, attr, value) => {
+                StoreAttribute::new(target.clone().into(), attr.clone(), value.clone())
                     .run(self)
                     .await
             }

@@ -117,11 +117,11 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [ ] set speed
 - [x] set window size
 - [x] store
-- [ ] store attribute
-- [ ] store json
+- [x] store attribute
+- [x] store json
 - [x] store text
 - [x] store title
-- [ ] store value
+- [x] store value
 - [ ] store window handle
 - [x] store xpath count
 - [ ] submit

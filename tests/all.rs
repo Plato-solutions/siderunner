@@ -177,3 +177,15 @@ test_file!(
     "tests/resources/commands/assert selected label/test.side.json",
     command_assert_selected_label
 );
+test_file!(
+    "tests/resources/commands/store json/test.side.json",
+    command_store_json
+);
+test_file!(
+    "tests/resources/commands/store value/test.side.json",
+    command_store_value
+);
+test_file!(
+    "tests/resources/commands/store attribute/test.side.json",
+    command_store_attribute
+);

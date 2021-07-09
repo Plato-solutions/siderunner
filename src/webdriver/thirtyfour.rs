@@ -284,33 +284,6 @@ impl<'a> Element for WebElement<'a> {
         Ok(Client(self.1))
     }
 
-    async fn deselect_by_index(mut self, index: usize) -> Result<Self::Driver, RunnerErrorKind> {
-        SelectElement::new(&self.0)
-            .await?
-            .deselect_by_index(index as u32)
-            .await?;
-
-        Ok(Client(self.1))
-    }
-
-    async fn deselect_by_value(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
-        SelectElement::new(&self.0)
-            .await?
-            .deselect_by_value(value)
-            .await?;
-
-        Ok(Client(self.1))
-    }
-
-    async fn deselect_by_label(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
-        SelectElement::new(&self.0)
-            .await?
-            .deselect_by_visible_text(value)
-            .await?;
-
-        Ok(Client(self.1))
-    }
-
     async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind> {
         let r = self.0.is_selected().await?;
         Ok(r)

@@ -13,7 +13,7 @@ use crate::command::{
     WaitForElementPresent, WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
-use crate::parser::Target;
+use crate::parser::{SelectLocator, Target};
 use crate::playground::Playground;
 use crate::webdriver::{Locator, Webdriver};
 use crate::File;
@@ -170,8 +170,13 @@ where
                     .run(self)
                     .await
             }
-            Cmd::RemoveSelection { locator, target } => {
+            Cmd::RemoveSelection(target, locator) => {
                 RemoveSelection::new(target.clone().into(), locator.clone())
+                    .run(self)
+                    .await
+            }
+            Cmd::AddSelection(target, locator) => {
+                Select::new(target.clone().into(), SelectLocator::Label(locator.clone()))
                     .run(self)
                     .await
             }

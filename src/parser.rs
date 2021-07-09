@@ -200,10 +200,8 @@ pub enum Cmd {
         target: Target,
         locator: SelectLocator,
     },
-    RemoveSelection {
-        target: Target,
-        locator: SelectLocator,
-    },
+    AddSelection(Target, String),
+    RemoveSelection(Target, String),
     WaitForElementVisible {
         target: Target,
         timeout: Duration,
@@ -379,19 +377,17 @@ impl Cmd {
     }
 
     fn parse_add_selection(c: &format::Command) -> Result<Self, ParseError> {
-        let locator = SelectLocator::Label(c.value.clone());
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
 
-        Ok(Self::Select { target, locator })
+        Ok(Self::AddSelection(target, c.value.clone()))
     }
 
     fn parse_remove_selection(c: &format::Command) -> Result<Self, ParseError> {
-        let locator = SelectLocator::Label(c.value.clone());
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
 
-        Ok(Self::RemoveSelection { target, locator })
+        Ok(Self::RemoveSelection(target, c.value.clone()))
     }
 
     fn parse_echo(c: &format::Command) -> Result<Self, ParseError> {

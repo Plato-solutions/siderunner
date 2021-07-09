@@ -29,7 +29,7 @@ mod open;
 mod pause;
 mod remove_selection;
 mod run_script;
-mod add_selection;
+mod select;
 mod send_keys;
 mod set_window_size;
 mod store;
@@ -50,7 +50,7 @@ pub use {
     assert_confirmation::*, assert_prompt::*, assert_selected_label::*, assert_selected_value::*,
     assert_text::*, assert_title::*, assert_value::*, check::*, choose_on_next_::*, click::*,
     close::*, double_click::*, echo::*, edit_content::*, execute::*, execute_async::*, mouse::*,
-    open::*, pause::*, remove_selection::*, run_script::*, add_selection::*, send_keys::*,
+    open::*, pause::*, remove_selection::*, run_script::*, select::*, send_keys::*,
     set_window_size::*, store::*, store_attribute::*, store_json::*, store_text::*, store_title::*,
     store_value::*, store_xpath_count::*, type_::*, wait_for_element_editable::*,
     wait_for_element_not_present::*, wait_for_element_present::*, wait_for_element_visible::*,

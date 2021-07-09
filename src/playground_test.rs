@@ -977,24 +977,6 @@ mod flow {
                 Ok(self.0)
             }
 
-            async fn deselect_by_index(
-                mut self,
-                _: usize,
-            ) -> Result<Self::Driver, RunnerErrorKind> {
-                self.inc(Call::DeSelectByIndex);
-                Ok(self.0)
-            }
-
-            async fn deselect_by_value(mut self, _: &str) -> Result<Self::Driver, RunnerErrorKind> {
-                self.inc(Call::DeSelectByValue);
-                Ok(self.0)
-            }
-
-            async fn deselect_by_label(mut self, _: &str) -> Result<Self::Driver, RunnerErrorKind> {
-                self.inc(Call::DeSelectByLabel);
-                Ok(self.0)
-            }
-
             async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind> {
                 self.inc(Call::IsSelected);
                 Ok(true)
@@ -1029,9 +1011,6 @@ mod flow {
             SelectByIndex,
             SelectByValue,
             SelectByLabel,
-            DeSelectByValue,
-            DeSelectByIndex,
-            DeSelectByLabel,
             AlertText,
             AlertAccept,
             AlertDissmis,

@@ -81,7 +81,7 @@ async fn run_nodes<D: webdriver::Webdriver>(
                         }
                     }
                     Cmd::ForEach { iterator, var } => {
-                        let key = format!("ITERATOR_INDEX_{}_{}", iterator, var);
+                        let key = format!("__ITERATOR_INDEX_{}_{}", iterator, var);
                         match runner.get_value_mut(&key) {
                             Some(Value::Array(array)) => {
                                 if array.is_empty() {
@@ -115,6 +115,40 @@ async fn run_nodes<D: webdriver::Webdriver>(
                                     let e = arr.remove(0);
                                     runner.save_value(var.clone(), e);
                                     runner.save_value(key, array);
+                                    i = next;
+                                }
+                            }
+                            Some(_) => unreachable!(),
+                        }
+                    }
+                    Cmd::Times(n) => {
+                        let key = format!("__TIMES_ITERATOR_INDEX_{}", n);
+                        match runner.get_value_mut(&key) {
+                            Some(Value::Number(n)) => {
+                                let n = n.as_u64().unwrap();
+                                if n == 0 {
+                                    i = or_else;
+                                } else {
+                                    runner.save_value(key.clone(), (n - 1).into());
+                                    i = next;
+                                }
+                            }
+                            None => {
+                                let n = runner.emit(n);
+                                let n: u64 = match n.parse() {
+                                    Ok(n) => n,
+                                    _ => {
+                                        // Itarator is invalid; skip inner block
+                                        // TODO: it may be worth to not stick with Selenium IDE behaivour but rather raise a erorr?
+                                        i = or_else;
+                                        continue;
+                                    }
+                                };
+
+                                if n == 0 {
+                                    i = or_else;
+                                } else {
+                                    runner.save_value(key.clone(), (n - 1).into());
                                     i = next;
                                 }
                             }
@@ -235,6 +269,17 @@ fn connect_commands(
             };
             state.push(("forEach", current));
         }
+        Cmd::Times(..) => {
+            let index_end =
+                find_next_end_on_level(&nodes[next..], nodes[current].level).unwrap() + next;
+            let index_after_end = next_index(nodes, index_end);
+
+            nodes[current].next = Transition::Conditional {
+                next,
+                end: index_after_end,
+            };
+            state.push(("times", current));
+        }
         Cmd::Do => {
             state.push(("do", current));
             nodes[current].next = Transition::Next;
@@ -296,7 +341,7 @@ fn connect_commands(
             };
         }
         Cmd::End => match state.last() {
-            Some(("while", index)) | Some(("forEach", index)) => {
+            Some(("while", index)) | Some(("forEach", index)) | Some(("times", index)) => {
                 nodes[current].next = Transition::Move(*index);
                 state.pop();
             }
@@ -362,7 +407,7 @@ fn compute_levels(commands: &[Command]) -> Vec<usize> {
     let mut levels = Vec::with_capacity(commands.len());
     for cmd in commands {
         match cmd.cmd {
-            Cmd::While(..) | Cmd::If(..) | Cmd::ForEach { .. } => {
+            Cmd::While(..) | Cmd::If(..) | Cmd::ForEach { .. } | Cmd::Times(..) => {
                 levels.push(level);
                 level += 1;
             }

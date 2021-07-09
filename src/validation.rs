@@ -32,6 +32,7 @@ enum State {
     Else,
     Do,
     ForEach,
+    Times,
     #[allow(dead_code)]
     End,
 }
@@ -58,13 +59,17 @@ fn validate(cmd: &Cmd, state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
             state.push(State::ForEach);
             Ok(())
         }
+        Cmd::Times(..) => {
+            state.push(State::Times);
+            Ok(())
+        }
         _ => Ok(()),
     }
 }
 
 fn validate_end(state: &mut Vec<State>) -> Result<(), RunnerErrorKind> {
     match state.last() {
-        Some(st) if matches!(st, State::While | State::If | State::ForEach) => {
+        Some(st) if matches!(st, State::While | State::If | State::ForEach | State::Times) => {
             state.pop();
             Ok(())
         }
@@ -233,6 +238,18 @@ mod tests {
             var: String::new()
         }]))
         .is_err());
+    }
+
+    #[test]
+    fn test_validation_times() {
+        assert!(validate_conditions(&commands(vec![
+            Cmd::Times(String::new()),
+            Cmd::Echo(String::new()),
+            Cmd::End,
+        ]))
+        .is_ok());
+
+        assert!(validate_conditions(&commands(vec![Cmd::Times(String::new())])).is_err());
     }
 
     fn commands(cmds: Vec<Cmd>) -> Vec<Command> {

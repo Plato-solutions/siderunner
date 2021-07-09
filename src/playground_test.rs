@@ -623,6 +623,49 @@ mod flow {
     }
 
     #[tokio::test]
+    async fn test_times() {
+        let file = blank_file(vec![
+            Cmd::Open("http://example.com".to_string()),
+            Cmd::Times("4".to_string()),
+            Cmd::Echo("".to_string()),
+            Cmd::End,
+        ]);
+        let client = Client::new();
+        let mut runner = Runner::_new(client.clone());
+
+        let echo_counter: Arc<Mutex<usize>> = Arc::default();
+        let echo_counter1 = echo_counter.clone();
+        runner.set_echo(move |_| *echo_counter1.lock().unwrap() += 1);
+
+        let res = runner.run(&file).await;
+        assert!(res.is_ok());
+
+        assert_eq!(*echo_counter.lock().unwrap(), 4);
+    }
+
+    #[tokio::test]
+    async fn test_times_with_var() {
+        let file = blank_file(vec![
+            Cmd::Open("http://example.com".to_string()),
+            Cmd::Times("${N}".to_string()),
+            Cmd::Echo("".to_string()),
+            Cmd::End,
+        ]);
+        let client = Client::new();
+        let mut runner = Runner::_new(client.clone());
+        runner.save_value("N".to_string(), 4u64.into());
+
+        let echo_counter: Arc<Mutex<usize>> = Arc::default();
+        let echo_counter1 = echo_counter.clone();
+        runner.set_echo(move |_| *echo_counter1.lock().unwrap() += 1);
+
+        let res = runner.run(&file).await;
+        assert!(res.is_ok());
+
+        assert_eq!(*echo_counter.lock().unwrap(), 4);
+    }
+
+    #[tokio::test]
     async fn test_open_relative_url() {
         let file = File::new(
             "".into(),

@@ -94,6 +94,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertValue" => Cmd::parse_assert_value,
         "assertConfirmation" => Cmd::parse_assert_confirmation,
         "assertSelectedLabel" => Cmd::parse_assert_selected_label,
+        "times" => Cmd::parse_times,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -281,6 +282,7 @@ pub enum Cmd {
     AssertValue(Target, String),
     AssertConfirmation(String),
     AssertSelectedLabel(Target, String),
+    Times(String),
 }
 
 impl Cmd {
@@ -631,6 +633,10 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::AssertSelectedLabel(target, c.value.clone()))
+    }
+
+    fn parse_times(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::Times(c.target.clone()))
     }
 }
 

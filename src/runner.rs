@@ -238,6 +238,7 @@ where
             | Cmd::ElseIf(..)
             | Cmd::ForEach { .. }
             | Cmd::RepeatIf(..)
+            | Cmd::Times(..)
             | Cmd::Do
             | Cmd::End
             | Cmd::Custom { .. } => unreachable!("All flow commands are handled at this point"),

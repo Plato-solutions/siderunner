@@ -125,7 +125,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [ ] store window handle
 - [x] store xpath count
 - [ ] submit
-- [ ] times
+- [x] times
 - [x] type
 - [x] uncheck
 - [ ] verify

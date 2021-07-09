@@ -173,3 +173,7 @@ test_file!(
     "tests/resources/commands/assert confirmation/test.side.json",
     command_assert_confirmation
 );
+test_file!(
+    "tests/resources/commands/assert selected label/test.side.json",
+    command_assert_selected_label
+);

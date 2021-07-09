@@ -72,7 +72,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [x] assert not text
 - [x] assert prompt
 - [x] assert selected value
-- [ ] assert selected label
+- [x] assert selected label
 - [x] assert text
 - [x] assert title
 - [x] assert value

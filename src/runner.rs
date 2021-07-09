@@ -4,8 +4,8 @@
 
 use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertConfirmation, AssertNotChecked,
-    AssertNotSelectedValue, AssertNotText, AssertSelectedValue, AssertText, AssertTitle,
-    AssertValue, Check, ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt,
+    AssertNotSelectedValue, AssertNotText, AssertSelectedLabel, AssertSelectedValue, AssertText,
+    AssertTitle, AssertValue, Check, ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt,
     ChooseOkOnNextConfirmation, Click, Close, DoubleClick, Echo, EditContent, Execute,
     ExecuteAsync, MouseDown, MouseUp, Open, Pause, RunScript, Select, SendKeys, SetWindowSize,
     Store, StoreText, StoreTitle, StoreXpathCount, Type, WaitForElementEditable,
@@ -225,6 +225,11 @@ where
             }
             Cmd::AssertConfirmation(target) => {
                 AssertConfirmation::new(target.clone()).run(self).await
+            }
+            Cmd::AssertSelectedLabel(target, value) => {
+                AssertSelectedLabel::new(target.clone().into(), value.clone())
+                    .run(self)
+                    .await
             }
             Cmd::While(..)
             | Cmd::Else

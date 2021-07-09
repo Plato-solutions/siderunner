@@ -3,8 +3,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::command::{
-    AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertNotChecked, AssertNotText,
-    AssertSelectedValue, AssertText, AssertTitle, AssertValue, Check,
+    AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertConfirmation, AssertNotChecked,
+    AssertNotText, AssertSelectedValue, AssertText, AssertTitle, AssertValue, Check,
     ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation, Click,
     Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause,
     RunScript, Select, SendKeys, SetWindowSize, Store, StoreText, StoreTitle, StoreXpathCount,
@@ -217,6 +217,9 @@ where
                 AssertValue::new(target.clone().into(), value.clone())
                     .run(self)
                     .await
+            }
+            Cmd::AssertConfirmation(target) => {
+                AssertConfirmation::new(target.clone()).run(self).await
             }
             Cmd::While(..)
             | Cmd::Else

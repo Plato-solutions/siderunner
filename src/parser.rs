@@ -95,6 +95,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertConfirmation" => Cmd::parse_assert_confirmation,
         "assertSelectedLabel" => Cmd::parse_assert_selected_label,
         "times" => Cmd::parse_times,
+        "run" => Cmd::parse_run,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -283,6 +284,7 @@ pub enum Cmd {
     AssertConfirmation(String),
     AssertSelectedLabel(Target, String),
     Times(String),
+    RunTest(String),
 }
 
 impl Cmd {
@@ -637,6 +639,10 @@ impl Cmd {
 
     fn parse_times(c: &format::Command) -> Result<Self, ParseError> {
         Ok(Self::Times(c.target.clone()))
+    }
+
+    fn parse_run(c: &format::Command) -> Result<Self, ParseError> {
+        Ok(Self::RunTest(c.target.clone()))
     }
 }
 

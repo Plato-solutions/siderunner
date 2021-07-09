@@ -37,7 +37,6 @@ mod error;
 mod js_lib;
 mod parser;
 mod playground;
-#[cfg(test)]
 mod playground_test;
 mod runner;
 mod validation;

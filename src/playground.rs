@@ -24,7 +24,7 @@ impl Playground {
         };
         validate_conditions(&test.commands).map_err(err_wrap)?;
         let nodes = build_nodes(&test.commands);
-        run_nodes(runner, nodes, &file.url).await.map_err(err_wrap)
+        run_nodes(runner, nodes, &file).await.map_err(err_wrap)
     }
 }
 
@@ -37,7 +37,7 @@ pub(crate) fn build_nodes(commands: &[Command]) -> Vec<Node> {
 async fn run_nodes<D: webdriver::Webdriver>(
     runner: &mut Runner<D>,
     nodes: Vec<Node>,
-    file_url: &str,
+    file: &File,
 ) -> Result<(), RunnerError> {
     if nodes.is_empty() {
         return Ok(());
@@ -61,7 +61,7 @@ async fn run_nodes<D: webdriver::Webdriver>(
                 i += 1;
                 let cmd = &node.command;
                 runner
-                    .run_command(file_url, cmd)
+                    .run_command(file, cmd)
                     .await
                     .map_err(|e| RunnerError::new(e, node.index))?;
             }

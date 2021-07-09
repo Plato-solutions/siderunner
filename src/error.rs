@@ -56,6 +56,7 @@ pub enum RunnerErrorKind {
         lhs: String,
         rhs: String,
     },
+    TestNotFound(String),
 }
 
 impl std::fmt::Debug for RunnerErrorKind {
@@ -67,6 +68,7 @@ impl std::fmt::Debug for RunnerErrorKind {
             Self::MismatchedType(desc) => write!(f, "mismatched type {}", desc),
             Self::Timeout(desc) => write!(f, "timeout {}", desc),
             Self::AssertFailed { lhs, rhs } => write!(f, "assert failed {} == {}", lhs, rhs),
+            Self::TestNotFound(name) => write!(f, "A test {} wasn't found", name),
         }
     }
 }

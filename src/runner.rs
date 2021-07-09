@@ -93,27 +93,42 @@ where
     /// Run all tests in a side file starting from first test.
     pub async fn run(&mut self, file: &File) -> Result<(), RunnerError> {
         for test in 0..file.tests.len() {
-            self.run_test(file, test).await?;
+            self.run_test_by_index(file, test).await?;
         }
 
         Ok(())
     }
 
     /// Run a particular test in a file.
-    /// Test represented by an index of it.
-    pub async fn run_test(&mut self, file: &File, test: usize) -> Result<(), RunnerError> {
-        Playground::run_test(self, file, test).await
+    pub async fn run_test<S: AsRef<str>>(
+        &mut self,
+        file: &File,
+        test: S,
+    ) -> Result<(), RunnerError> {
+        let index = look_up_test(file, test).map_err(|e| RunnerError::new(e, 0))?;
+        self.run_test_by_index(file, index).await
     }
 
+    /// Run a particular test in a file.
+    /// Test represented by an index of it.
+    pub async fn run_test_by_index(
+        &mut self,
+        file: &File,
+        index: usize,
+    ) -> Result<(), RunnerError> {
+        Playground::run_test(self, file, index).await
+    }
+
+    #[async_recursion::async_recursion]
     pub(crate) async fn run_command(
         &mut self,
-        file_url: &str,
+        file: &File,
         cmd: &Cmd,
     ) -> Result<(), RunnerErrorKind> {
         // TODO: emit variables in value field too
         println!("CMD {:?}", cmd);
         match cmd {
-            Cmd::Open(url) => Open::new(url.clone(), file_url.to_owned()).run(self).await,
+            Cmd::Open(url) => Open::new(url.clone(), file.url.clone()).run(self).await,
             Cmd::StoreText { var, target, .. } => {
                 StoreText::new(target.clone().into(), var.to_owned())
                     .run(self)
@@ -232,6 +247,17 @@ where
                     .run(self)
                     .await
             }
+            Cmd::RunTest(test) => {
+                // We can't just run self.run_test because of Rust async borrowing rules.
+                // Creating a new runner wich share the same webdriver state,
+                // And later merge data so it's available in self,
+                // Haven't helped to resolve the issue compiler still disagrees
+                //
+                // So we follow its rule by Box the returned future.
+                // But we are using [`async-recursion`] crate for this.
+
+                self.run_test(file, test).await.map_err(|e| e.kind)
+            }
             Cmd::While(..)
             | Cmd::Else
             | Cmd::If(..)
@@ -343,6 +369,13 @@ impl From<Target> for Locator {
             Location::XPath(path) => Locator::XPath(path),
         }
     }
+}
+
+fn look_up_test<S: AsRef<str>>(file: &File, test: S) -> Result<usize, RunnerErrorKind> {
+    file.tests
+        .iter()
+        .position(|t| t.name == test.as_ref())
+        .ok_or(RunnerErrorKind::TestNotFound(test.as_ref().to_string()))
 }
 
 #[cfg(test)]

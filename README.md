@@ -108,7 +108,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [x] pause
 - [ ] remove selection
 - [x] repeat if
-- [ ] run
+- [x] run
 - [x] run script
 - [x] select
 - [ ] select frame

@@ -239,6 +239,29 @@ impl WebElement for Element {
     async fn send_keys(mut self, value: &str) -> Result<(), RunnerErrorKind> {
         todo!()
     }
+
+    async fn select_by_label(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
+        todo!()
+
+    }
+
+    async fn deselect_by_index(mut self, index: usize) -> Result<Self::Driver, RunnerErrorKind> {
+        todo!()
+
+    }
+
+    async fn deselect_by_value(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
+        todo!()
+
+    }
+
+    async fn deselect_by_label(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
+        todo!()
+    }
+
+    async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind> {
+        todo!()
+    }
 }
 
 impl<'a> Into<fan::Locator<'a>> for &'a Locator {

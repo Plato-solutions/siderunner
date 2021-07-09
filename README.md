@@ -106,7 +106,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [ ] mouse up at
 - [x] open
 - [x] pause
-- [ ] remove selection
+- [x] remove selection
 - [x] repeat if
 - [x] run
 - [x] run script

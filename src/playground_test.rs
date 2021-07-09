@@ -971,41 +971,42 @@ mod flow {
                 self.inc(Call::SendKeys);
                 Ok(())
             }
+
+            async fn select_by_label(mut self, _: &str) -> Result<Self::Driver, RunnerErrorKind> {
+                self.inc(Call::SelectByLabel);
+                Ok(self.0)
+            }
+
+            async fn deselect_by_index(
+                mut self,
+                _: usize,
+            ) -> Result<Self::Driver, RunnerErrorKind> {
+                self.inc(Call::DeSelectByIndex);
+                Ok(self.0)
+            }
+
+            async fn deselect_by_value(mut self, _: &str) -> Result<Self::Driver, RunnerErrorKind> {
+                self.inc(Call::DeSelectByValue);
+                Ok(self.0)
+            }
+
+            async fn deselect_by_label(mut self, _: &str) -> Result<Self::Driver, RunnerErrorKind> {
+                self.inc(Call::DeSelectByLabel);
+                Ok(self.0)
+            }
+
+            async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind> {
+                self.inc(Call::IsSelected);
+                Ok(true)
+            }
         }
 
         #[derive(Clone, Default)]
         pub struct CallCount {
-            open: usize,
-            click: usize,
-            find: usize,
-            findall: usize,
-            goto: usize,
-            exec: usize,
-            exec_async: usize,
-            close: usize,
-            current_url: usize,
-            set_w_size: usize,
-            w_8_visib: usize,
-            w_8_pres: usize,
-            w_8_npres: usize,
-            w_8_edit: usize,
-            attr: usize,
-            prop: usize,
-            text: usize,
-            html: usize,
-            select_by_index: usize,
-            select_by_value: usize,
-            alert_text: usize,
-            alert_accept: usize,
-            alert_dissmis: usize,
-            double_click: usize,
-            send_keys: usize,
-            mouse_up: usize,
-            mouse_down: usize,
-            title: usize,
+            inner: std::collections::HashMap<Call, usize>,
         }
 
-        #[derive(Hash, PartialEq, Eq)]
+        #[derive(Hash, PartialEq, Eq, Clone)]
         pub enum Call {
             Open,
             Click,
@@ -1027,6 +1028,10 @@ mod flow {
             Html,
             SelectByIndex,
             SelectByValue,
+            SelectByLabel,
+            DeSelectByValue,
+            DeSelectByIndex,
+            DeSelectByLabel,
             AlertText,
             AlertAccept,
             AlertDissmis,
@@ -1035,77 +1040,20 @@ mod flow {
             MouseDown,
             MouseUp,
             Title,
+            IsSelected,
         }
 
         impl Index<Call> for CallCount {
             type Output = usize;
 
-            fn index(&self, count: Call) -> &Self::Output {
-                match count {
-                    Call::Open => &self.open,
-                    Call::Click => &self.click,
-                    Call::Find => &self.find,
-                    Call::FindAll => &self.findall,
-                    Call::Goto => &self.goto,
-                    Call::Exec => &self.exec,
-                    Call::ExecAsync => &self.exec_async,
-                    Call::Close => &self.close,
-                    Call::CurrentUrl => &self.current_url,
-                    Call::SetWSize => &self.set_w_size,
-                    Call::W8Visib => &self.w_8_visib,
-                    Call::W8Pres => &self.w_8_pres,
-                    Call::W8NPres => &self.w_8_npres,
-                    Call::W8Edit => &self.w_8_edit,
-                    Call::Attr => &self.attr,
-                    Call::Prop => &self.prop,
-                    Call::Text => &self.text,
-                    Call::Html => &self.html,
-                    Call::SelectByIndex => &self.select_by_index,
-                    Call::SelectByValue => &self.select_by_value,
-                    Call::AlertText => &self.alert_text,
-                    Call::AlertAccept => &self.alert_accept,
-                    Call::AlertDissmis => &self.alert_dissmis,
-                    Call::DoubleClick => &self.double_click,
-                    Call::SendKeys => &self.send_keys,
-                    Call::MouseDown => &self.mouse_down,
-                    Call::MouseUp => &self.mouse_up,
-                    Call::Title => &self.title,
-                }
+            fn index(&self, call: Call) -> &Self::Output {
+                self.inner.get(&call).unwrap()
             }
         }
 
         impl IndexMut<Call> for CallCount {
-            fn index_mut(&mut self, count: Call) -> &mut Self::Output {
-                match count {
-                    Call::Open => &mut self.open,
-                    Call::Click => &mut self.click,
-                    Call::Find => &mut self.find,
-                    Call::FindAll => &mut self.findall,
-                    Call::Goto => &mut self.goto,
-                    Call::Exec => &mut self.exec,
-                    Call::ExecAsync => &mut self.exec_async,
-                    Call::Close => &mut self.close,
-                    Call::CurrentUrl => &mut self.current_url,
-                    Call::SetWSize => &mut self.set_w_size,
-                    Call::W8Visib => &mut self.w_8_visib,
-                    Call::W8Pres => &mut self.w_8_pres,
-                    Call::W8NPres => &mut self.w_8_npres,
-                    Call::W8Edit => &mut self.w_8_edit,
-                    Call::Attr => &mut self.attr,
-                    Call::Prop => &mut self.prop,
-                    Call::Text => &mut self.text,
-                    Call::Html => &mut self.html,
-                    Call::SelectByIndex => &mut self.select_by_index,
-                    Call::SelectByValue => &mut self.select_by_value,
-                    Call::AlertText => &mut self.alert_text,
-                    Call::AlertAccept => &mut self.alert_accept,
-                    Call::AlertDissmis => &mut self.alert_dissmis,
-                    Call::DoubleClick => &mut self.double_click,
-                    Call::SendKeys => &mut self.send_keys,
-                    Call::MouseDown => &mut self.mouse_down,
-                    Call::MouseUp => &mut self.mouse_up,
-                    Call::Title => &mut self.title,
-                }
+            fn index_mut(&mut self, call: Call) -> &mut Self::Output {
+                self.inner.get_mut(&call).unwrap()
             }
         }
     }

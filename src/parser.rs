@@ -99,6 +99,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "storeValue" => Cmd::parse_store_value,
         "storeAttribute" => Cmd::parse_store_attribute,
         "storeJson" => Cmd::parse_store_json,
+        "removeSelection" => Cmd::parse_remove_selection,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -196,6 +197,10 @@ pub enum Cmd {
     SetWindowSize(u32, u32),
     // todo: targets?
     Select {
+        target: Target,
+        locator: SelectLocator,
+    },
+    RemoveSelection {
         target: Target,
         locator: SelectLocator,
     },
@@ -379,6 +384,14 @@ impl Cmd {
         let target = Target::new(location);
 
         Ok(Self::Select { target, locator })
+    }
+
+    fn parse_remove_selection(c: &format::Command) -> Result<Self, ParseError> {
+        let locator = SelectLocator::Label(c.value.clone());
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+
+        Ok(Self::RemoveSelection { target, locator })
     }
 
     fn parse_echo(c: &format::Command) -> Result<Self, ParseError> {

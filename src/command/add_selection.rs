@@ -30,7 +30,6 @@ impl<D: Webdriver> Command<D> for Select {
         match &self.select_target {
             SelectLocator::Index(index) => {
                 // todo: DO emit of locators before calling Command
-
                 let index = runner.emit(index);
                 match index.parse() {
                     Ok(index) => {
@@ -52,13 +51,21 @@ impl<D: Webdriver> Command<D> for Select {
             SelectLocator::Id(id) => {
                 let id = runner.emit(id);
                 let locator = format!(r#"option[id='{}']"#, id);
-                select.find(Locator::Css(locator)).await?.click().await?;
+                let mut opt = select.find(Locator::Css(locator)).await?;
+                let selected = opt.prop("selected").await?;
+                if selected.is_none() {
+                    opt.click().await?;
+                }
             }
             SelectLocator::Label(label) => {
                 let label = runner.emit(label);
                 // somehow .//option[normalize-space(.)='{}'] doesn work...
                 let locator = format!(".//*[normalize-space(.)='{}']", label);
-                select.find(Locator::XPath(locator)).await?.click().await?;
+
+                let mut opt = select.find(Locator::XPath(locator)).await?;
+                if !opt.is_selected().await? {
+                    opt.click().await?;
+                }
             }
         };
         Ok(())

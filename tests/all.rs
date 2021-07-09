@@ -189,3 +189,7 @@ test_file!(
     "tests/resources/commands/store attribute/test.side.json",
     command_store_attribute
 );
+test_file!(
+    "tests/resources/commands/remove selection/test.side.json",
+    command_remove_selection
+);

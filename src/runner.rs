@@ -254,9 +254,7 @@ where
                     .await
             }
             Cmd::StoreJson(json, value) => {
-                StoreJson::new(json.clone().into(), value.clone())
-                    .run(self)
-                    .await
+                StoreJson::new(json.clone(), value.clone()).run(self).await
             }
             Cmd::StoreAttribute(target, attr, value) => {
                 StoreAttribute::new(target.clone().into(), attr.clone(), value.clone())

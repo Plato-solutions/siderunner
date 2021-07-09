@@ -4,12 +4,12 @@
 
 use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertConfirmation, AssertNotChecked,
-    AssertNotText, AssertSelectedValue, AssertText, AssertTitle, AssertValue, Check,
-    ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation, Click,
-    Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause,
-    RunScript, Select, SendKeys, SetWindowSize, Store, StoreText, StoreTitle, StoreXpathCount,
-    Type, WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent,
-    WaitForElementVisible,
+    AssertNotSelectedValue, AssertNotText, AssertSelectedValue, AssertText, AssertTitle,
+    AssertValue, Check, ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt,
+    ChooseOkOnNextConfirmation, Click, Close, DoubleClick, Echo, EditContent, Execute,
+    ExecuteAsync, MouseDown, MouseUp, Open, Pause, RunScript, Select, SendKeys, SetWindowSize,
+    Store, StoreText, StoreTitle, StoreXpathCount, Type, WaitForElementEditable,
+    WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::Target;
@@ -176,6 +176,11 @@ where
             Cmd::AssertPrompt(expect) => AssertPrompt::new(expect.clone()).run(self).await,
             Cmd::AssertSelectedValue(target, value) => {
                 AssertSelectedValue::new(target.clone().into(), value.clone())
+                    .run(self)
+                    .await
+            }
+            Cmd::AssertNotSelectedValue(target, value) => {
+                AssertNotSelectedValue::new(target.clone().into(), value.clone())
                     .run(self)
                     .await
             }

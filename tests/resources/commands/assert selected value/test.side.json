@@ -20,7 +20,7 @@
                     "id": "392e5b60-ed91-445b-9827-001d5695fece",
                     "comment": "",
                     "command": "addSelection",
-                    "target": "css=#multi-select",
+                    "target": "css=#select",
                     "targets": [],
                     "value": "PixelPlex"
                 },
@@ -28,7 +28,7 @@
                     "id": "392e5b60-ed91-445b-9827-001d5695fece",
                     "comment": "",
                     "command": "assertSelectedValue",
-                    "target": "css=#multi-select",
+                    "target": "css=#select",
                     "targets": [],
                     "value": "pixel-plex"
                 },
@@ -36,7 +36,7 @@
                     "id": "392e5b60-ed91-445b-9827-001d5695fece",
                     "comment": "",
                     "command": "addSelection",
-                    "target": "css=#multi-select",
+                    "target": "css=#select",
                     "targets": [],
                     "value": "EPAM"
                 },
@@ -44,7 +44,7 @@
                     "id": "392e5b60-ed91-445b-9827-001d5695fece",
                     "comment": "",
                     "command": "assertSelectedValue",
-                    "target": "css=#multi-select",
+                    "target": "css=#select",
                     "targets": [],
                     "value": "epam"
                 }

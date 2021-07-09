@@ -62,13 +62,13 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [x] assert
 - [x] assert alert
 - [x] assert checked
-- [ ] assert confirmation
+- [x] assert confirmation
 - [ ] assert editable
 - [ ] assert element present
 - [ ] assert element not present
 - [x] assert not checked
 - [ ] assert not editable
-- [ ] assert not selected value
+- [x] assert not selected value
 - [x] assert not text
 - [x] assert prompt
 - [x] assert selected value

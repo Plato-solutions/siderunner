@@ -75,6 +75,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "assertNotChecked" => Cmd::parse_assert_not_checked,
         "assertPrompt" => Cmd::parse_assert_prompt,
         "assertSelectedValue" => Cmd::parse_assert_selected_value,
+        "assertNotSelectedValue" => Cmd::parse_assert_not_selected_value,
         "assertText" => Cmd::parse_assert_text,
         "assertNotText" => Cmd::parse_assert_not_text,
         "doubleClick" => Cmd::parse_double_click,
@@ -259,6 +260,7 @@ pub enum Cmd {
     AssertChecked(Target),
     AssertNotChecked(Target),
     AssertSelectedValue(Target, String),
+    AssertNotSelectedValue(Target, String),
     AssertText(Target, String),
     AssertNotText(Target, String),
     DoubleClick(Target),
@@ -522,6 +524,12 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::AssertSelectedValue(target, c.value.clone()))
+    }
+
+    fn parse_assert_not_selected_value(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::AssertNotSelectedValue(target, c.value.clone()))
     }
 
     fn parse_assert_text(c: &format::Command) -> Result<Self, ParseError> {

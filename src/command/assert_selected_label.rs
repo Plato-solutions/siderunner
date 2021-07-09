@@ -25,7 +25,7 @@ impl<D: Webdriver> Command<D> for AssertSelectedLabel {
         let mut el = runner.get_webdriver().find(self.target.clone()).await?;
         match el.prop("selectedIndex").await? {
             Some(index) => {
-                let index: usize = index.parse().map_err(|e| {
+                let index: usize = index.parse().map_err(|_| {
                     RunnerErrorKind::MismatchedType("Unexpected type of selectedIndex".to_owned())
                 })?;
                 let option_label = el

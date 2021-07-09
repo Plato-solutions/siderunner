@@ -83,6 +83,7 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "sendKeys" => Cmd::parse_send_keys,
         "type" => Cmd::parse_type,
         "check" => Cmd::parse_check,
+        "uncheck" => Cmd::parse_uncheck,
         "mouseUp" => Cmd::parse_mouse_up,
         "mouseDown" => Cmd::parse_mouse_down,
         "chooseCancelOnNextConfirmation" => Cmd::parse_choose_cancel_on_next_confirmation,
@@ -269,6 +270,7 @@ pub enum Cmd {
     SendKeys(Target, String),
     Type(Target, String),
     Check(Target),
+    UnCheck(Target),
     MouseUp(Target),
     MouseDown(Target),
     ChooseCancelOnNextConfirmation,
@@ -574,6 +576,12 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::Check(target))
+    }
+
+    fn parse_uncheck(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::UnCheck(target))
     }
 
     fn parse_mouse_down(c: &format::Command) -> Result<Self, ParseError> {

@@ -127,7 +127,7 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [ ] submit
 - [ ] times
 - [x] type
-- [ ] uncheck
+- [x] uncheck
 - [ ] verify
 - [ ] verify checked
 - [ ] verify editable

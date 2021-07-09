@@ -5,7 +5,7 @@
 use super::Command;
 use crate::{
     error::RunnerErrorKind,
-    webdriver::{Locator, Webdriver},
+    webdriver::{Element, Locator, Webdriver},
 };
 
 pub struct Check {
@@ -21,6 +21,37 @@ impl Check {
 #[async_trait::async_trait]
 impl<D: Webdriver> Command<D> for Check {
     async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
-        super::Click::new(self.target.clone()).run(runner).await
+        let mut e = runner.get_webdriver().find(self.target.clone()).await?;
+        let selected = e.prop("selected").await?;
+
+        if selected.is_none() {
+            e.click().await?;
+        }
+
+        Ok(())
+    }
+}
+
+pub struct UnCheck {
+    target: Locator,
+}
+
+impl UnCheck {
+    pub fn new(target: Locator) -> Self {
+        Self { target }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Webdriver> Command<D> for UnCheck {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        let mut e = runner.get_webdriver().find(self.target.clone()).await?;
+        let selected = e.prop("selected").await?;
+
+        if selected.is_some() {
+            e.click().await?;
+        }
+
+        Ok(())
     }
 }

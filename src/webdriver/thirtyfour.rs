@@ -58,6 +58,22 @@ impl<'a> Webdriver for Client<'a> {
         Ok(())
     }
 
+    async fn wait_for_not_visible(
+        &mut self,
+        locator: Locator,
+        timeout: Duration,
+    ) -> Result<(), RunnerErrorKind> {
+        let locator: By = (&locator).into();
+        self.0
+            .query(locator)
+            .and_not_displayed()
+            .wait(timeout, timeout / 3)
+            .first()
+            .await?;
+
+        Ok(())
+    }
+
     async fn wait_for_not_present(
         &mut self,
         locator: Locator,
@@ -97,8 +113,24 @@ impl<'a> Webdriver for Client<'a> {
         self.0
             .query(locator)
             .wait(timeout, timeout / 3)
-            .and_clickable()
             .and_enabled()
+            .with_attribute("readonly", "false") // todo: change to "" || "false" after PR
+            .first()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn wait_for_not_editable(
+        &mut self,
+        locator: Locator,
+        timeout: Duration,
+    ) -> Result<(), RunnerErrorKind> {
+        self.0
+            .query((&locator).into())
+            .wait(timeout, timeout / 3)
+            .and_not_enabled()
+            .with_attribute("readonly", "true")
             .first()
             .await?;
 

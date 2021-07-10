@@ -11,7 +11,8 @@ use crate::command::{
     Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause,
     RemoveSelection, RunScript, Select, SendKeys, SetWindowSize, Store, StoreAttribute, StoreJson,
     StoreText, StoreTitle, StoreValue, StoreXpathCount, Type, UnCheck, WaitForElementEditable,
-    WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
+    WaitForElementNotEditable, WaitForElementNotPresent, WaitForElementNotVisible,
+    WaitForElementPresent, WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::{SelectLocator, Target};
@@ -150,6 +151,11 @@ where
                     .run(self)
                     .await
             }
+            Cmd::WaitForElementNotVisible { timeout, target } => {
+                WaitForElementNotVisible::new(target.clone().into(), *timeout)
+                    .run(self)
+                    .await
+            }
             Cmd::WaitForElementPresent { timeout, target } => {
                 WaitForElementPresent::new(target.clone().into(), *timeout)
                     .run(self)
@@ -162,6 +168,11 @@ where
             }
             Cmd::WaitForElementEditable { timeout, target } => {
                 WaitForElementEditable::new(target.clone().into(), *timeout)
+                    .run(self)
+                    .await
+            }
+            Cmd::WaitForElementNotEditable { timeout, target } => {
+                WaitForElementNotEditable::new(target.clone().into(), *timeout)
                     .run(self)
                     .await
             }

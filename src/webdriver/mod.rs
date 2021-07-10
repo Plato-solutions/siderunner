@@ -26,7 +26,7 @@ pub trait Webdriver: Send {
         locator: Locator,
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind>;
-    async fn wait_for_not_present(
+    async fn wait_for_not_visible(
         &mut self,
         locator: Locator,
         timeout: Duration,
@@ -36,7 +36,17 @@ pub trait Webdriver: Send {
         locator: Locator,
         timeout: Duration,
     ) -> Result<(), RunnerErrorKind>;
+    async fn wait_for_not_present(
+        &mut self,
+        locator: Locator,
+        timeout: Duration,
+    ) -> Result<(), RunnerErrorKind>;
     async fn wait_for_editable(
+        &mut self,
+        locator: Locator,
+        timeout: Duration,
+    ) -> Result<(), RunnerErrorKind>;
+    async fn wait_for_not_editable(
         &mut self,
         locator: Locator,
         timeout: Duration,

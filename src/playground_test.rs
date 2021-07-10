@@ -820,6 +820,15 @@ mod flow {
                 Ok(())
             }
 
+            async fn wait_for_not_visible(
+                &mut self,
+                _: Locator,
+                _: Duration,
+            ) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::W8NotVisib);
+                Ok(())
+            }
+
             async fn wait_for_not_present(
                 &mut self,
                 _: Locator,
@@ -844,6 +853,15 @@ mod flow {
                 _: Duration,
             ) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::W8Edit);
+                Ok(())
+            }
+
+            async fn wait_for_not_editable(
+                &mut self,
+                _: Locator,
+                _: Duration,
+            ) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::W8NotEdit);
                 Ok(())
             }
 
@@ -1011,9 +1029,11 @@ mod flow {
             CurrentUrl,
             SetWSize,
             W8Visib,
+            W8NotVisib,
             W8Pres,
             W8NPres,
             W8Edit,
+            W8NotEdit,
             Attr,
             Prop,
             Text,

@@ -46,6 +46,14 @@ impl Webdriver for Client {
         self.wait_for_present(locator, timeout).await
     }
 
+    async fn wait_for_not_visible(
+        &mut self,
+        locator: Locator,
+        timeout: Duration,
+    ) -> Result<(), RunnerErrorKind> {
+        todo!()
+    }
+
     async fn wait_for_not_present(
         &mut self,
         locator: Locator,
@@ -127,6 +135,14 @@ impl Webdriver for Client {
                 ));
             }
         }
+    }
+
+    async fn wait_for_not_editable(
+        &mut self,
+        locator: Locator,
+        timeout: Duration,
+    ) -> Result<(), RunnerErrorKind> {
+        todo!()
     }
 
     async fn current_url(&mut self) -> Result<url::Url, RunnerErrorKind> {
@@ -242,7 +258,6 @@ impl WebElement for Element {
 
     async fn select_by_label(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind> {
         todo!()
-
     }
 
     async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind> {

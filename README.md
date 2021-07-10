@@ -143,11 +143,11 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [ ] verify title
 - [ ] verify value
 - [x] wait for element editable
-- [ ] wait for element not editable
+- [x] wait for element not editable
 - [x] wait for element not present
-- [ ] wait for element not visible
+- [x] wait for element not visible
 - [x] wait for element present
-- [ ] wait for element visible
+- [x] wait for element visible
 - [ ] webdriver answer on visible prompt
 - [ ] webdriver choose cancel on visible confirmation
 - [ ] webdriver choose cancel on visible prompt

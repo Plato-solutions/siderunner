@@ -43,7 +43,6 @@ mod store_value;
 mod store_xpath_count;
 mod type_;
 mod wait_for_element_editable;
-mod wait_for_element_not_present;
 mod wait_for_element_present;
 mod wait_for_element_visible;
 
@@ -55,8 +54,8 @@ pub use {
     edit_content::*, execute::*, execute_async::*, mouse::*, open::*, pause::*,
     remove_selection::*, run_script::*, select::*, send_keys::*, set_window_size::*, store::*,
     store_attribute::*, store_json::*, store_text::*, store_title::*, store_value::*,
-    store_xpath_count::*, type_::*, wait_for_element_editable::*, wait_for_element_not_present::*,
-    wait_for_element_present::*, wait_for_element_visible::*,
+    store_xpath_count::*, type_::*, wait_for_element_editable::*, wait_for_element_present::*,
+    wait_for_element_visible::*,
 };
 
 #[async_trait::async_trait]

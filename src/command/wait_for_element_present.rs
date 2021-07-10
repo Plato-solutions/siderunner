@@ -34,3 +34,27 @@ impl<D: Webdriver> Command<D> for WaitForElementPresent {
         Ok(())
     }
 }
+
+pub struct WaitForElementNotPresent {
+    target: Locator,
+    timeout: Duration,
+}
+
+impl WaitForElementNotPresent {
+    pub fn new(target: Locator, timeout: Duration) -> Self {
+        Self { target, timeout }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Webdriver> Command<D> for WaitForElementNotPresent {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        runner
+            .get_webdriver()
+            .wait_for_not_present(self.target.clone(), self.timeout)
+            .await
+            .map_err(|_| RunnerErrorKind::Timeout("WaitForElementPresent".to_owned()))?;
+
+        Ok(())
+    }
+}

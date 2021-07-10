@@ -25,8 +25,32 @@ impl WaitForElementVisible {
 
 #[async_trait::async_trait]
 impl<D: Webdriver> Command<D> for WaitForElementVisible {
-    async fn run(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
-        futures_timer::Delay::new(self.timeout).await;
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        runner
+            .get_webdriver()
+            .wait_for_visible(self.target.clone(), self.timeout)
+            .await?;
+        Ok(())
+    }
+}
+pub struct WaitForElementNotVisible {
+    target: Locator,
+    timeout: Duration,
+}
+
+impl WaitForElementNotVisible {
+    pub fn new(target: Locator, timeout: Duration) -> Self {
+        Self { target, timeout }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Webdriver> Command<D> for WaitForElementNotVisible {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        runner
+            .get_webdriver()
+            .wait_for_not_visible(self.target.clone(), self.timeout)
+            .await?;
         Ok(())
     }
 }

@@ -48,9 +48,11 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "executeScript" => Cmd::parse_execute_script,
         "executeScriptAsync" => Cmd::parse_execute_async_script,
         "waitForElementVisible" => Cmd::parse_wait_for_visible,
+        "waitForElementNotVisible" => Cmd::parse_wait_for_not_visible,
         "waitForElementEditable" => Cmd::parse_wait_for_editable,
-        "waitForElementNotPresent" => Cmd::parse_wait_for_not_present,
+        "waitForElementNotEditable" => Cmd::parse_wait_for_not_editable,
         "waitForElementPresent" => Cmd::parse_wait_for_present,
+        "waitForElementNotPresent" => Cmd::parse_wait_for_not_present,
         "select" => Cmd::parse_select,
         "addSelection" => Cmd::parse_add_selection,
         "echo" => Cmd::parse_echo,
@@ -213,15 +215,23 @@ pub enum Cmd {
         target: Target,
         timeout: Duration,
     },
+    WaitForElementNotVisible {
+        target: Target,
+        timeout: Duration,
+    },
     WaitForElementEditable {
         target: Target,
         timeout: Duration,
     },
-    WaitForElementNotPresent {
+    WaitForElementNotEditable {
         target: Target,
         timeout: Duration,
     },
     WaitForElementPresent {
+        target: Target,
+        timeout: Duration,
+    },
+    WaitForElementNotPresent {
         target: Target,
         timeout: Duration,
     },
@@ -355,12 +365,28 @@ impl Cmd {
         Ok(Self::WaitForElementVisible { target, timeout })
     }
 
+    fn parse_wait_for_not_visible(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let timeout = cast_timeout(&c.value)?;
+
+        Ok(Self::WaitForElementNotVisible { target, timeout })
+    }
+
     fn parse_wait_for_editable(c: &format::Command) -> Result<Self, ParseError> {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         let timeout = cast_timeout(&c.value)?;
 
         Ok(Self::WaitForElementEditable { target, timeout })
+    }
+
+    fn parse_wait_for_not_editable(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let timeout = cast_timeout(&c.value)?;
+
+        Ok(Self::WaitForElementNotEditable { target, timeout })
     }
 
     fn parse_wait_for_not_present(c: &format::Command) -> Result<Self, ParseError> {

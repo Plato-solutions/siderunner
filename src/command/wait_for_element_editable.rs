@@ -34,3 +34,27 @@ impl<D: Webdriver> Command<D> for WaitForElementEditable {
         Ok(())
     }
 }
+
+pub struct WaitForElementNotEditable {
+    target: Locator,
+    timeout: Duration,
+}
+
+impl WaitForElementNotEditable {
+    pub fn new(target: Locator, timeout: Duration) -> Self {
+        Self { target, timeout }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Webdriver> Command<D> for WaitForElementNotEditable {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        runner
+            .get_webdriver()
+            .wait_for_not_editable(self.target.clone(), self.timeout)
+            .await
+            .map_err(|_| RunnerErrorKind::Timeout("WaitForElementPresent".to_owned()))?;
+
+        Ok(())
+    }
+}

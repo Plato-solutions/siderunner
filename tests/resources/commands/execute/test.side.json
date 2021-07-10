@@ -6,7 +6,7 @@
     "tests": [
         {
             "id": "834b529f-c7fc-4d43-bbdf-0cfabe285c75",
-            "name": "issue324",
+            "name": "test1",
             "commands": [
                 {
                     "id": "839bb8c7-14da-49dd-9554-e593be46fd3e",
@@ -60,7 +60,7 @@
         },
         {
             "id": "834b529f-c7fc-4d43-bbdf-0cfabe285c75",
-            "name": "issue324",
+            "name": "test2",
             "commands": [
                 {
                     "id": "839bb8c7-14da-49dd-9554-e593be46fd3e",

@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::error::ParseError;
+use std::collections::HashMap;
 use std::result::Result;
 use std::time::Duration;
 
@@ -12,6 +13,9 @@ use std::time::Duration;
 pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
     let side: format::SideFile =
         serde_json::from_reader(side_file).map_err(ParseError::FormatError)?;
+
+    file_has_uniq_tests(&side)?;
+
     let mut tests = Vec::new();
     for test in side.tests {
         let mut commands = Vec::with_capacity(test.commands.len());
@@ -38,6 +42,18 @@ pub fn parse<R: std::io::Read>(side_file: R) -> Result<File, ParseError> {
         version: side.version,
         tests,
     })
+}
+
+fn file_has_uniq_tests(file: &format::SideFile) -> Result<(), ParseError> {
+    let mut seen = HashMap::new();
+    for (i, test) in file.tests.iter().enumerate() {
+        let old = seen.insert(test.name.clone(), i);
+        if let Some(index) = old {
+            return Err(ParseError::NotUniqTestName(index, i));
+        }
+    }
+
+    Ok(())
 }
 
 fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
@@ -1015,6 +1031,44 @@ mod tests {
                 }
             );
         }
+    }
+
+    #[test]
+    fn _error_on_tests_with_not_uniq_names() {
+        let file: Vec<u8> = r#"{
+            "id": "bfc1bd56-39bd-4a0d-be2b-583ad75ac104",
+            "version": "2.0",
+            "name": "",
+            "url": "",
+            "tests": [
+                {
+                    "id": "5d61ce01-d373-4b14-a1a1-7474a4e192e5",
+                    "name": "basic",
+                    "commands": []
+                },
+                {
+                    "id": "5d61ce01-d373-4b14-a1a1-7474a4e192e5",
+                    "name": "basic",
+                    "commands": []
+                }
+            ],
+            "suites": [{
+              "id": "925de5ce-03ae-4dcb-9146-c956ff3f090d",
+              "name": "Default Suite",
+              "persistSession": false,
+              "parallel": false,
+              "timeout": 300,
+              "tests": ["5d61ce01-d373-4b14-a1a1-7474a4e192e5"]
+            }],
+            "urls": [""],
+            "plugins": []
+          }"#
+        .as_bytes()
+        .to_vec();
+
+        let reader = file.as_slice();
+        let err = parse(reader).unwrap_err();
+        assert!(matches!(err, ParseError::NotUniqTestName(0, 1)))
     }
 
     fn side_file() -> Vec<u8> {

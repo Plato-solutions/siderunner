@@ -100,6 +100,7 @@ pub enum ParseError {
     LocatorFormatError(String),
     TypeError(String),
     ValidationError(String),
+    NotUniqTestName(usize, usize),
 }
 
 impl std::fmt::Debug for ParseError {
@@ -109,6 +110,11 @@ impl std::fmt::Debug for ParseError {
             Self::LocatorFormatError(err) => write!(f, "locator has wrong format {:?}", err),
             Self::TypeError(err) => write!(f, "unexpected type {:?}", err),
             Self::ValidationError(err) => write!(f, "validation error {:?}", err),
+            Self::NotUniqTestName(t1, t2) => write!(
+                f,
+                "file contains a test with not uniq name; (test1={}, test2={})",
+                t1, t2
+            ),
         }
     }
 }

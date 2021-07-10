@@ -198,3 +198,11 @@ test_file!(
     "tests/resources/commands/assert element not present/test.side.json",
     command_assert_element_not_present
 );
+test_file!(
+    "tests/resources/commands/assert element editable/test.side.json",
+    command_assert_element_editable
+);
+test_file!(
+    "tests/resources/commands/assert element not editable/test.side.json",
+    command_assert_element_not_editable
+);

@@ -986,6 +986,11 @@ mod flow {
                 self.inc(Call::IsPresent);
                 Ok(true)
             }
+
+            async fn is_enabled(&mut self) -> Result<bool, RunnerErrorKind> {
+                self.inc(Call::IsEnabled);
+                Ok(true)
+            }
         }
 
         #[derive(Clone, Default)]
@@ -1026,6 +1031,7 @@ mod flow {
             Title,
             IsSelected,
             IsPresent,
+            IsEnabled,
         }
 
         impl Index<Call> for CallCount {
@@ -1038,7 +1044,7 @@ mod flow {
 
         impl IndexMut<Call> for CallCount {
             fn index_mut(&mut self, call: Call) -> &mut Self::Output {
-                self.inner.get_mut(&call).unwrap()
+                self.inner.entry(call).or_default()
             }
         }
     }

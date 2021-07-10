@@ -102,6 +102,11 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "removeSelection" => Cmd::parse_remove_selection,
         "assertElementPresent" => Cmd::parse_assert_element_present,
         "assertElementNotPresent" => Cmd::parse_assert_element_not_present,
+        "assertElementEditable" => Cmd::parse_assert_element_editable,
+        "assertElementNotEditable" => Cmd::parse_assert_element_not_editable,
+        // It seems like possible 2 names may be used [assertEditable|assertElementEditable]
+        "assertEditable" => Cmd::parse_assert_element_editable,
+        "assertNotEditable" => Cmd::parse_assert_element_not_editable,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -298,6 +303,8 @@ pub enum Cmd {
     StoreAttribute(Target, String, String),
     AssertElementPresent(Target),
     AssertElementNotPresent(Target),
+    AssertEditable(Target),
+    AssertNotEditable(Target),
 }
 
 impl Cmd {
@@ -698,6 +705,18 @@ impl Cmd {
         let location = parse_location(&c.target)?;
         let target = Target::new(location);
         Ok(Self::AssertElementNotPresent(target))
+    }
+
+    fn parse_assert_element_editable(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::AssertEditable(target))
+    }
+
+    fn parse_assert_element_not_editable(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::AssertNotEditable(target))
     }
 }
 

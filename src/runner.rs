@@ -4,13 +4,14 @@
 
 use crate::command::{
     AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertConfirmation,
-    AssertElementNotPresent, AssertElementPresent, AssertNotChecked, AssertNotSelectedValue,
-    AssertNotText, AssertSelectedLabel, AssertSelectedValue, AssertText, AssertTitle, AssertValue,
-    Check, ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation,
-    Click, Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open,
-    Pause, RemoveSelection, RunScript, Select, SendKeys, SetWindowSize, Store, StoreAttribute,
-    StoreJson, StoreText, StoreTitle, StoreValue, StoreXpathCount, Type, UnCheck,
-    WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
+    AssertElementEditable, AssertElementNotEditable, AssertElementNotPresent, AssertElementPresent,
+    AssertNotChecked, AssertNotSelectedValue, AssertNotText, AssertSelectedLabel,
+    AssertSelectedValue, AssertText, AssertTitle, AssertValue, Check,
+    ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation, Click,
+    Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause,
+    RemoveSelection, RunScript, Select, SendKeys, SetWindowSize, Store, StoreAttribute, StoreJson,
+    StoreText, StoreTitle, StoreValue, StoreXpathCount, Type, UnCheck, WaitForElementEditable,
+    WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::{SelectLocator, Target};
@@ -288,6 +289,16 @@ where
             }
             Cmd::AssertElementNotPresent(target) => {
                 AssertElementNotPresent::new(target.clone().into())
+                    .run(self)
+                    .await
+            }
+            Cmd::AssertEditable(target) => {
+                AssertElementEditable::new(target.clone().into())
+                    .run(self)
+                    .await
+            }
+            Cmd::AssertNotEditable(target) => {
+                AssertElementNotEditable::new(target.clone().into())
                     .run(self)
                     .await
             }

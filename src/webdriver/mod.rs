@@ -78,6 +78,7 @@ pub trait Element: Send {
     async fn send_keys(mut self, value: &str) -> Result<(), RunnerErrorKind>;
     async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind>;
     async fn is_present(&mut self) -> Result<bool, RunnerErrorKind>;
+    async fn is_enabled(&mut self) -> Result<bool, RunnerErrorKind>;
 }
 
 /// Locator represents a way how to find a particular web element.

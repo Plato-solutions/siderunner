@@ -293,6 +293,11 @@ impl<'a> Element for WebElement<'a> {
         let r = self.0.is_present().await?;
         Ok(r)
     }
+
+    async fn is_enabled(&mut self) -> Result<bool, RunnerErrorKind> {
+        let r = self.0.is_enabled().await?;
+        Ok(r)
+    }
 }
 
 impl<'a> From<&'a Locator> for By<'a> {

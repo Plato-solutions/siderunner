@@ -3,14 +3,14 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::command::{
-    AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertConfirmation, AssertNotChecked,
-    AssertNotSelectedValue, AssertNotText, AssertSelectedLabel, AssertSelectedValue, AssertText,
-    AssertTitle, AssertValue, Check, ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt,
-    ChooseOkOnNextConfirmation, Click, Close, DoubleClick, Echo, EditContent, Execute,
-    ExecuteAsync, MouseDown, MouseUp, Open, Pause, RemoveSelection, RunScript, Select, SendKeys,
-    SetWindowSize, Store, StoreAttribute, StoreJson, StoreText, StoreTitle, StoreValue,
-    StoreXpathCount, Type, UnCheck, WaitForElementEditable, WaitForElementNotPresent,
-    WaitForElementPresent, WaitForElementVisible,
+    AnswerOnNextPrompt, Assert, AssertAlert, AssertChecked, AssertConfirmation,
+    AssertElementNotPresent, AssertElementPresent, AssertNotChecked, AssertNotSelectedValue,
+    AssertNotText, AssertSelectedLabel, AssertSelectedValue, AssertText, AssertTitle, AssertValue,
+    Check, ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation,
+    Click, Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open,
+    Pause, RemoveSelection, RunScript, Select, SendKeys, SetWindowSize, Store, StoreAttribute,
+    StoreJson, StoreText, StoreTitle, StoreValue, StoreXpathCount, Type, UnCheck,
+    WaitForElementEditable, WaitForElementNotPresent, WaitForElementPresent, WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::{SelectLocator, Target};
@@ -127,7 +127,6 @@ where
         cmd: &Cmd,
     ) -> Result<(), RunnerErrorKind> {
         // TODO: emit variables in value field too
-        println!("CMD {:?}", cmd);
         match cmd {
             Cmd::Open(url) => Open::new(url.clone(), file.url.clone()).run(self).await,
             Cmd::StoreText { var, target, .. } => {
@@ -281,6 +280,16 @@ where
                 // But we are using [`async-recursion`] crate for this.
 
                 self.run_test(file, test).await.map_err(|e| e.kind)
+            }
+            Cmd::AssertElementPresent(target) => {
+                AssertElementPresent::new(target.clone().into())
+                    .run(self)
+                    .await
+            }
+            Cmd::AssertElementNotPresent(target) => {
+                AssertElementNotPresent::new(target.clone().into())
+                    .run(self)
+                    .await
             }
             Cmd::While(..)
             | Cmd::Else

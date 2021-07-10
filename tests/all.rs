@@ -18,26 +18,23 @@ async fn testing(path: &str) {
 
     let mut runner = Runner::new(&wb);
     match runner.run(&side_file).await {
-        Ok(()) => {}
+        Ok(()) => {
+            wb.quit().await.expect("Failed to stop a webdriver");
+        }
         Err(err) => {
             wb.quit().await.expect("Failed to stop a webdriver");
 
-            // TODO: change command interface to not lose all information
-            // let test = side_file
-            //     .tests
-            //     .iter()
-            //     .find(|test| test.name.as_str() == err.test.as_ref().unwrap())
-            //     .unwrap();
-            // let failed_command = &test.commands[err.index];
-            // if failed_command.comment == "FAIL" {
-            //     // it's OK
-            // }
-
-            panic!("Failed to run a file {:?} test: {:?}", path, err);
+            let test = side_file
+                .tests
+                .iter()
+                .find(|test| test.name.as_str() == err.test.as_ref().unwrap())
+                .unwrap();
+            let failed_command = &test.commands[err.index];
+            if failed_command.comment != "FAIL" {
+                panic!("Failed to run a file {:?} test: {:?}", path, err);
+            }
         }
     }
-
-    wb.quit().await.expect("Failed to stop a webdriver");
 }
 
 macro_rules! test_file {
@@ -192,4 +189,12 @@ test_file!(
 test_file!(
     "tests/resources/commands/remove selection/test.side.json",
     command_remove_selection
+);
+test_file!(
+    "tests/resources/commands/assert element present/test.side.json",
+    command_assert_element_present
+);
+test_file!(
+    "tests/resources/commands/assert element not present/test.side.json",
+    command_assert_element_not_present
 );

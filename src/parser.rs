@@ -100,6 +100,8 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         "storeAttribute" => Cmd::parse_store_attribute,
         "storeJson" => Cmd::parse_store_json,
         "removeSelection" => Cmd::parse_remove_selection,
+        "assertElementPresent" => Cmd::parse_assert_element_present,
+        "assertElementNotPresent" => Cmd::parse_assert_element_not_present,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -294,6 +296,8 @@ pub enum Cmd {
     StoreJson(String, String),
     StoreValue(Target, String),
     StoreAttribute(Target, String, String),
+    AssertElementPresent(Target),
+    AssertElementNotPresent(Target),
 }
 
 impl Cmd {
@@ -682,6 +686,18 @@ impl Cmd {
             attribute.to_string(),
             c.value.clone(),
         ))
+    }
+
+    fn parse_assert_element_present(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::AssertElementPresent(target))
+    }
+
+    fn parse_assert_element_not_present(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        Ok(Self::AssertElementNotPresent(target))
     }
 }
 

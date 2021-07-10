@@ -248,6 +248,10 @@ impl WebElement for Element {
     async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind> {
         todo!()
     }
+
+    async fn is_present(&mut self) -> Result<bool, RunnerErrorKind> {
+        todo!()
+    }
 }
 
 impl<'a> Into<fan::Locator<'a>> for &'a Locator {

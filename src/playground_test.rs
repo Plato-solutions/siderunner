@@ -981,6 +981,11 @@ mod flow {
                 self.inc(Call::IsSelected);
                 Ok(true)
             }
+
+            async fn is_present(&mut self) -> Result<bool, RunnerErrorKind> {
+                self.inc(Call::IsPresent);
+                Ok(true)
+            }
         }
 
         #[derive(Clone, Default)]
@@ -1020,6 +1025,7 @@ mod flow {
             MouseUp,
             Title,
             IsSelected,
+            IsPresent,
         }
 
         impl Index<Call> for CallCount {

@@ -77,6 +77,7 @@ pub trait Element: Send {
     async fn select_by_label(mut self, value: &str) -> Result<Self::Driver, RunnerErrorKind>;
     async fn send_keys(mut self, value: &str) -> Result<(), RunnerErrorKind>;
     async fn is_selected(&mut self) -> Result<bool, RunnerErrorKind>;
+    async fn is_present(&mut self) -> Result<bool, RunnerErrorKind>;
 }
 
 /// Locator represents a way how to find a particular web element.

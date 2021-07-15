@@ -8,11 +8,11 @@ use crate::command::{
     AssertNotChecked, AssertNotSelectedValue, AssertNotText, AssertSelectedLabel,
     AssertSelectedValue, AssertText, AssertTitle, AssertValue, Check,
     ChooseCancelOnNextConfirmation, ChooseCancelOnNextPrompt, ChooseOkOnNextConfirmation, Click,
-    Close, DoubleClick, Echo, EditContent, Execute, ExecuteAsync, MouseDown, MouseUp, Open, Pause,
-    RemoveSelection, RunScript, Select, SendKeys, SetWindowSize, Store, StoreAttribute, StoreJson,
-    StoreText, StoreTitle, StoreValue, StoreXpathCount, Type, UnCheck, WaitForElementEditable,
-    WaitForElementNotEditable, WaitForElementNotPresent, WaitForElementNotVisible,
-    WaitForElementPresent, WaitForElementVisible,
+    ClickAt, Close, DoubleClick, DoubleClickAt, Echo, EditContent, Execute, ExecuteAsync,
+    MouseDown, MouseUp, Open, Pause, RemoveSelection, RunScript, Select, SendKeys, SetWindowSize,
+    Store, StoreAttribute, StoreJson, StoreText, StoreTitle, StoreValue, StoreXpathCount, Type,
+    UnCheck, WaitForElementEditable, WaitForElementNotEditable, WaitForElementNotPresent,
+    WaitForElementNotVisible, WaitForElementPresent, WaitForElementVisible,
 };
 use crate::command::{AssertPrompt, Command as Cmd1};
 use crate::parser::{SelectLocator, Target};
@@ -310,6 +310,14 @@ where
             }
             Cmd::AssertNotEditable(target) => {
                 AssertElementNotEditable::new(target.clone().into())
+                    .run(self)
+                    .await
+            }
+            Cmd::ClickAt(target, coord) => {
+                ClickAt::new(target.clone().into(), *coord).run(self).await
+            }
+            Cmd::DoubleClickAt(target, coord) => {
+                DoubleClickAt::new(target.clone().into(), *coord)
                     .run(self)
                     .await
             }

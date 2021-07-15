@@ -201,6 +201,22 @@ impl Webdriver for Client {
     async fn title(&mut self) -> Result<String, RunnerErrorKind> {
         todo!()
     }
+
+    async fn click_at(
+        &mut self,
+        locator: Locator,
+        coord: (i32, i32),
+    ) -> Result<(), RunnerErrorKind> {
+        todo!()
+    }
+
+    async fn double_click_at(
+        &mut self,
+        locator: Locator,
+        coord: (i32, i32),
+    ) -> Result<(), RunnerErrorKind> {
+        todo!()
+    }
 }
 
 pub struct Element(fan::elements::Element);

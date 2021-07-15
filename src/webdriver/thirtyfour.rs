@@ -236,6 +236,42 @@ impl<'a> Webdriver for Client<'a> {
         let title = self.0.title().await?;
         Ok(title)
     }
+
+    async fn click_at(
+        &mut self,
+        locator: Locator,
+        coord: (i32, i32),
+    ) -> Result<(), RunnerErrorKind> {
+        let by: By = (&locator).into();
+        let el = self.0.find_element(by).await?;
+        self.0
+            .action_chain()
+            .move_to_element_center(&el)
+            .move_by_offset(coord.0, coord.1)
+            .click()
+            .perform()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn double_click_at(
+        &mut self,
+        locator: Locator,
+        coord: (i32, i32),
+    ) -> Result<(), RunnerErrorKind> {
+        let by: By = (&locator).into();
+        let el = self.0.find_element(by).await?;
+        self.0
+            .action_chain()
+            .move_to_element_center(&el)
+            .move_by_offset(coord.0, coord.1)
+            .double_click()
+            .perform()
+            .await?;
+
+        Ok(())
+    }
 }
 
 pub struct WebElement<'a>(thirtyfour::WebElement<'a>, &'a thirtyfour::WebDriver);

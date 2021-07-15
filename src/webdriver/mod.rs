@@ -67,6 +67,13 @@ pub trait Webdriver: Send {
     async fn mouse_down(&mut self, locator: Locator) -> Result<(), RunnerErrorKind>;
     async fn mouse_up(&mut self, locator: Locator) -> Result<(), RunnerErrorKind>;
     async fn title(&mut self) -> Result<String, RunnerErrorKind>;
+    async fn click_at(&mut self, locator: Locator, coord: (i32, i32))
+        -> Result<(), RunnerErrorKind>;
+    async fn double_click_at(
+        &mut self,
+        locator: Locator,
+        coord: (i32, i32),
+    ) -> Result<(), RunnerErrorKind>;
 }
 
 /// Element represents functionality which may be taken agains a WebElement by means of Webdriver.

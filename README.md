@@ -81,12 +81,12 @@ You can tweak `fantoccini` backend by providing a feature `fantoccini_backend` a
 - [x] choose cancel on next prompt
 - [x] choose ok on next confirmation
 - [x] click
-- [ ] click at
+- [x] click at
 - [x] close
 - [ ] debugger
 - [x] do
 - [x] double click
-- [ ] double click at
+- [x] double click at
 - [ ] drag and drop to object
 - [x] echo
 - [x] edit content

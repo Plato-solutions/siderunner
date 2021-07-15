@@ -125,6 +125,8 @@ fn parse_cmd(command: &format::Command) -> Result<Cmd, ParseError> {
         // It seems like possible 2 names may be used [assertEditable|assertElementEditable]
         "assertEditable" => Cmd::parse_assert_element_editable,
         "assertNotEditable" => Cmd::parse_assert_element_not_editable,
+        "clickAt" => Cmd::parse_click_at,
+        "doubleClickAt" => Cmd::parse_double_click_at,
         cmd if cmd.is_empty() || cmd.starts_with("//") => {
             // We create an empty command to not lose an order of commands.
             // It's usefull for error messages to not break the indexes of commands from a file.
@@ -331,6 +333,8 @@ pub enum Cmd {
     AssertElementNotPresent(Target),
     AssertEditable(Target),
     AssertNotEditable(Target),
+    ClickAt(Target, (i32, i32)),
+    DoubleClickAt(Target, (i32, i32)),
 }
 
 impl Cmd {
@@ -760,6 +764,47 @@ impl Cmd {
         let target = Target::new(location);
         Ok(Self::AssertNotEditable(target))
     }
+
+    fn parse_click_at(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let coords = parse_coordinates(&c.value)?;
+        Ok(Self::ClickAt(target, coords))
+    }
+
+    fn parse_double_click_at(c: &format::Command) -> Result<Self, ParseError> {
+        let location = parse_location(&c.target)?;
+        let target = Target::new(location);
+        let coords = parse_coordinates(&c.value)?;
+        Ok(Self::DoubleClickAt(target, coords))
+    }
+}
+
+fn parse_coordinates(s: &str) -> Result<(i32, i32), ParseError> {
+    let mut bytes = s.trim().as_bytes();
+    if let Some(b) = bytes.strip_prefix(b"(") {
+        bytes = b;
+    }
+    if let Some(b) = bytes.strip_suffix(b")") {
+        bytes = b;
+    }
+
+    let pos = bytes
+        .iter()
+        .position(|&c| c == b',')
+        .ok_or_else(|| ParseError::TypeError("Unexpected format of coordinates".to_string()))?;
+
+    let x = std::str::from_utf8(&bytes[..pos])
+        .map(|s| s.parse::<i32>())
+        .map_err(|_| ParseError::TypeError("Unexpected format of coordinates".to_string()))?
+        .map_err(|_| ParseError::TypeError("Unexpected format of coordinates".to_string()))?;
+
+    let y = std::str::from_utf8(&bytes[pos + 1..])
+        .map(|s| s.parse::<i32>())
+        .map_err(|_| ParseError::TypeError("Unexpected format of coordinates".to_string()))?
+        .map_err(|_| ParseError::TypeError("Unexpected format of coordinates".to_string()))?;
+
+    Ok((x, y))
 }
 
 /// Target represents a locator of html element
@@ -1116,5 +1161,23 @@ mod tests {
           }"#
         .as_bytes()
         .to_vec()
+    }
+
+    #[test]
+    fn parse_coordinates_test() {
+        assert_eq!(parse_coordinates("12,120").unwrap(), (12, 120));
+        assert_eq!(parse_coordinates("    12,120   ").unwrap(), (12, 120));
+        assert_eq!(parse_coordinates("(12,120)").unwrap(), (12, 120));
+        assert_eq!(parse_coordinates("(12,-120)").unwrap(), (12, -120));
+        assert_eq!(parse_coordinates("(-12,120)").unwrap(), (-12, 120));
+        assert_eq!(parse_coordinates("(-12,-120)").unwrap(), (-12, -120));
+        assert!(parse_coordinates("(  12 ,  -120  )").is_err());
+        assert!(parse_coordinates("(12,)").is_err());
+        assert!(parse_coordinates("(,120)").is_err());
+        assert!(parse_coordinates("(12 120)").is_err());
+        assert!(parse_coordinates("(,)").is_err());
+        assert!(parse_coordinates(")").is_err());
+        assert!(parse_coordinates("(").is_err());
+        assert!(parse_coordinates("").is_err());
     }
 }

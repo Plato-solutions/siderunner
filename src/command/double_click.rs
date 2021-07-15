@@ -29,3 +29,26 @@ impl<D: Webdriver> Command<D> for DoubleClick {
         Ok(())
     }
 }
+
+pub struct DoubleClickAt {
+    target: Locator,
+    coord: (i32, i32),
+}
+
+impl DoubleClickAt {
+    pub fn new(target: Locator, coord: (i32, i32)) -> Self {
+        Self { target, coord }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Webdriver> Command<D> for DoubleClickAt {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        runner
+            .get_webdriver()
+            .double_click_at(self.target.clone(), self.coord)
+            .await?;
+
+        Ok(())
+    }
+}

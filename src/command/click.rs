@@ -31,3 +31,26 @@ impl<D: Webdriver> Command<D> for Click {
         Ok(())
     }
 }
+
+pub struct ClickAt {
+    target: Locator,
+    coord: (i32, i32),
+}
+
+impl ClickAt {
+    pub fn new(target: Locator, coord: (i32, i32)) -> Self {
+        Self { target, coord }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Webdriver> Command<D> for ClickAt {
+    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+        runner
+            .get_webdriver()
+            .click_at(self.target.clone(), self.coord)
+            .await?;
+
+        Ok(())
+    }
+}

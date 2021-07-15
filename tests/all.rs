@@ -206,3 +206,11 @@ test_file!(
     "tests/resources/commands/assert element not editable/test.side.json",
     command_assert_element_not_editable
 );
+test_file!(
+    "tests/resources/commands/click at/test.side.json",
+    command_click_at
+);
+test_file!(
+    "tests/resources/commands/double click at/test.side.json",
+    command_double_click_at
+);

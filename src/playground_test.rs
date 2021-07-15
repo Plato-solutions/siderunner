@@ -928,6 +928,24 @@ mod flow {
                 self.inc(Call::Title);
                 Ok(String::new())
             }
+
+            async fn click_at(
+                &mut self,
+                locator: Locator,
+                coord: (i32, i32),
+            ) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::ClickAt);
+                Ok(())
+            }
+
+            async fn double_click_at(
+                &mut self,
+                locator: Locator,
+                coord: (i32, i32),
+            ) -> Result<(), RunnerErrorKind> {
+                self.inc(Call::DoubleClickAt);
+                Ok(())
+            }
         }
 
         pub struct Element(Arc<Client>);
@@ -1052,6 +1070,8 @@ mod flow {
             IsSelected,
             IsPresent,
             IsEnabled,
+            ClickAt,
+            DoubleClickAt,
         }
 
         impl Index<Call> for CallCount {

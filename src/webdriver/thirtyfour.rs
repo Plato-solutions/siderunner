@@ -28,7 +28,7 @@ impl<'a> Webdriver for Client<'a> {
 
     async fn find(&mut self, locator: Locator) -> Result<Self::Element, RunnerErrorKind> {
         let e = self.0.find_element((&locator).into()).await?;
-        Ok(WebElement(e, &self.0))
+        Ok(WebElement(e, self.0))
     }
 
     async fn find_all(&mut self, locator: Locator) -> Result<Vec<Self::Element>, RunnerErrorKind> {
@@ -37,7 +37,7 @@ impl<'a> Webdriver for Client<'a> {
             .find_elements((&locator).into())
             .await?
             .into_iter()
-            .map(move |e| WebElement(e, &self.0))
+            .map(move |e| WebElement(e, self.0))
             .collect();
         Ok(elements)
     }
@@ -371,10 +371,10 @@ impl<'a> Element for WebElement<'a> {
 impl<'a> From<&'a Locator> for By<'a> {
     fn from(locator: &'a Locator) -> By<'a> {
         match locator {
-            Locator::LinkText(s) => By::LinkText(&s),
-            Locator::Css(s) => By::Css(&s),
-            Locator::Id(s) => By::Id(&s),
-            Locator::XPath(s) => By::XPath(&s),
+            Locator::LinkText(s) => By::LinkText(s),
+            Locator::Css(s) => By::Css(s),
+            Locator::Id(s) => By::Id(s),
+            Locator::XPath(s) => By::XPath(s),
         }
     }
 }

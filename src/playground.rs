@@ -24,7 +24,7 @@ impl Playground {
         };
         validate_conditions(&test.commands).map_err(err_wrap)?;
         let nodes = build_nodes(&test.commands);
-        run_nodes(runner, nodes, &file).await.map_err(err_wrap)
+        run_nodes(runner, nodes, file).await.map_err(err_wrap)
     }
 }
 

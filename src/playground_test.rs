@@ -929,19 +929,15 @@ mod flow {
                 Ok(String::new())
             }
 
-            async fn click_at(
-                &mut self,
-                locator: Locator,
-                coord: (i32, i32),
-            ) -> Result<(), RunnerErrorKind> {
+            async fn click_at(&mut self, _: Locator, _: (i32, i32)) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::ClickAt);
                 Ok(())
             }
 
             async fn double_click_at(
                 &mut self,
-                locator: Locator,
-                coord: (i32, i32),
+                _: Locator,
+                _: (i32, i32),
             ) -> Result<(), RunnerErrorKind> {
                 self.inc(Call::DoubleClickAt);
                 Ok(())

@@ -37,7 +37,7 @@ impl<D: Webdriver> Command<D> for Open {
 fn build_url(base: &str, url: &str) -> Result<Url, url::ParseError> {
     match Url::parse(url) {
         Ok(url) => Ok(url),
-        Err(url::ParseError::RelativeUrlWithoutBase) => Url::parse(base)?.join(&url),
+        Err(url::ParseError::RelativeUrlWithoutBase) => Url::parse(base)?.join(url),
         e => e,
     }
 }

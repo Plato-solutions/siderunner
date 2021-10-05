@@ -20,8 +20,11 @@ impl SendKeys {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for SendKeys {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for SendKeys {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         // todo: add support for a KEY_STROKES like KEY_ENTER
         let element = runner.get_webdriver().find(self.target.clone()).await?;
         element.send_keys(&self.text).await?;

@@ -19,8 +19,11 @@ impl DoubleClick {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for DoubleClick {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for DoubleClick {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .double_click(self.target.clone())
@@ -42,8 +45,11 @@ impl DoubleClickAt {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for DoubleClickAt {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for DoubleClickAt {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .double_click_at(self.target.clone(), self.coord)

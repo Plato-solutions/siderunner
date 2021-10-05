@@ -24,8 +24,11 @@ impl WaitForElementVisible {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for WaitForElementVisible {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for WaitForElementVisible {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .wait_for_visible(self.target.clone(), self.timeout)
@@ -45,8 +48,11 @@ impl WaitForElementNotVisible {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for WaitForElementNotVisible {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for WaitForElementNotVisible {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .wait_for_not_visible(self.target.clone(), self.timeout)

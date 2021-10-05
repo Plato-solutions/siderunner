@@ -19,8 +19,11 @@ impl AssertChecked {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertChecked {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertChecked {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut element = runner.get_webdriver().find(self.target.clone()).await?;
         let checked = element.prop("checked").await?;
         match checked {
@@ -44,8 +47,11 @@ impl AssertNotChecked {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertNotChecked {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertNotChecked {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut element = runner.get_webdriver().find(self.target.clone()).await?;
         let checked = element.prop("checked").await?;
         match checked {

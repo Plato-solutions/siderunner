@@ -20,8 +20,11 @@ impl EditContent {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for EditContent {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for EditContent {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         // currently thirtyfour doesn't support set attribute
         let element = runner.get_webdriver().find(self.target.clone()).await?;
         element.send_keys(&self.text).await?;

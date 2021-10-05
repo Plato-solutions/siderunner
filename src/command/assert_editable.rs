@@ -19,8 +19,11 @@ impl AssertElementEditable {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertElementEditable {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertElementEditable {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut el = runner.get_webdriver().find(self.target.clone()).await?;
 
         let err = Err(RunnerErrorKind::AssertFailed {
@@ -50,8 +53,11 @@ impl AssertElementNotEditable {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertElementNotEditable {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertElementNotEditable {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         match AssertElementEditable::new(self.target.clone())
             .run(runner)
             .await

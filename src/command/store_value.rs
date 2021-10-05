@@ -21,8 +21,11 @@ impl StoreValue {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for StoreValue {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for StoreValue {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let value = runner
             .get_webdriver()
             .find(self.target.clone())

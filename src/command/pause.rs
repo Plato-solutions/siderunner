@@ -18,8 +18,11 @@ impl Pause {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for Pause {
-    async fn run(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for Pause {
+    async fn run<D>(&self, _: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         futures_timer::Delay::new(self.timeout).await;
         Ok(())
     }

@@ -59,9 +59,8 @@ pub use {
 };
 
 #[async_trait::async_trait]
-pub trait Command<D>
-where
-    D: Webdriver,
-{
-    async fn run(&self, runner: &mut Runner<D>) -> Result<(), RunnerErrorKind>;
+pub trait Command {
+    async fn run<D>(&self, runner: &mut Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver;
 }

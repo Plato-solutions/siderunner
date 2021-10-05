@@ -19,8 +19,11 @@ impl Click {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for Click {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for Click {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .find(self.target.clone())
@@ -44,8 +47,11 @@ impl ClickAt {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for ClickAt {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for ClickAt {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .click_at(self.target.clone(), self.coord)

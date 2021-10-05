@@ -19,8 +19,11 @@ impl AssertElementPresent {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertElementPresent {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertElementPresent {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let is_present = runner
             .get_webdriver()
             .find(self.target.clone())
@@ -50,8 +53,11 @@ impl AssertElementNotPresent {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertElementNotPresent {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertElementNotPresent {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let is_present = runner
             .get_webdriver()
             .find(self.target.clone())

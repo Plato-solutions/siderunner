@@ -20,8 +20,11 @@ impl AssertValue {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertValue {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertValue {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut element = runner.get_webdriver().find(self.target.clone()).await?;
         let value = element
             .prop("value")

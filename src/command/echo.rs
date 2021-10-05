@@ -16,8 +16,11 @@ impl Echo {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for Echo {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for Echo {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let message = runner.emit(&self.message);
         runner.echo(&message);
 

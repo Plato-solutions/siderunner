@@ -20,8 +20,11 @@ impl AssertSelectedLabel {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertSelectedLabel {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertSelectedLabel {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut el = runner.get_webdriver().find(self.target.clone()).await?;
         match el.prop("selectedIndex").await? {
             Some(index) => {

@@ -23,8 +23,11 @@ impl WaitForElementPresent {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for WaitForElementPresent {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for WaitForElementPresent {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .wait_for_present(self.target.clone(), self.timeout)
@@ -47,8 +50,11 @@ impl WaitForElementNotPresent {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for WaitForElementNotPresent {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for WaitForElementNotPresent {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .wait_for_not_present(self.target.clone(), self.timeout)

@@ -20,8 +20,11 @@ impl AssertSelectedValue {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertSelectedValue {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertSelectedValue {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut el = runner.get_webdriver().find(self.target.clone()).await?;
         let value = el.prop("value").await?.unwrap_or_else(String::new);
 
@@ -48,8 +51,11 @@ impl AssertNotSelectedValue {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertNotSelectedValue {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertNotSelectedValue {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut el = runner.get_webdriver().find(self.target.clone()).await?;
         let value = el.prop("value").await?.unwrap_or_else(String::new);
 

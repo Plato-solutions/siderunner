@@ -20,8 +20,11 @@ impl AssertText {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertText {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertText {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut element = runner.get_webdriver().find(self.target.clone()).await?;
         let element_text = element.text().await?;
         if element_text == self.text {
@@ -47,8 +50,11 @@ impl AssertNotText {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertNotText {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertNotText {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut element = runner.get_webdriver().find(self.target.clone()).await?;
         let element_text = element.text().await?;
         if element_text != self.text {

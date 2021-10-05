@@ -16,8 +16,11 @@ impl AnswerOnNextPrompt {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AnswerOnNextPrompt {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AnswerOnNextPrompt {
+    async fn run<D: Webdriver>(
+        &self,
+        runner: &mut crate::runner::Runner<D>,
+    ) -> Result<(), RunnerErrorKind> {
         js_lib::answer_on_next_prompt(runner, &self.answer).await
     }
 }

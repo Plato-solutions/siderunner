@@ -8,8 +8,11 @@ use crate::{error::RunnerErrorKind, webdriver::Webdriver};
 pub struct ChooseCancelOnNextConfirmation;
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for ChooseCancelOnNextConfirmation {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for ChooseCancelOnNextConfirmation {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         crate::js_lib::choose_cancel_on_next_confirmation(runner).await
     }
 }
@@ -17,8 +20,11 @@ impl<D: Webdriver> Command<D> for ChooseCancelOnNextConfirmation {
 pub struct ChooseOkOnNextConfirmation;
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for ChooseOkOnNextConfirmation {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for ChooseOkOnNextConfirmation {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         crate::js_lib::choose_ok_on_next_confirmation(runner).await
     }
 }
@@ -26,8 +32,11 @@ impl<D: Webdriver> Command<D> for ChooseOkOnNextConfirmation {
 pub struct ChooseCancelOnNextPrompt;
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for ChooseCancelOnNextPrompt {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for ChooseCancelOnNextPrompt {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         crate::js_lib::choose_cancel_on_next_prompt(runner).await
     }
 }

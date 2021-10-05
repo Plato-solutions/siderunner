@@ -16,8 +16,11 @@ impl AssertTitle {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for AssertTitle {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for AssertTitle {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let title = runner.get_webdriver().title().await?;
         if title == self.text {
             Ok(())

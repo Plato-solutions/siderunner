@@ -19,8 +19,11 @@ impl Check {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for Check {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for Check {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut e = runner.get_webdriver().find(self.target.clone()).await?;
         let selected = e.prop("selected").await?;
 
@@ -43,8 +46,11 @@ impl UnCheck {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for UnCheck {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for UnCheck {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut e = runner.get_webdriver().find(self.target.clone()).await?;
         let selected = e.prop("selected").await?;
 

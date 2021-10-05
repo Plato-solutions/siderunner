@@ -6,25 +6,44 @@ use serde_json::Value;
 
 use crate::{
     error::RunnerErrorKind, parser::Cmd, runner::Runner, validation::validate_conditions,
-    webdriver, Command, File, RunnerError,
+    webdriver, Command, File, RunnerError, Test,
 };
 
-pub struct Playground;
+pub struct Playground {
+    nodes: Vec<Node>,
+}
 
 impl Playground {
+    pub fn new(test: &Test) -> Result<Self, RunnerError> {
+        validate_conditions(&test.commands).map_err(|e| Self::add_error_context(e, test))?;
+        let nodes = build_nodes(&test.commands);
+        Ok(Self { nodes })
+    }
+
+    pub async fn run<D: webdriver::Webdriver>(
+        &self,
+        runner: &mut Runner<D>,
+        file: &File,
+        test: &Test,
+    ) -> Result<(), RunnerError> {
+        run_nodes(runner, &self.nodes, file)
+            .await
+            .map_err(|e| Self::add_error_context(e, test))
+    }
+
     pub async fn run_test<D: webdriver::Webdriver>(
         runner: &mut Runner<D>,
         file: &File,
         test_index: usize,
     ) -> Result<(), RunnerError> {
         let test = &file.tests[test_index];
-        let err_wrap = |mut e: RunnerError| {
-            e.test = Some(test.name.clone());
-            e
-        };
-        validate_conditions(&test.commands).map_err(err_wrap)?;
-        let nodes = build_nodes(&test.commands);
-        run_nodes(runner, nodes, file).await.map_err(err_wrap)
+        let p = Self::new(test)?;
+        p.run(runner, file, test).await
+    }
+
+    fn add_error_context(mut e: RunnerError, test: &Test) -> RunnerError {
+        e.test = Some(test.name.clone());
+        e
     }
 }
 
@@ -36,7 +55,7 @@ pub(crate) fn build_nodes(commands: &[Command]) -> Vec<Node> {
 
 async fn run_nodes<D: webdriver::Webdriver>(
     runner: &mut Runner<D>,
-    nodes: Vec<Node>,
+    nodes: &[Node],
     file: &File,
 ) -> Result<(), RunnerError> {
     if nodes.is_empty() {

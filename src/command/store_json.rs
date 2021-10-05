@@ -17,8 +17,11 @@ impl StoreJson {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for StoreJson {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for StoreJson {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let value = runner.emit(&self.value);
         let value = serde_json::from_str(&value).map_err(|_| {
             RunnerErrorKind::MismatchedType("Unexpected type of json object".to_string())

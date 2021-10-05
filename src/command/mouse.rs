@@ -19,8 +19,11 @@ impl MouseUp {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for MouseUp {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for MouseUp {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner.get_webdriver().mouse_up(self.target.clone()).await?;
         Ok(())
     }
@@ -37,8 +40,11 @@ impl MouseDown {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for MouseDown {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for MouseDown {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         runner
             .get_webdriver()
             .mouse_down(self.target.clone())

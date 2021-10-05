@@ -24,8 +24,11 @@ impl Select {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for Select {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for Select {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut select = runner.get_webdriver().find(self.target.clone()).await?;
         match &self.select_target {
             SelectLocator::Index(index) => {

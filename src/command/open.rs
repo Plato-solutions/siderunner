@@ -19,8 +19,11 @@ impl Open {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for Open {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for Open {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let url = runner.emit(&self.url);
         let url = build_url(&self.file_url, &url)?;
         let url = url.as_str();

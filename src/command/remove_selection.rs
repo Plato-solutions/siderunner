@@ -20,8 +20,11 @@ impl RemoveSelection {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for RemoveSelection {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for RemoveSelection {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let mut select = runner.get_webdriver().find(self.target.clone()).await?;
 
         let label = runner.emit(&self.label);

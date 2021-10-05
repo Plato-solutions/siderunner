@@ -17,8 +17,11 @@ impl StoreTitle {
 }
 
 #[async_trait::async_trait]
-impl<D: Webdriver> Command<D> for StoreTitle {
-    async fn run(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind> {
+impl Command for StoreTitle {
+    async fn run<D>(&self, runner: &mut crate::runner::Runner<D>) -> Result<(), RunnerErrorKind>
+    where
+        D: Webdriver,
+    {
         let value = runner.get_webdriver().title().await?;
 
         runner.save_value(self.variable.clone(), Value::String(value));
